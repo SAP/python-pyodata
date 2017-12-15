@@ -127,8 +127,9 @@ class Typ(object):
 
         return Typ.Types[name]
 
-
 class VariableDeclaration(Identifier):
+
+    MAXIMUM_LENGTH = -1
 
     def __init__(self, name, typ, nullable, max_length, precision):
         super(VariableDeclaration, self).__init__(name)
@@ -136,7 +137,14 @@ class VariableDeclaration(Identifier):
         self._typ = Typ.from_name(typ)
 
         self._nullable = bool(nullable)
-        self._max_length = int(max_length if max_length is not None else 0)
+
+        if not max_length:
+            self._max_length = None
+        elif max_length.upper() == 'MAX':
+            self._max_length = VariableDeclaration.MAXIMUM_LENGTH
+        else:
+            self._max_length = int(max_length)
+
         self._precision = precision
 
     @property

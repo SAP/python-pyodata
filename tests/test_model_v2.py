@@ -3,7 +3,7 @@
 
 import pytest
 
-from pyodata.v2.model import Edmx, Typ
+from pyodata.v2.model import Edmx, Typ, EntityTypeProperty
 
 
 def test_edmx(metadata):
@@ -34,6 +34,7 @@ def test_edmx(metadata):
     master_prop_data = master_entity.proprty('Data')
     assert master_prop_data.text_proprty.name == 'DataName'
     assert master_prop_data.visible
+    assert master_prop_data.max_length == EntityTypeProperty.MAXIMUM_LENGTH
 
     master_prop_data_vh = master_prop_data.value_helper
     assert str(master_prop_data_vh) == 'ValueHelper(MasterEntity/Data)'
@@ -84,7 +85,7 @@ def test_edmx(metadata):
     assert param.name == 'Param'
     assert param.typ.name == 'Edm.String'
     assert not param.nullable
-    assert param.max_length == 0
+    assert param.max_length is None
     assert param.mode == 'In'
     assert param.typ.traits.to_odata('Foo') == "'Foo'"
     assert param.typ.traits.from_odata("'Foo'") == 'Foo'
