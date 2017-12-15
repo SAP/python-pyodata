@@ -12,10 +12,6 @@ import enum
 import re
 from lxml import etree
 
-# I cannot remember how to use it.
-# import pdb
-# pdp.set_trace()
-
 
 class Identifier(object):
 
