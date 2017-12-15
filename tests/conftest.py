@@ -7,7 +7,7 @@ def metadata():
            <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
           </edmx:Reference>
          <edmx:DataServices m:DataServiceVersion="2.0">
-          <Schema xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV" xml:lang="en" sap:schema-version="1">
+          <Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV" xml:lang="en" sap:schema-version="1">
            <EntityType Name="MasterEntity" sap:content-version="1">
             <Key><PropertyRef Name="Key"/></Key>
             <Property Name="Key" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false"/>

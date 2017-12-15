@@ -909,6 +909,7 @@ def sap_attribute_get_bool(node, attr, default):
 
 
 NAMESPACES = {
+    'd': 'http://schemas.microsoft.com/ado/2007/08/dataservices',
     'm': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata',
     'sap': 'http://www.sap.com/Protocols/SAPData',
     'edmx': 'http://schemas.microsoft.com/ado/2007/06/edmx',
