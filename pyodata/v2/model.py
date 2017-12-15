@@ -6,6 +6,7 @@ Date:   2017-08-21
 """
 # pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines
 
+import itertools
 import StringIO
 import logging
 import enum
@@ -166,91 +167,167 @@ class VariableDeclaration(Identifier):
 
 class Schema(object):
 
-    def __init__(self, namespace):
+    class Declaration(object):
+
+        def __init__(self, namespace):
+            super(Schema.Declaration, self).__init__()
+
+            self.namespace = namespace
+
+            self.entity_types = dict()
+            self.entity_sets = dict()
+            self.function_imports = dict()
+
+        def list_entity_types(self):
+            return self.entity_types.values()
+
+        def list_entity_sets(self):
+            return self.entity_sets.values()
+
+        def list_function_imports(self):
+            return self.function_imports.values()
+
+    def __init__(self):
         super(Schema, self).__init__()
 
-        self._namespace = namespace
-        self._entity_types = dict()
-        self._entity_sets = dict()
-        self._function_imports = dict()
+        self._decls = dict()
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._namespace)
+        return "{0}({1})".format(self.__class__.__name__, ','.join(self.namespaces))
 
     @property
-    def namespace(self):
-        return self._namespace
+    def namespaces(self):
+        return self._decls.keys()
 
-    def entity_type(self, type_name):
-        return self._entity_types[type_name]
+    def entity_type(self, type_name, namespace=None):
+        if not namespace is None:
+            try:
+                return self._decls[namespace].entity_types[type_name]
+            except KeyError:
+                raise KeyError('EntityType {} does not exist in Schema Namespace {}'
+                               .format(type_name, namespace))
 
-    def entity_set(self, set_name):
-        return self._entity_sets[set_name]
+        for decl in self._decls.values():
+            try:
+                return decl.entity_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
+
+    @property
+    def entity_types(self):
+        return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in self._decls.values()))]
+
+    def entity_set(self, set_name, namespace=None):
+        if not namespace is None:
+            try:
+                return self._decls[namespace].entity_sets[set_name]
+            except KeyError:
+                raise KeyError('EntitySet {} does not exist in Schema Namespace {}'
+                               .format(set_name, namespace))
+
+        for decl in self._decls.values():
+            try:
+                return decl.entity_set[set_name]
+            except KeyError:
+                pass
+
+        raise KeyError('EntitySet {} does not exist in any Schema Namespace'.format(set_name))
 
     @property
     def entity_sets(self):
-        return self._entity_sets.values()
+        return [entity_set for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in self._decls.values()))]
 
-    def function_import(self, function_import):
-        return self._function_imports[function_import]
+    def function_import(self, function_import, namespace=None):
+        if not namespace is None:
+            try:
+                return self._decls[namespace].function_imports[function_import]
+            except KeyError:
+                raise KeyError('FunctionImport {} does not exist in Schema Namespace {}'
+                               .format(function_import, namespace))
+
+        for decl in self._decls.values():
+            try:
+                return decl.function_imports[function_import]
+            except KeyError:
+                pass
+
+        raise KeyError('FunctionImport {} does not exist in any Schema Namespace'.format(function_import))
+
+    @property
+    def function_imports(self):
+        return [func_import for func_import in itertools.chain(*(decl.list_function_imports() for decl in self._decls.values()))]
 
     @staticmethod
-    def from_etree(schema_node):
-        namespace = schema_node.get('Namespace')
-        schema = Schema(namespace)
+    # pylint: disable=too-many-locals,too-many-branches
+    def from_etree(schema_nodes):
+        schema = Schema()
 
-        for entity_type in schema_node.xpath('edm:EntityType',
-                                             namespaces=NAMESPACES):
-            etype = EntityType.from_etree(entity_type)
-            schema._entity_types[etype.name] = etype
+        # Parse Schema nodes by parts to get over the problem of not-yet known
+        # entity types referenced by entity sets, function imports and
+        # annotations.
 
-        for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet',
-                                            namespaces=NAMESPACES):
-            eset = EntitySet.from_etree(entity_set)
+        # First, process EntityType nodes. They have almost no dependencies on other elements.
+        for schema_node in schema_nodes:
+            namespace = schema_node.get('Namespace')
+            decl = Schema.Declaration(namespace)
+            schema._decls[namespace] = decl
 
-            if eset.namespace != namespace:
-                logging.warn('{0} not in the namespace {1}'
-                             .format(eset, namespace))
-                continue
-
-            eset.entity_type = schema.entity_type(eset.entity_type_name)
-            schema._entity_sets[eset.name] = eset
-
-        for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
+            for entity_type in schema_node.xpath('edm:EntityType',
                                                  namespaces=NAMESPACES):
-            efn = FunctionImport.from_etree(function_import)
-            schema._function_imports[efn.name] = efn
+                etype = EntityType.from_etree(entity_type)
+                decl.entity_types[etype.name] = etype
 
-        for annotation_group in schema_node.xpath('edm:Annotations',
-                                                  namespaces=ANNOTATION_NAMESPACES):
-            for annotation in ExternalAnnontation.from_etree(annotation_group):
-                if annotation.namespace != schema.namespace:
-                    logging.warn('{0} not in the namespace {1}'
-                                 .format(annotation, namespace))
-                    continue
+        # Then, proces EntitySet and FunctionImport nodes.
+        for schema_node in schema_nodes:
+            namespace = schema_node.get('Namespace')
+            decl = schema._decls[namespace]
 
-                if annotation.kind == Annotation.Kinds.ValueHelper:
+            for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet',
+                                                namespaces=NAMESPACES):
+                eset = EntitySet.from_etree(entity_set)
+                eset.entity_type = schema.entity_type(eset.entity_type_name,
+                                                      namespace=eset.entity_type_namespace)
+                decl.entity_sets[eset.name] = eset
 
-                    try:
-                        annotation.entity_set = schema.entity_set(
-                            annotation.collection_path)
-                    except KeyError as ex:
-                        raise RuntimeError('Entity Set {0} for {1} does not exist'
-                                           .format(annotation.collection_path, annotation))
+            for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
+                                                     namespaces=NAMESPACES):
+                efn = FunctionImport.from_etree(function_import)
+                decl.function_imports[efn.name] = efn
 
-                    try:
-                        vh_entity_type = schema.entity_type(
-                            annotation.proprty_entity_type_name)
-                    except KeyError as ex:
-                        raise RuntimeError('Target Entity Type {0} of {1} does not exist'.format(annotation.propty_entity_type_name, ex.message))
+        # Finally, process Annotation nodes when all Scheme nodes are completely processed.
+        for schema_node in schema_nodes:
+            for annotation_group in schema_node.xpath('edm:Annotations',
+                                                      namespaces=ANNOTATION_NAMESPACES):
+                for annotation in ExternalAnnontation.from_etree(annotation_group):
+                    if not annotation.element_namespace != schema.namespaces:
+                        logging.warn('{0} not in the namespaces {1}'
+                                     .format(annotation, ','.join(schema.namespaces)))
+                        continue
 
-                    try:
-                        target_proprty = vh_entity_type.proprty(annotation.proprty_name)
-                    except KeyError as ex:
-                        raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.propty_name, vh_entity_type, ex.message))
+                    if annotation.kind == Annotation.Kinds.ValueHelper:
 
-                    annotation.proprty = target_proprty
-                    target_proprty.value_helper = annotation
+                        try:
+                            annotation.entity_set = schema.entity_set(
+                                annotation.collection_path, namespace=annotation.element_namespace)
+                        except KeyError as ex:
+                            raise RuntimeError('Entity Set {0} for {1} does not exist'
+                                               .format(annotation.collection_path, annotation))
+
+                        try:
+                            vh_entity_type = schema.entity_type(
+                                annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
+                        except KeyError as ex:
+                            raise RuntimeError('Target Entity Type {0} of {1} does not exist'.format(annotation.propty_entity_type_name, ex.message))
+
+                        try:
+                            target_proprty = vh_entity_type.proprty(annotation.proprty_name)
+                        except KeyError as ex:
+                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.propty_name, vh_entity_type, ex.message))
+
+                        annotation.proprty = target_proprty
+                        target_proprty.value_helper = annotation
 
         return schema
 
@@ -330,7 +407,7 @@ class EntitySet(object):
         super(EntitySet, self).__init__()
 
         self._name = name
-        self._namespace = namespace
+        self._entity_type_namespace = namespace
         self._entity_type = None
         self._entity_type_name = entity_type_name
         self._creatable = creatable
@@ -346,8 +423,8 @@ class EntitySet(object):
         return self._name
 
     @property
-    def namespace(self):
-        return self._namespace
+    def entity_type_namespace(self):
+        return self._entity_type_namespace
 
     @property
     def entity_type_name(self):
@@ -546,15 +623,15 @@ class Annotation(object):
         super(Annotation, self).__init__()
 
         self._kind = kind
-        self._namespace, self._element = target.split('.')
+        self._element_namespace, self._element = target.split('.')
         self._qualifier = qualifier
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, self.target)
 
     @property
-    def namespace(self):
-        return self._namespace
+    def element_namespace(self):
+        return self._element_namespace
 
     @property
     def element(self):
@@ -562,7 +639,7 @@ class Annotation(object):
 
     @property
     def target(self):
-        return '{0}.{1}'.format(self._namespace, self._element)
+        return '{0}.{1}'.format(self._element_namespace, self._element)
 
     @property
     def kind(self):
@@ -960,7 +1037,7 @@ class Edmx(object):
         edmx = etree.parse(mdf)
         edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema',
                                  namespaces=NAMESPACES)
-        schema = Schema.from_etree(edm_schemas[0])
+        schema = Schema.from_etree(edm_schemas)
         return schema
 
 

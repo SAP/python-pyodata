@@ -10,7 +10,11 @@ def test_edmx(metadata):
     """Test Edmx class"""
 
     schema = Edmx.parse(metadata)
-    assert schema.namespace == 'EXAMPLE_SRV'
+    assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
+
+    assert set((entity_type.name for entity_type in schema.entity_types)) == {'MasterEntity', 'DataEntity', 'AnnotationTest', 'TemperatureMeasurement'}
+    assert set((entity_set.name for entity_set in schema.entity_sets)) == {'MasterEntities', 'DataValueHelp', 'TemperatureMeasurements'}
+    assert set((func_import.name for func_import in schema.function_imports)) == {'retrieve'}
 
     master_entity = schema.entity_type('MasterEntity')
     assert str(master_entity) == 'EntityType(MasterEntity)'

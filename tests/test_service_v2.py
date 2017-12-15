@@ -25,7 +25,7 @@ def http_server(request):
 @pytest.fixture
 def service(http_server, metadata):
     schema = pyodata.v2.model.schema_from_xml(metadata)
-    return pyodata.v2.service.Service('{0}/{1}'.format(http_server.url, schema.namespace), schema, requests)
+    return pyodata.v2.service.Service(http_server.url, schema, requests)
 
 
 def test_get_entity_property(service):

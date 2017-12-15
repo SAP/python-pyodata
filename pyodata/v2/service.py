@@ -129,7 +129,7 @@ class EntityContainer(object):
         try:
             return self._entity_sets[name]
         except KeyError:
-            raise AttributeError('EntitySet {0} not defined'.format(name))
+            raise AttributeError('EntitySet {0} not defined in {1}.'.format(name, ','.join(self._entity_sets.keys())))
 
 
 class Service(object):
