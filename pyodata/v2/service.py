@@ -24,7 +24,8 @@ class ODataHttpRequest(object):
     def execute(self):
         """Fetches HTTP response and returns processed result"""
 
-        return self._handler(self._conn.get(self._url))
+        response = self._conn.get(self._url, headers={'Accept': 'application/json'})
+        return self._handler(response)
 
 
 class EntityProxy(object):
