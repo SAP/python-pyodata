@@ -1,34 +1,32 @@
+import responses
 import requests
 import pytest
-from pytest_localserver.http import WSGIServer
-
 import pyodata.v2.model
 import pyodata.v2.service
 
 
-def odata_service_stub(environ, start_response):
-    status = '200 OK'
-    response_headers = [('Content-type', 'application/json')]
-    start_response(status, response_headers)
-    return ['{"d": {"Key": "\'12345\'"}}\n']
-
-
 @pytest.fixture
-def http_server(request):
-    """Defines the testserver funcarg"""
-    server = WSGIServer(application=odata_service_stub)
-    server.start()
-    request.addfinalizer(server.stop)
-    return server
-
-
-@pytest.fixture
-def service(http_server, metadata):
+def service(metadata):
+    """Service fixture"""
     schema = pyodata.v2.model.schema_from_xml(metadata)
-    return pyodata.v2.service.Service(http_server.url, schema, requests)
+    assert len(schema.namespaces) > 0
+    return pyodata.v2.service.Service(
+        'http://odatapy.example.com/{0}'.format(schema.namespaces[0]),
+        schema,
+        requests)
 
 
+@responses.activate
 def test_get_entity_property(service):
+    """Basic test on getting single property of selected entity"""
+
+    responses.add(
+        responses.GET,
+        "{0}/MasterEntities(Key='12345')/Key".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
     assert service.entity_sets.MasterEntities.get_entity('12345').Key == '12345'
 
 

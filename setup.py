@@ -41,8 +41,8 @@ setup(
         "setuptools-scm>=1.15.6",
         "funcsigs>=1.0.2",
         "requests==2.13.0",
+        "responses>=0.8.1",
         "pytest>=2.7.0",
-        "pytest-localserver>=0.4.1",
     ],
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 2 - Pre-Alpha',
