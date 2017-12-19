@@ -21,7 +21,7 @@ def get_version():
         return version.readline().strip()
 
 setup(
-    name="PyOData",
+    name="pyodata",
     version=get_version(),
     license="Apache License Version 2.0",
     url="https://github.wdf.sap.corp/I335255/PyOData",
