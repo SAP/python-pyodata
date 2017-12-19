@@ -148,6 +148,14 @@ class Service(object):
 
         return self._schema
 
+
+    @property
+    def url(self):
+        """Service url"""
+
+        return self._url
+
+
     @property
     def entity_sets(self):
         """EntitySet proxy"""
