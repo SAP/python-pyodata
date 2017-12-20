@@ -483,9 +483,10 @@ class EntitySet(object):
 
 class EntityTypeProperty(VariableDeclaration):
 
+    # pylint: disable=too-many-locals
     def __init__(self, name, typ, nullable, max_length, precision, uncode,
                  label, creatable, updatable, sortable, filterable, text,
-                 visible, display_format):
+                 visible, display_format, value_list):
         super(EntityTypeProperty, self).__init__(name, typ, nullable,
                                                  max_length, precision)
 
@@ -500,6 +501,7 @@ class EntityTypeProperty(VariableDeclaration):
         self._text_proprty_name = text
         self._visible = visible
         self._display_format = display_format
+        self._value_list = value_list
 
         # Lazy loading
         self._text_proprty = None
@@ -577,6 +579,10 @@ class EntityTypeProperty(VariableDeclaration):
     def value_helper(self):
         return self._value_helper
 
+    @property
+    def value_list(self):
+        return self._value_list
+
     @value_helper.setter
     def value_helper(self, value):
         # Value Help property must not be changed
@@ -612,7 +618,9 @@ class EntityTypeProperty(VariableDeclaration):
             sap_attribute_get_bool(entity_type_property_node,
                                    'visible', True),
             sap_attribute_get_string(entity_type_property_node,
-                                     'display-format'))
+                                     'display-format'),
+            sap_attribute_get_string(entity_type_property_node,
+                                     'value-list'),)
 
 
 class Annotation(object):

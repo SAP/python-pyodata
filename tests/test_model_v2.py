@@ -34,6 +34,7 @@ def test_edmx(metadata):
     assert str(master_prop_key) == 'EntityTypeProperty(Key)'
     assert str(master_prop_key.entity_type) == 'EntityType(MasterEntity)'
     assert master_prop_key.value_helper is None
+    assert master_prop_key.value_list == 'standard'
 
     master_prop_data = master_entity.proprty('Data')
     assert master_prop_data.text_proprty.name == 'DataName'
