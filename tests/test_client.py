@@ -40,3 +40,19 @@ def test_create_service(metadata):
     client = pyodata.Client(SERVICE_URL + '/', requests)
 
     assert isinstance(client, pyodata.v2.service.Service)
+
+
+@responses.activate
+def test_metadata_not_reachable():
+    """Check handling of not reachable service metadata"""
+
+    responses.add(
+        responses.GET,
+        "{0}/$metadata".format(SERVICE_URL),
+        headers={'Content-type': 'text/xml'},
+        status=404)
+
+    with pytest.raises(HttpError) as e_info:
+        pyodata.Client(SERVICE_URL, requests)
+
+    assert str(e_info.value).startswith('Metadata request failed')
