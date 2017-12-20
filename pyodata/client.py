@@ -21,8 +21,7 @@ class Client(object):
         if odata_version == Client.ODATA_VERSION_2:
 
             # sanitize url
-            if not url.endswith('/'):
-                url = url + '/'
+            url = url.rstrip('/') + '/'
 
             # download metadata
             logger.info('Fetching metadata')
