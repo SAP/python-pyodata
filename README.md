@@ -10,15 +10,13 @@ OData client Python module
 
 ```python
 import requests
+import pyodata
 
-import pyodata.v2.model
-import pyodata.v2.service
+SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
 
-service_url = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
-metadata = requests.get(service_url + '$metadata').content
-schema = pyodata.v2.model.schema_from_xml(metadata)
-service = pyodata.v2.service.Service(service_url, schema, requests)
+# Create instance of OData consumer
+client = pyodata.Client(SERVICE_URL, requests.Session())
 
-employee1 = service.entity_sets.Employees.get_entity(1)
+employee1 = client.entity_sets.Employees.get_entity(1)
 print employee1.FirstName
 ```
