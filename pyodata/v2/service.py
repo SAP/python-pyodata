@@ -2,15 +2,7 @@
 
 from functools import partial
 import requests
-
-
-class HttpError(RuntimeError):
-    """Unexpected HTTP Status Codes"""
-
-    def __init__(self, message, response):
-        super(HttpError, self).__init__(message)
-
-        self.response = response
+from pyodata.exceptions import HttpError
 
 
 class ODataHttpRequest(object):

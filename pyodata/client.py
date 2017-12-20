@@ -3,6 +3,7 @@
 import logging
 import pyodata.v2.model
 import pyodata.v2.service
+from pyodata.exceptions import PyODataException, HttpError
 
 
 class Client(object):
@@ -28,7 +29,7 @@ class Client(object):
             resp = connection.get(url + '$metadata')
 
             if resp.status_code != 200:
-                raise Exception('Metadata request failed, status code: %d, body\n%s', resp.status_code, resp.content)
+                raise HttpError('Metadata request failed, status code: {}, body:\n{}'.format(resp.status_code, resp.content), resp)
 
             # create model instance from received metadata
             logger.info('Creating OData Schema (version: %d)', odata_version)
@@ -40,4 +41,4 @@ class Client(object):
 
             return service
 
-        raise Exception('No implementation for selected odata version %s', odata_version)
+        raise PyODataException('No implementation for selected odata version {}'.format(odata_version))

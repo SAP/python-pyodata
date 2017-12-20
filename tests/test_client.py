@@ -1,8 +1,11 @@
+"""PyOData Client tests"""
+
 import responses
 import requests
 import pytest
 import pyodata
 import pyodata.v2.service
+from pyodata.exceptions import PyODataException, HttpError
 
 SERVICE_URL = 'http://example.com'
 
@@ -11,8 +14,10 @@ SERVICE_URL = 'http://example.com'
 def test_invalid_odata_version():
     """Check handling of request for invalid OData version implementation"""
 
-    with pytest.raises(Exception, match=r'No implementation for selected odata version.*'):
+    with pytest.raises(PyODataException) as e_info:
         pyodata.Client(SERVICE_URL, requests, 'INVALID VERSION')
+
+    assert str(e_info.value).startswith('No implementation for selected odata version')
 
 
 @responses.activate
