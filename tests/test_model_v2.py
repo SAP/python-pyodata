@@ -105,11 +105,29 @@ def test_traits():
     assert trait_binary.traits.to_odata('bincontent') == 'bincontent'
     assert trait_binary.traits.from_odata('some bin content') == 'some bin content'
 
+    # string
     trait_string = Typ.from_name('Edm.String')
     assert repr(trait_string.traits) == 'EdmStringTypTraits'
     assert trait_string.traits.to_odata('Foo Foo') == "'Foo Foo'"
     assert trait_string.traits.from_odata("'Alice Bob'") == 'Alice Bob'
 
+    # integers
+    trait = Typ.from_name('Edm.Int16')
+    assert repr(trait.traits) == 'EdmIntTypTraits'
+    assert trait.traits.to_odata(23) == '23'
+    assert trait.traits.from_odata('345') == 345
+
+    trait = Typ.from_name('Edm.Int32')
+    assert repr(trait.traits) == 'EdmIntTypTraits'
+    assert trait.traits.to_odata(23) == '23'
+    assert trait.traits.from_odata('345') == 345
+
+    trait = Typ.from_name('Edm.Int64')
+    assert repr(trait.traits) == 'EdmIntTypTraits'
+    assert trait.traits.to_odata(23) == '23'
+    assert trait.traits.from_odata('345') == 345
+
+    # GUIDs
     trait_guid = Typ.from_name('Edm.Guid')
     assert repr(trait_guid.traits) == 'EdmPrefixedTypTraits'
     assert trait_guid.traits.to_odata('000-0000') == "guid'000-0000'"

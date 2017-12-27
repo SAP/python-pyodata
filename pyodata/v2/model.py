@@ -75,6 +75,17 @@ class EdmStringTypTraits(TypTraits):
         return value.strip('\'')
 
 
+class EdmIntTypTraits(TypTraits):
+    """All Edm Integer traits"""
+
+    # pylint: disable=no-self-use
+    def to_odata(self, value):
+        return '%d' % (value)
+
+    # pylint: disable=no-self-use
+    def from_odata(self, value):
+        return int(value)
+
 class Typ(object):
 
     Types = None
@@ -116,9 +127,9 @@ class Typ(object):
                 'Edm.Single': Typ('Edm.Single', '0.0f'),
                 'Edm.Guid': Typ('Edm.Guid',
                                 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')),
-                'Edm.Int16': Typ('Edm.Int16', '0'),
-                'Edm.Int32': Typ('Edm.Int32', '0'),
-                'Edm.Int64': Typ('Edm.Int64', '0L'),
+                'Edm.Int16': Typ('Edm.Int16', '0', EdmIntTypTraits()),
+                'Edm.Int32': Typ('Edm.Int32', '0', EdmIntTypTraits()),
+                'Edm.Int64': Typ('Edm.Int64', '0L', EdmIntTypTraits()),
                 'Edm.SByte': Typ('Edm.SByte', '0'),
                 'Edm.String': Typ('Edm.String', '\'\'', EdmStringTypTraits()),
                 'Edm.Time': Typ('Edm.Time', 'time\'PT00H00M\''),
