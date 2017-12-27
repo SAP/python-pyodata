@@ -40,7 +40,7 @@ class TypTraits(object):
         return value
 
     # pylint: disable=no-self-use
-    def from_odatat(self, value):
+    def from_odata(self, value):
         return value
 
 

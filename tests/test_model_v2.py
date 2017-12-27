@@ -99,6 +99,12 @@ def test_edmx(metadata):
 def test_traits():
     """Test individual Traits"""
 
+    # generic
+    trait_binary = Typ.from_name('Edm.Binary')
+    assert repr(trait_binary.traits) == 'TypTraits'
+    assert trait_binary.traits.to_odata('bincontent') == 'bincontent'
+    assert trait_binary.traits.from_odata('some bin content') == 'some bin content'
+
     trait_string = Typ.from_name('Edm.String')
     assert repr(trait_string.traits) == 'EdmStringTypTraits'
     assert trait_string.traits.to_odata('Foo Foo') == "'Foo Foo'"
