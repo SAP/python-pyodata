@@ -86,6 +86,7 @@ class EdmIntTypTraits(TypTraits):
     def from_odata(self, value):
         return int(value)
 
+
 class Typ(object):
 
     Types = None
@@ -138,6 +139,7 @@ class Typ(object):
             }
 
         return Typ.Types[name]
+
 
 class VariableDeclaration(Identifier):
 
