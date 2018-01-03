@@ -2,6 +2,7 @@
 
 import logging
 from functools import partial
+import json
 import requests
 from pyodata.exceptions import HttpError, PyODataException
 LOGGER_NAME = 'pyodata.service'
@@ -103,6 +104,14 @@ class ODataHttpRequest(object):
         # pylint: disable=no-self-use
         return {}
 
+    def _get_method(self):
+        # pylint: disable=no-self-use
+        return 'GET'
+
+    def _get_body(self):
+        # pylint: disable=no-self-use
+        return None
+
     def execute(self):
         """Fetches HTTP response and returns processed result
 
@@ -112,11 +121,15 @@ class ODataHttpRequest(object):
            Fetches HTTP response and returns processed result"""
 
         url = self._url.rstrip('/') + '/' + self._get_path()
+        body = self._get_body()
 
-        self._logger.info('execute GET request to %s', url)
+        self._logger.info('execute %s request to %s', self._get_method(), url)
         self._logger.info('  query params %s', self._get_query_params())
+        if body:
+            self._logger.info('  body: %s', body)
 
-        response = self._conn.get(
+        response = self._conn.request(
+            self._get_method(),
             url,
             headers={'Accept': 'application/json'},
             params=self._get_query_params())
@@ -172,6 +185,57 @@ class EntityGetRequest(ODataHttpRequest):
         return qparams
 
 
+class EntityCreateRequest(ODataHttpRequest):
+    """Used for creating entities (POST operations of a single entity)
+
+       Call execute() to send the create-request to the OData service
+       and get the newly created entity."""
+
+    def __init__(self, url, connection, handler, entity_set):
+        super(EntityCreateRequest, self).__init__(url, connection, handler)
+        self._logger = logging.getLogger(LOGGER_NAME)
+        self._entity_set = entity_set
+        self._entity_type = entity_set.entity_type
+
+        self._values = {}
+
+        # get all properties declared by entity type
+        self._type_props = self._entity_type.proprties()
+
+        self._logger.info('New instance of EntityCreateRequest for entity type: %s', self._entity_type.name)
+
+    def _get_path(self):
+        return self._entity_set.name
+
+    def _get_method(self):
+        # pylint: disable=no-self-use
+        return 'POST'
+
+    def _get_body(self):
+        # pylint: disable=no-self-use
+        body = {}
+        for key, val in self._values.iteritems():
+            body[key] = val
+        return json.dumps(body)
+
+    def set(self, **kwargs):
+        """Set properties on the new entity."""
+        # TODO: consider use of attset for setting properties
+
+        self._logger.info(kwargs)
+
+        for key, val in kwargs.iteritems():
+            try:
+                self._entity_type.proprty(key)
+            except KeyError:
+                raise PyODataException('Property {} is not declared in {} entity type'.format(
+                    key, self._entity_type.name))
+
+            self._values[key] = val
+
+        return self
+
+
 class QueryRequest(ODataHttpRequest):
     """INTERFACE A consumer-side query-request builder. Call execute() to issue the request."""
 
@@ -187,11 +251,8 @@ class QueryRequest(ODataHttpRequest):
         self._filter = None
         self._select = None
         self._expand = None
-
         self._last_segment = last_segment
-
         self._customs = {}    # string -> string hash
-
         self._logger.info('New instance of QueryRequest for last segment: %s', self._last_segment)
 
     def custom(self, name, value):
@@ -211,10 +272,10 @@ class QueryRequest(ODataHttpRequest):
         self._filter = filter_val
         return self
 
-    def nav(self, key_value, nav_property):
-        """Navigates to a referenced collection using a collection-valued navigation property."""
-        # returns QueryRequest
-        raise NotImplementedError
+    # def nav(self, key_value, nav_property):
+    #    """Navigates to a referenced collection using a collection-valued navigation property."""
+    #    # returns QueryRequest
+    #    raise NotImplementedError
 
     def order_by(self, order_by):
         """Sets the ordering expressions."""
@@ -258,13 +319,42 @@ class QueryRequest(ODataHttpRequest):
         if self._select is not None:
             qparams['$select'] = self._select
 
-        for key, val in self._customs:
+        for key, val in self._customs.iteritems():
             qparams[key] = val
 
         if self._expand is not None:
             qparams['$expand'] = self._expand
 
         return qparams
+
+
+class FunctionRequest(QueryRequest):
+    """Function import request (Service call)"""
+
+    def __init__(self, url, connection, handler, function_import):
+        super(FunctionRequest, self).__init__(url, connection, handler, function_import.name)
+
+        self._function_import = function_import
+
+        self._logger.debug('New instance of FunctionRequest for %s', self._function_import.name)
+
+    def parameter(self, name, value):
+        '''Sets value of parameter.'''
+
+        # check if param is valid (is declared in metadata)
+        try:
+            param = self._function_import.get_parameter(name)
+
+            # add parameter as custom query argument
+            self.custom(param.name, param.typ.traits.to_odata(value))
+        except KeyError:
+            raise PyODataException('Function import {0} does not have pararmeter {1}'
+                                   .format(self._function_import.name, name))
+
+        return self
+
+    def _get_method(self):
+        return self._function_import.http_method
 
 
 class EntityProxy(object):
@@ -355,7 +445,7 @@ class EntitySetProxy(object):
 
         self._logger.info('New entity set proxy instance for %s', self._name)
 
-    def get_entity(self, key, **args):
+    def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""
 
         def get_entity_handler(response):
@@ -405,6 +495,26 @@ class EntitySetProxy(object):
             get_entities_handler,
             self._name)
 
+    def create_entity(self):
+        """Creates a new entity in the given entity-set."""
+
+        def create_entity_handler(response):
+            """Gets newly created entity encoded in HTTP Response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
+                                .format(self._name, response.status_code), response)
+
+            entity_props = response.json()['d']
+
+            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
+
+        return EntityCreateRequest(
+            self._service.url,
+            self._service.connection,
+            create_entity_handler,
+            self._entity_set)
+
 
 # pylint: disable=too-few-public-methods
 class EntityContainer(object):
@@ -425,6 +535,47 @@ class EntityContainer(object):
             raise AttributeError('EntitySet {0} not defined in {1}.'.format(name, ','.join(self._entity_sets.keys())))
 
 
+class FunctionContainer(object):
+    """Set of Function proxies
+
+       Call a server-side functions (also known as a service operation).
+    """
+
+    def __init__(self, service):
+        self._service = service
+
+        self._functions = dict()
+
+        for fimport in self._service.schema.function_imports:
+            self._functions[fimport.name] = fimport
+
+    def __getattr__(self, name):
+
+        if name not in self._functions:
+            raise AttributeError('Function {0} not defined in {1}.'.format(name, ','.join(self._functions.keys())))
+
+        fimport = self._service.schema.function_import(name)
+
+        def function_import_handler(response, fimport):
+            """Get function call response from HTTP Response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('Function import call failed with status code {0}'
+                                .format(response.status_code), response)
+
+            # entities = response.json()['d']['results']
+
+            entity_props = response.json()['d']
+
+            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
+
+        return FunctionRequest(
+            self._service.url,
+            self._service.connection,
+            partial(function_import_handler, fimport),
+            fimport)
+
+
 class Service(object):
     """OData service"""
 
@@ -433,6 +584,7 @@ class Service(object):
         self._schema = schema
         self._connection = connection
         self._entity_container = EntityContainer(self)
+        self._function_container = FunctionContainer(self)
 
     @property
     def schema(self):
@@ -457,6 +609,12 @@ class Service(object):
         """EntitySet proxy"""
 
         return self._entity_container
+
+    @property
+    def functions(self):
+        """Functions proxy"""
+
+        return self._function_container
 
     def http_get(self, path, connection=None):
         """HTTP GET response for the passed path in the service"""

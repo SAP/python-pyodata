@@ -130,14 +130,14 @@ def test_traits():
     assert trait_string.traits.from_odata("'Alice Bob'") == 'Alice Bob'
 
     # bool
-    trait = Typ.from_name('Edm.Boolean')
-    assert repr(trait.traits) == 'EdmBooleanTypTraits'
-    assert trait.traits.to_odata(True) == 'true'
-    assert trait.traits.from_odata('true') is True
-    assert trait.traits.to_odata(False) == 'false'
-    assert trait.traits.from_odata('false') is False
-    assert trait.traits.to_odata(1) == 'true'
-    assert trait.traits.to_odata(0) == 'false'
+    typ = Types.from_name('Edm.Boolean')
+    assert repr(typ.traits) == 'EdmBooleanTypTraits'
+    assert typ.traits.to_odata(True) == 'true'
+    assert typ.traits.from_odata('true') is True
+    assert typ.traits.to_odata(False) == 'false'
+    assert typ.traits.from_odata('false') is False
+    assert typ.traits.to_odata(1) == 'true'
+    assert typ.traits.to_odata(0) == 'false'
 
     # integers
     trait = Types.from_name('Edm.Int16')
