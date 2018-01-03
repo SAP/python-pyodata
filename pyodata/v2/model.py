@@ -51,7 +51,7 @@ class Types(object):
 
             Types.register_type(Typ('Null', 'null'))
             Types.register_type(Typ('Edm.Binary', 'binary\'\''))
-            Types.register_type(Typ('Edm.Boolean', 'false'))
+            Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
             Types.register_type(Typ('Edm.Byte', '0'))
             Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\''))
             Types.register_type(Typ('Edm.Decimal', '0.0M'))
@@ -190,6 +190,18 @@ class EdmStringTypTraits(TypTraits):
     # pylint: disable=no-self-use
     def from_odata(self, value):
         return value.strip('\'')
+
+
+class EdmBooleanTypTraits(TypTraits):
+    """Edm.Boolean traits"""
+
+    # pylint: disable=no-self-use
+    def to_odata(self, value):
+        return 'true' if value else 'false'
+
+    # pylint: disable=no-self-use
+    def from_odata(self, value):
+        return value == 'true'
 
 
 class EdmIntTypTraits(TypTraits):
