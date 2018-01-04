@@ -213,7 +213,7 @@ class Schema(object):
         return self._decls.keys()
 
     def entity_type(self, type_name, namespace=None):
-        if not namespace is None:
+        if namespace is not None:
             try:
                 return self._decls[namespace].entity_types[type_name]
             except KeyError:
@@ -233,7 +233,7 @@ class Schema(object):
         return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in self._decls.values()))]
 
     def entity_set(self, set_name, namespace=None):
-        if not namespace is None:
+        if namespace is not None:
             try:
                 return self._decls[namespace].entity_sets[set_name]
             except KeyError:
@@ -253,7 +253,7 @@ class Schema(object):
         return [entity_set for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in self._decls.values()))]
 
     def function_import(self, function_import, namespace=None):
-        if not namespace is None:
+        if namespace is not None:
             try:
                 return self._decls[namespace].function_imports[function_import]
             except KeyError:

@@ -1,7 +1,14 @@
+"""PyTest Fixtures"""
+
 import pytest
+
 
 @pytest.fixture
 def metadata():
+    """Example OData metadata"""
+
+    # pylint: disable=line-too-long
+
     return """<edmx:Edmx xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData" Version="1.0">
           <edmx:Reference xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Uri="https://example.sap.corp/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
            <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
