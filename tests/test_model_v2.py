@@ -3,7 +3,9 @@
 
 import pytest
 
-from pyodata.v2.model import Edmx, Typ, EntityTypeProperty
+from pyodata.v2.model import Edmx, Typ, EntityTypeProperty, Types, EdmComplexTypTraits, EntityType, EdmComplexTypeSerializer
+
+from pyodata.exceptions import PyODataException
 
 
 def test_edmx(metadata):
@@ -14,7 +16,6 @@ def test_edmx(metadata):
 
     assert set((entity_type.name for entity_type in schema.entity_types)) == {'MasterEntity', 'DataEntity', 'AnnotationTest', 'TemperatureMeasurement'}
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {'MasterEntities', 'DataValueHelp', 'TemperatureMeasurements'}
-    assert set((func_import.name for func_import in schema.function_imports)) == {'retrieve'}
 
     master_entity = schema.entity_type('MasterEntity')
     assert str(master_entity) == 'EntityType(MasterEntity)'
@@ -78,6 +79,13 @@ def test_edmx(metadata):
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
 
+
+def test_edmx_function_imports(metadata):
+    """Test parsing of function imports"""
+
+    schema = Edmx.parse(metadata)
+    assert set((func_import.name for func_import in schema.function_imports)) == {'retrieve', 'get_max'}
+
     function_import = schema.function_import('retrieve')
     assert str(function_import) == 'FunctionImport(retrieve)'
     assert function_import.name == 'retrieve'
@@ -95,43 +103,132 @@ def test_edmx(metadata):
     assert param.typ.traits.to_odata('Foo') == "'Foo'"
     assert param.typ.traits.from_odata("'Foo'") == 'Foo'
 
+    # function import that returns entity
+    function_import = schema.function_import('get_max')
+    assert str(function_import) == 'FunctionImport(get_max)'
+    assert function_import.name == 'get_max'
+    assert function_import.return_type.name == 'TemperatureMeasurement'
+    assert function_import.return_type.kind == Typ.Kinds.Complex
+    assert repr(function_import.return_type.traits) == 'EdmComplexTypTraits'
+    assert function_import.entity_set_name == 'TemperatureMeasurements'
+    assert function_import.http_method == 'GET'
+
 
 def test_traits():
     """Test individual Traits"""
 
     # generic
-    trait_binary = Typ.from_name('Edm.Binary')
+    trait_binary = Types.from_name('Edm.Binary')
     assert repr(trait_binary.traits) == 'TypTraits'
     assert trait_binary.traits.to_odata('bincontent') == 'bincontent'
     assert trait_binary.traits.from_odata('some bin content') == 'some bin content'
 
     # string
-    trait_string = Typ.from_name('Edm.String')
+    trait_string = Types.from_name('Edm.String')
     assert repr(trait_string.traits) == 'EdmStringTypTraits'
     assert trait_string.traits.to_odata('Foo Foo') == "'Foo Foo'"
     assert trait_string.traits.from_odata("'Alice Bob'") == 'Alice Bob'
 
     # integers
-    trait = Typ.from_name('Edm.Int16')
+    trait = Types.from_name('Edm.Int16')
     assert repr(trait.traits) == 'EdmIntTypTraits'
     assert trait.traits.to_odata(23) == '23'
     assert trait.traits.from_odata('345') == 345
 
-    trait = Typ.from_name('Edm.Int32')
+    trait = Types.from_name('Edm.Int32')
     assert repr(trait.traits) == 'EdmIntTypTraits'
     assert trait.traits.to_odata(23) == '23'
     assert trait.traits.from_odata('345') == 345
 
-    trait = Typ.from_name('Edm.Int64')
+    trait = Types.from_name('Edm.Int64')
     assert repr(trait.traits) == 'EdmIntTypTraits'
     assert trait.traits.to_odata(23) == '23'
     assert trait.traits.from_odata('345') == 345
 
     # GUIDs
-    trait_guid = Typ.from_name('Edm.Guid')
+    trait_guid = Types.from_name('Edm.Guid')
     assert repr(trait_guid.traits) == 'EdmPrefixedTypTraits'
     assert trait_guid.traits.to_odata('000-0000') == "guid'000-0000'"
     assert trait_guid.traits.from_odata("guid'1234-56'") == '1234-56'
-
     with pytest.raises(RuntimeError, match=r'Malformed.*'):
         trait_guid.traits.from_odata("'1234-56'")
+
+
+def test_traits_collections():
+    """Test collection traits"""
+
+    typ = Types.from_name('Collection(Edm.Int32)')
+    assert typ.traits.from_odata(['23', '34']) == [23, 34]
+
+    typ = Types.from_name('Collection(Edm.String)')
+    assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
+
+
+def test_types():
+    """Test Types repository"""
+
+    # New complex type (entity)
+    complex_type = Typ('SomeEntity', None, EdmComplexTypTraits(), kind=Typ.Kinds.Complex)
+    assert repr(complex_type) == 'SomeEntity'
+    assert complex_type.kind is Typ.Kinds.Complex
+    assert not complex_type.is_collection
+
+    # generic
+    for type_name in ['Edm.Binary', 'Edm.String', 'Edm.Int16', 'Edm.Guid']:
+        typ = Types.from_name(type_name)
+        assert typ.kind == Typ.Kinds.Primitive
+        assert not typ.is_collection
+
+    # Collection of primitive types
+    typ = Types.from_name('Collection(Edm.String)')
+    assert repr(typ) == 'Collection(Edm.String)'
+    assert typ.kind is Typ.Kinds.Primitive
+    assert typ.is_collection
+    assert typ.name == 'Edm.String'
+
+    # Not existing complex type (entity)
+    with pytest.raises(PyODataException) as e_info:
+        typ = Types.from_name('SomeEntity')
+    assert str(e_info.value).startswith('Neither primitive types')
+
+    # register our complex type
+    Types.register_type(complex_type)
+
+    typ = Types.from_name('SomeEntity')
+    assert typ.kind is Typ.Kinds.Complex
+    assert not typ.is_collection
+    assert typ.name == 'SomeEntity'
+
+    # Collection of complex types
+    typ = Types.from_name('Collection(SomeEntity)')
+    assert repr(typ) == 'Collection(SomeEntity)'
+    assert typ.kind is Typ.Kinds.Complex
+    assert typ.is_collection
+    assert typ.name == 'SomeEntity'
+
+
+def test_complex_serializer(metadata):
+    """Test de/serializer of complex edm types"""
+
+    schema = Edmx.parse(metadata)
+
+    # encode without edm type information
+    with pytest.raises(PyODataException) as e_info:
+        EdmComplexTypeSerializer().to_odata(None, 'something')
+    assert str(e_info.value).startswith('Cannot encode value something')
+
+    # decode without edm type information
+    with pytest.raises(PyODataException) as e_info:
+        EdmComplexTypeSerializer().from_odata(None, 'something')
+    assert str(e_info.value).startswith('Cannot decode value something')
+
+    # entity without properties
+    entity_type = EntityType('Box', 'Box', False)
+    srl = EdmComplexTypeSerializer()
+    assert srl.to_odata(entity_type, 'something') == {}
+    assert srl.from_odata(entity_type, 'something') == {}
+
+    # entity with properties of ODATA primitive types
+    entity_type = schema.entity_type('TemperatureMeasurement')
+    assert srl.to_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
+    assert srl.from_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}

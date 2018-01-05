@@ -11,6 +11,7 @@ import StringIO
 import logging
 import enum
 import re
+from pyodata.exceptions import PyODataException
 from lxml import etree
 
 
@@ -27,6 +28,124 @@ class Identifier(object):
     @property
     def name(self):
         return self._name
+
+
+class Types(object):
+    """Repository of all available OData types
+
+       Since each type has instance of appropriate type, this
+       repository acts as central storage for all instances. The
+       rule is: don't create any type instances if not necessary,
+       always reuse existing instances if possible
+    """
+
+    # dictionary of all registered types (primitive, complex and collection variants)
+    Types = None
+
+    @staticmethod
+    def _build_types():
+        """Create and register instances of all primitive Edm types"""
+
+        if Types.Types is None:
+            Types.Types = {}
+
+            Types.register_type(Typ('Null', 'null'))
+            Types.register_type(Typ('Edm.Binary', 'binary\'\''))
+            Types.register_type(Typ('Edm.Boolean', 'false'))
+            Types.register_type(Typ('Edm.Byte', '0'))
+            Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\''))
+            Types.register_type(Typ('Edm.Decimal', '0.0M'))
+            Types.register_type(Typ('Edm.Double', '0.0d'))
+            Types.register_type(Typ('Edm.Single', '0.0f'))
+            Types.register_type(Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
+            Types.register_type(Typ('Edm.Int16', '0', EdmIntTypTraits()))
+            Types.register_type(Typ('Edm.Int32', '0', EdmIntTypTraits()))
+            Types.register_type(Typ('Edm.Int64', '0L', EdmIntTypTraits()))
+            Types.register_type(Typ('Edm.SByte', '0'))
+            Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
+            Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
+            Types.register_type(Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\''))
+
+    @staticmethod
+    def register_type(typ):
+        """Add new  type to the type repository as well as its collection variant"""
+
+        # build types hierarchy on first use (lazy creation)
+        if Types.Types is None:
+            Types._build_types()
+
+        # register type only if it doesn't exist
+        if typ.name not in Types.Types:
+            Types.Types[typ.name] = typ
+
+        # automatically create and register collection variant if not exists
+        collection_name = 'Collection({})'.format(typ.name)
+        if collection_name not in Types.Types:
+            collection_typ = Collection(typ.name, typ)
+            Types.Types[collection_name] = collection_typ
+
+    @staticmethod
+    def from_name(name):
+
+        # build types hierarchy on first use (lazy creation)
+        if Types.Types is None:
+            Types._build_types()
+
+        search_name = name
+
+        # detect if name represents collection
+        is_collection = name.lower().startswith('collection(') and name.endswith(')')
+        if is_collection:
+            name = name[11:-1]   # strip collection() decorator
+            search_name = 'Collection({})'.format(name)
+
+        # generate own exception instead of KeyError that would be
+        # raised by accessing Types.Types directly. We want to provide
+        # more descriptive message
+        if search_name not in Types.Types:
+            raise PyODataException('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(name))
+
+        return Types.Types[search_name]
+
+
+class EdmComplexTypeSerializer(object):
+    """Basic implementation of (de)serialization for Edm complex types
+
+       All properties existing in related Edm type are taken
+       into account, others are ignored
+
+       TODO: it can happen that inifinite recurision occurs for cases
+       when property types are referencich each other. We need some research
+       here to avoid such cases.
+    """
+
+    @staticmethod
+    def to_odata(edm_type, value):
+
+        # pylint: disable=no-self-use
+        if not edm_type:
+            raise PyODataException('Cannot encode value {} without complex type information'.format(value))
+
+        result = {}
+        for type_prop in edm_type.proprties():
+            if type_prop.name in value:
+                result[type_prop.name] = type_prop.typ.traits.to_odata(value[type_prop.name])
+
+        return result
+
+    @staticmethod
+    def from_odata(edm_type, value):
+
+        # pylint: disable=no-self-use
+        if not edm_type:
+            raise PyODataException('Cannot decode value {} without complex type information'.format(value))
+
+        result = {}
+        for type_prop in edm_type.proprties():
+            if type_prop.name in value:
+                result[type_prop.name] = type_prop.typ.traits.from_odata(value[type_prop.name])
+
+        return result
 
 
 class TypTraits(object):
@@ -51,11 +170,9 @@ class EdmPrefixedTypTraits(TypTraits):
         super(EdmPrefixedTypTraits, self).__init__()
         self._prefix = prefix
 
-    # pylint: disable=no-self-use
     def to_odata(self, value):
         return '{}\'{}\''.format(self._prefix, value)
 
-    # pylint: disable=no-self-use
     def from_odata(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
         if not matches:
@@ -87,17 +204,38 @@ class EdmIntTypTraits(TypTraits):
         return int(value)
 
 
+class EdmComplexTypTraits(TypTraits):
+    """All Edm Complex type traits"""
+
+    def __init__(self, edm_type=None):
+        super(EdmComplexTypTraits, self).__init__()
+        self._edm_type = edm_type
+
+    # pylint: disable=no-self-use
+    def to_odata(self, value):
+        return EdmComplexTypeSerializer.to_odata(self._edm_type, value)
+
+    # pylint: disable=no-self-use
+    def from_odata(self, value):
+        return EdmComplexTypeSerializer.from_odata(self._edm_type, value)
+
+
 class Typ(object):
 
     Types = None
 
-    def __init__(self, name, null_value, traits=TypTraits()):
+    Kinds = enum.Enum('Kinds', 'Primitive Complex')
+
+    def __init__(self, name, null_value, traits=TypTraits(), kind=None):
         super(Typ, self).__init__()
 
         self._name = name
         self._null_value = null_value
-
+        self._kind = kind if kind is not None else Typ.Kinds.Primitive  # no way how to us enum value for parameter default value
         self._traits = traits
+
+    def __repr__(self):
+        return self._name
 
     def __str__(self):
         return self._name
@@ -114,31 +252,46 @@ class Typ(object):
     def traits(self):
         return self._traits
 
-    @staticmethod
-    def from_name(name):
-        if Typ.Types is None:
-            Typ.Types = {
-                'Null': Typ('Null', 'null'),
-                'Edm.Binary': Typ('Edm.Binary', 'binary\'\''),
-                'Edm.Boolean': Typ('Edm.Boolean', 'false'),
-                'Edm.Byte': Typ('Edm.Byte', '0'),
-                'Edm.DateTime': Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\''),
-                'Edm.Decimal': Typ('Edm.Decimal', '0.0M'),
-                'Edm.Double': Typ('Edm.Double', '0.0d'),
-                'Edm.Single': Typ('Edm.Single', '0.0f'),
-                'Edm.Guid': Typ('Edm.Guid',
-                                'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')),
-                'Edm.Int16': Typ('Edm.Int16', '0', EdmIntTypTraits()),
-                'Edm.Int32': Typ('Edm.Int32', '0', EdmIntTypTraits()),
-                'Edm.Int64': Typ('Edm.Int64', '0L', EdmIntTypTraits()),
-                'Edm.SByte': Typ('Edm.SByte', '0'),
-                'Edm.String': Typ('Edm.String', '\'\'', EdmStringTypTraits()),
-                'Edm.Time': Typ('Edm.Time', 'time\'PT00H00M\''),
-                'Edm.DateTimeOffset': Typ('Edm.DateTimeOffset',
-                                          'datetimeoffset\'0000-00-00T00:00:00\''),
-            }
+    @property
+    def is_collection(self):
+        return False
 
-        return Typ.Types[name]
+    @property
+    def kind(self):
+        return self._kind
+
+
+class Collection(Typ):
+    """Represents collection items"""
+
+    def __init__(self, name, item_type):
+        super(Collection, self).__init__(name, [], kind=item_type.kind)
+        self._item_type = item_type
+
+    def __repr__(self):
+        return 'Collection({})'.format(self.name)
+
+    @property
+    def is_collection(self):
+        return True
+
+    @property
+    def traits(self):
+        return self
+
+    # pylint: disable=no-self-use
+    def to_odata(self, value):
+        if not isinstance(value, list):
+            raise PyODataException('Bad format: invalid list value {}'.format(value))
+
+        return [self._item_type.traits.to_odata(v) for v in value]
+
+    # pylint: disable=no-self-use
+    def from_odata(self, value):
+        if not isinstance(value, list):
+            raise PyODataException('Bad format: invalid list value {}'.format(value))
+
+        return [self._item_type.traits.from_odata(v) for v in value]
 
 
 class VariableDeclaration(Identifier):
@@ -148,7 +301,7 @@ class VariableDeclaration(Identifier):
     def __init__(self, name, typ, nullable, max_length, precision):
         super(VariableDeclaration, self).__init__(name)
 
-        self._typ = Typ.from_name(typ)
+        self._typ = Types.from_name(typ)
 
         self._nullable = bool(nullable)
 
@@ -290,6 +443,10 @@ class Schema(object):
             for entity_type in schema_node.xpath('edm:EntityType',
                                                  namespaces=NAMESPACES):
                 etype = EntityType.from_etree(entity_type)
+
+                # register entity type in type repository
+                Types.register_type(etype)
+
                 decl.entity_types[etype.name] = etype
 
         # Then, proces EntitySet and FunctionImport nodes.
@@ -353,9 +510,9 @@ class EntityType(object):
         self._name = name
         self._label = label
         self._is_value_list = is_value_list
-
         self._key = list()
         self._properties = dict()
+        self._traits = EdmComplexTypTraits(self)
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, self._name)
@@ -411,6 +568,25 @@ class EntityType(object):
             etp.entity_type = etype
 
         return etype
+
+    # implementation of Typ interface
+
+    @property
+    def is_collection(self):
+        return False
+
+    @property
+    def kind(self):
+        return Typ.Kinds.Complex
+
+    @property
+    def null_value(self):
+        return None
+
+    @property
+    def traits(self):
+        # return self._traits
+        return EdmComplexTypTraits(self)
 
 
 class EntitySet(object):
@@ -921,9 +1097,8 @@ class FunctionImport(Identifier):
 
         self._entity_set_name = entity_set
 
-        # TODO: handle Collections
         try:
-            self._return_type = Typ.from_name(return_type)
+            self._return_type = Types.from_name(return_type)
         except KeyError:
             self._return_type = return_type
 
