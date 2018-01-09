@@ -8,6 +8,10 @@ class PyODataException(Exception):
     """
 
 
+class PyODataModelError(PyODataException):
+    """Raised when model error occurs"""
+
+
 class HttpError(PyODataException):
     """Raised when unexpected HTTP status code is received """
 
