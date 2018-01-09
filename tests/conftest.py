@@ -50,6 +50,10 @@ def metadata():
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
+           <ComplexType Name="Rectagle">
+            <Property Name="Width" Type="Edm.Double" Nullable="false"/>
+            <Property Name="Height" Type="Edm.Double" Nullable="false"/>
+           </ComplexType>
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
@@ -87,6 +91,10 @@ def metadata():
            </Annotations>
           </Schema>
           <Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV_SETS" xml:lang="en" sap:schema-version="1">
+           <ComplexType Name="Rectagle">
+            <Property Name="Width" Type="Edm.Double" Nullable="false"/>
+            <Property Name="Height" Type="Edm.Double" Nullable="false"/>
+           </ComplexType>
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="TemperatureMeasurements" EntityType="EXAMPLE_SRV.TemperatureMeasurement" sap:creatable="true" sap:updatable="true" sap:deletable="true" sap:searchable="true" sap:content-version="1"/>
             <FunctionImport Name="get_max" ReturnType="TemperatureMeasurement" EntitySet="TemperatureMeasurements" m:HttpMethod="GET" />
