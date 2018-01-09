@@ -123,7 +123,7 @@ class Types(object):
         return (parts[0], parts[1], is_collection)
 
 
-class EdmComplexTypeSerializer(object):
+class EdmStructTypeSerializer(object):
     """Basic implementation of (de)serialization for Edm complex types
 
        All properties existing in related Edm type are taken
@@ -231,20 +231,20 @@ class EdmIntTypTraits(TypTraits):
         return int(value)
 
 
-class EdmComplexTypTraits(TypTraits):
-    """All Edm Complex type traits"""
+class EdmStructTypTraits(TypTraits):
+    """Edm structural types (EntityType, ComplexType) traits"""
 
     def __init__(self, edm_type=None):
-        super(EdmComplexTypTraits, self).__init__()
+        super(EdmStructTypTraits, self).__init__()
         self._edm_type = edm_type
 
     # pylint: disable=no-self-use
     def to_odata(self, value):
-        return EdmComplexTypeSerializer.to_odata(self._edm_type, value)
+        return EdmStructTypeSerializer.to_odata(self._edm_type, value)
 
     # pylint: disable=no-self-use
     def from_odata(self, value):
-        return EdmComplexTypeSerializer.from_odata(self._edm_type, value)
+        return EdmStructTypeSerializer.from_odata(self._edm_type, value)
 
 
 class Typ(Identifier):
@@ -357,11 +357,15 @@ class Schema(object):
             self.namespace = namespace
 
             self.entity_types = dict()
+            self.complex_types = dict()
             self.entity_sets = dict()
             self.function_imports = dict()
 
         def list_entity_types(self):
             return self.entity_types.values()
+
+        def list_complex_types(self):
+            return self.complex_types.values()
 
         def list_entity_sets(self):
             return self.entity_sets.values()
@@ -377,6 +381,15 @@ class Schema(object):
             # automatically create and register collection variant if not exists
             collection_type_name = 'Collection({})'.format(etype.name)
             self.entity_types[collection_type_name] = Collection(etype.name, etype)
+
+        def add_complex_type(self, ctype):
+            """Add new complex type to the type repository as well as its collection variant"""
+
+            self.complex_types[ctype.name] = ctype
+
+            # automatically create and register collection variant if not exists
+            collection_type_name = 'Collection({})'.format(ctype.name)
+            self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
 
     def __init__(self):
         super(Schema, self).__init__()
@@ -406,6 +419,22 @@ class Schema(object):
 
         raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
 
+    def complex_type(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace].complex_types[type_name]
+            except KeyError:
+                raise KeyError('ComplexType {} does not exist in Schema Namespace {}'
+                               .format(type_name, namespace))
+
+        for decl in self._decls.values():
+            try:
+                return decl.complex_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
+
     def get_type(self, type_info):
 
         # construct search name based on collection information
@@ -428,6 +457,10 @@ class Schema(object):
     @property
     def entity_types(self):
         return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in self._decls.values()))]
+
+    @property
+    def complex_types(self):
+        return [complex_type for complex_type in itertools.chain(*(decl.list_complex_types() for decl in self._decls.values()))]
 
     def entity_set(self, set_name, namespace=None):
         if namespace is not None:
@@ -478,11 +511,16 @@ class Schema(object):
         # entity types referenced by entity sets, function imports and
         # annotations.
 
-        # First, process EntityType nodes. They have almost no dependencies on other elements.
+        # First, process EntityType and ComplexType nodes. They have almost no dependencies on other elements.
         for schema_node in schema_nodes:
             namespace = schema_node.get('Namespace')
             decl = Schema.Declaration(namespace)
             schema._decls[namespace] = decl
+
+            for complex_type in schema_node.xpath('edm:ComplexType',
+                                                  namespaces=NAMESPACES):
+                ctype = ComplexType.from_etree(complex_type)
+                decl.add_complex_type(ctype)
 
             for entity_type in schema_node.xpath('edm:EntityType',
                                                  namespaces=NAMESPACES):
@@ -544,16 +582,16 @@ class Schema(object):
         return schema
 
 
-class EntityType(Identifier):
+class StructType(Identifier):
 
     def __init__(self, name, label, is_value_list):
-        super(EntityType, self).__init__(name)
+        super(StructType, self).__init__(name)
 
         self._label = label
         self._is_value_list = is_value_list
         self._key = list()
         self._properties = dict()
-        self._traits = EdmComplexTypTraits(self)
+        self._traits = EdmStructTypTraits(self)
 
     @property
     def label(self):
@@ -569,39 +607,32 @@ class EntityType(Identifier):
     def proprties(self):
         return self._properties.values()
 
-    @property
-    def key_proprties(self):
-        return list(self._key)
-
-    @staticmethod
-    def from_etree(entity_type_node):
-        name = entity_type_node.get('Name')
-        label = sap_attribute_get_string(entity_type_node, 'label')
-        is_value_list = sap_attribute_get_bool(entity_type_node,
+    @classmethod
+    def from_etree(cls, type_node):
+        name = type_node.get('Name')
+        label = sap_attribute_get_string(type_node, 'label')
+        is_value_list = sap_attribute_get_bool(type_node,
                                                'value-list', False)
 
-        etype = EntityType(name, label, is_value_list)
-        for proprty in entity_type_node.xpath('edm:Property',
-                                              namespaces=NAMESPACES):
-            etp = EntityTypeProperty.from_etree(proprty)
+        stype = cls(name, label, is_value_list)
 
-            if etp.name in etype._properties:
+        for proprty in type_node.xpath('edm:Property',
+                                       namespaces=NAMESPACES):
+            stp = StructTypeProperty.from_etree(proprty)
+
+            if stp.name in stype._properties:
                 raise KeyError('{0} already has property {1}'
-                               .format(etp, etp.name))
+                               .format(stp, stp.name))
 
-            etype._properties[etp.name] = etp
-
-        for proprty in entity_type_node.xpath('edm:Key/edm:PropertyRef',
-                                              namespaces=NAMESPACES):
-            etype._key.append(etype.proprty(proprty.get('Name')))
+            stype._properties[stp.name] = stp
 
         # We have to update the property when
         # all properites are loaded because
         # there might be links between them.
-        for etp in etype._properties.values():
-            etp.entity_type = etype
+        for ctp in stype._properties.values():
+            ctp.struct_type = stype
 
-        return etype
+        return stype
 
     # implementation of Typ interface
 
@@ -620,7 +651,34 @@ class EntityType(Identifier):
     @property
     def traits(self):
         # return self._traits
-        return EdmComplexTypTraits(self)
+        return EdmStructTypTraits(self)
+
+
+class ComplexType(StructType):
+    """Representation of Edm.ComplexType"""
+
+
+class EntityType(StructType):
+
+    def __init__(self, name, label, is_value_list):
+        super(EntityType, self).__init__(name, label, is_value_list)
+
+        self._key = list()
+
+    @property
+    def key_proprties(self):
+        return list(self._key)
+
+    @classmethod
+    def from_etree(cls, type_node):
+
+        etype = super(EntityType, cls).from_etree(type_node)
+
+        for proprty in type_node.xpath('edm:Key/edm:PropertyRef',
+                                       namespaces=NAMESPACES):
+            etype._key.append(etype.proprty(proprty.get('Name')))
+
+        return etype
 
 
 class EntitySet(Identifier):
@@ -691,17 +749,17 @@ class EntitySet(Identifier):
                          updatable, deletable, searchable)
 
 
-class EntityTypeProperty(VariableDeclaration):
+class StructTypeProperty(VariableDeclaration):
 
     # pylint: disable=too-many-locals
     def __init__(self, name, typ, nullable, max_length, precision, uncode,
                  label, creatable, updatable, sortable, filterable, text,
                  visible, display_format, value_list):
-        super(EntityTypeProperty, self).__init__(name, typ, nullable,
+        super(StructTypeProperty, self).__init__(name, typ, nullable,
                                                  max_length, precision)
 
         self._value_helper = None
-        self._entity_type = None
+        self._struct_type = None
         self._uncode = uncode
         self._label = label
         self._creatable = creatable
@@ -717,20 +775,21 @@ class EntityTypeProperty(VariableDeclaration):
         self._text_proprty = None
 
     @property
-    def entity_type(self):
-        return self._entity_type
+    def struct_type(self):
+        return self._struct_type
 
-    @entity_type.setter
-    def entity_type(self, value):
-        if self._entity_type is not None:
+    @struct_type.setter
+    def struct_type(self, value):
+
+        if self._struct_type is not None:
             raise RuntimeError('Cannot replace {0} of {1} to {2}'
-                               .format(self._entity_type, self, value))
+                               .format(self._struct_type, self, value))
 
-        self._entity_type = value
+        self._struct_type = value
 
         if self._text_proprty_name is not None:
             try:
-                self._text_proprty = self._entity_type.proprty(self._text_proprty_name)
+                self._text_proprty = self._struct_type.proprty(self._text_proprty_name)
             except KeyError:
                 # TODO: resolve EntityType of text property
                 if '/' not in self._text_proprty_name:
@@ -804,7 +863,8 @@ class EntityTypeProperty(VariableDeclaration):
 
     @staticmethod
     def from_etree(entity_type_property_node):
-        return EntityTypeProperty(
+
+        return StructTypeProperty(
             entity_type_property_node.get('Name'),
             entity_type_property_node.get('Type'),
             entity_type_property_node.get('Nullable'),
@@ -924,7 +984,7 @@ class ValueHelper(Annotation):
             raise RuntimeError('Cannot replace {0} of {1} with {2}'
                                .format(self._proprty, self, value))
 
-        if (value.entity_type.name != self.proprty_entity_type_name or
+        if (value.struct_type.name != self.proprty_entity_type_name or
                 value.name != self.proprty_name):
             raise RuntimeError('{0} cannot be an annotation of {1}'
                                .format(self, value))
@@ -933,7 +993,7 @@ class ValueHelper(Annotation):
 
         for param in self._parameters:
             if param.local_property_name:
-                etype = self._proprty.entity_type
+                etype = self._proprty.struct_type
                 try:
                     param.local_property = etype.proprty(param.local_property_name)
                 except KeyError:

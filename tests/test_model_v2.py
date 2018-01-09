@@ -3,7 +3,7 @@
 
 import pytest
 
-from pyodata.v2.model import Edmx, Typ, EntityTypeProperty, Types, EntityType, EdmComplexTypeSerializer
+from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
 
 from pyodata.exceptions import PyODataException
 
@@ -32,31 +32,31 @@ def test_edmx(metadata):
     assert not data_entity.proprty('Invisible').visible
 
     master_prop_key = master_entity.proprty('Key')
-    assert str(master_prop_key) == 'EntityTypeProperty(Key)'
-    assert str(master_prop_key.entity_type) == 'EntityType(MasterEntity)'
+    assert str(master_prop_key) == 'StructTypeProperty(Key)'
+    assert str(master_prop_key.struct_type) == 'EntityType(MasterEntity)'
     assert master_prop_key.value_helper is None
     assert master_prop_key.value_list == 'standard'
 
     master_prop_data = master_entity.proprty('Data')
     assert master_prop_data.text_proprty.name == 'DataName'
     assert master_prop_data.visible
-    assert master_prop_data.max_length == EntityTypeProperty.MAXIMUM_LENGTH
+    assert master_prop_data.max_length == StructTypeProperty.MAXIMUM_LENGTH
 
     master_prop_data_vh = master_prop_data.value_helper
     assert str(master_prop_data_vh) == 'ValueHelper(MasterEntity/Data)'
-    assert str(master_prop_data_vh.proprty) == 'EntityTypeProperty(Data)'
+    assert str(master_prop_data_vh.proprty) == 'StructTypeProperty(Data)'
 
     assert str(master_prop_data_vh.entity_set) == 'EntitySet(DataValueHelp)'
     assert str(master_prop_data_vh.entity_set.entity_type) == 'EntityType(DataEntity)'
 
     vh_prm_data_type = master_prop_data_vh.local_property_param('DataType')
     assert str(vh_prm_data_type) == 'ValueHelperParameter(DataType=Type)'
-    assert str(vh_prm_data_type.local_property) == 'EntityTypeProperty(DataType)'
-    assert str(vh_prm_data_type.list_property) == 'EntityTypeProperty(Type)'
+    assert str(vh_prm_data_type.local_property) == 'StructTypeProperty(DataType)'
+    assert str(vh_prm_data_type.list_property) == 'StructTypeProperty(Type)'
 
     vh_prm_description = master_prop_data_vh.list_property_param('Description')
     assert str(vh_prm_description) == 'ValueHelperParameter(Description)'
-    assert str(vh_prm_description.list_property.entity_type) == 'EntityType(DataEntity)'
+    assert str(vh_prm_description.list_property.struct_type) == 'EntityType(DataEntity)'
 
     annotation_test = schema.entity_type('AnnotationTest')
     no_format_prop = annotation_test.proprty('NoFormat')
@@ -109,7 +109,7 @@ def test_edmx_function_imports(metadata):
     assert function_import.name == 'get_max'
     assert repr(function_import.return_type) == 'EntityType(TemperatureMeasurement)'
     assert function_import.return_type.kind == Typ.Kinds.Complex
-    assert repr(function_import.return_type.traits) == 'EdmComplexTypTraits'
+    assert repr(function_import.return_type.traits) == 'EdmStructTypTraits'
     assert function_import.entity_set_name == 'TemperatureMeasurements'
     assert function_import.http_method == 'GET'
 
@@ -122,6 +122,24 @@ def test_edmx_function_imports(metadata):
     assert function_import.return_type.is_collection
     assert repr(function_import.return_type.traits) == 'Collection(EntityType(TemperatureMeasurement))'
     assert function_import.http_method == 'GET'
+
+
+def test_edmx_complex_types(metadata):
+    """Test parsing of complex types"""
+
+    schema = Edmx.parse(metadata)
+    assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
+
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber'}
+
+    complex_number = schema.complex_type('ComplexNumber')
+    assert str(complex_number) == 'ComplexType(ComplexNumber)'
+    assert complex_number.name == 'ComplexNumber'
+    assert sorted([p.name for p in complex_number.proprties()]) == ['Imaginary', 'Real']
+
+    real_prop = complex_number.proprty('Real')
+    assert str(real_prop) == 'StructTypeProperty(Real)'
+    assert str(real_prop.struct_type) == 'ComplexType(ComplexNumber)'
 
 
 def test_traits():
@@ -243,17 +261,17 @@ def test_complex_serializer(metadata):
 
     # encode without edm type information
     with pytest.raises(PyODataException) as e_info:
-        EdmComplexTypeSerializer().to_odata(None, 'something')
+        EdmStructTypeSerializer().to_odata(None, 'something')
     assert str(e_info.value).startswith('Cannot encode value something')
 
     # decode without edm type information
     with pytest.raises(PyODataException) as e_info:
-        EdmComplexTypeSerializer().from_odata(None, 'something')
+        EdmStructTypeSerializer().from_odata(None, 'something')
     assert str(e_info.value).startswith('Cannot decode value something')
 
     # entity without properties
     entity_type = EntityType('Box', 'Box', False)
-    srl = EdmComplexTypeSerializer()
+    srl = EdmStructTypeSerializer()
     assert srl.to_odata(entity_type, 'something') == {}
     assert srl.from_odata(entity_type, 'something') == {}
 
