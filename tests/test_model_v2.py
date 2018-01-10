@@ -220,7 +220,7 @@ def test_types():
 
     # Collection of primitive types
     typ = Types.from_name('Collection(Edm.String)')
-    assert repr(typ) == 'Collection(Edm.String)'
+    assert repr(typ) == 'Collection(Typ(Edm.String))'
     assert typ.kind is Typ.Kinds.Primitive
     assert typ.is_collection
     assert typ.name == 'Edm.String'

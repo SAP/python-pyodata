@@ -369,6 +369,15 @@ class Schema(object):
         def list_function_imports(self):
             return self.function_imports.values()
 
+        def add_entity_type(self, etype):
+            """Add new  type to the type repository as well as its collection variant"""
+
+            self.entity_types[etype.name] = etype
+
+            # automatically create and register collection variant if not exists
+            collection_type_name = 'Collection({})'.format(etype.name)
+            self.entity_types[collection_type_name] = Collection(etype.name, etype)
+
     def __init__(self):
         super(Schema, self).__init__()
 
@@ -397,21 +406,24 @@ class Schema(object):
 
         raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
 
-    def get_type(self, type_name, namespace=None):
+    def get_type(self, type_info):
+
+        # construct search name based on collection information
+        search_name = type_info[1] if not type_info[2] else 'Collection({})'.format(type_info[1])
 
         # first look for type in primitive types
         try:
-            return Types.from_name(type_name)
+            return Types.from_name(search_name)
         except KeyError:
             pass
 
         # then look for type in entity types
         try:
-            return self.entity_type(type_name, namespace)
+            return self.entity_type(search_name, type_info[0])
         except KeyError:
             pass
 
-        raise PyODataModelError('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_name))
+        raise PyODataModelError('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[1]))
 
     @property
     def entity_types(self):
@@ -475,7 +487,7 @@ class Schema(object):
             for entity_type in schema_node.xpath('edm:EntityType',
                                                  namespaces=NAMESPACES):
                 etype = EntityType.from_etree(entity_type)
-                decl.entity_types[etype.name] = etype
+                decl.add_entity_type(etype)
 
         # Then, proces EntitySet and FunctionImport nodes.
         for schema_node in schema_nodes:
@@ -485,15 +497,14 @@ class Schema(object):
             for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet',
                                                 namespaces=NAMESPACES):
                 eset = EntitySet.from_etree(entity_set)
-                eset.entity_type = schema.entity_type(eset.entity_type_name,
-                                                      namespace=eset.entity_type_namespace)
+                eset.entity_type = schema.entity_type(eset.entity_type_info[1],
+                                                      namespace=eset.entity_type_info[0])
                 decl.entity_sets[eset.name] = eset
 
             for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
                                                      namespaces=NAMESPACES):
                 efn = FunctionImport.from_etree(function_import)
-                efn.return_type = schema.get_type(efn.return_type_name,
-                                                  namespace=efn.return_type_namespace)
+                efn.return_type = schema.get_type(efn.return_type_info)
 
                 decl.function_imports[efn.name] = efn
 
@@ -614,25 +625,20 @@ class EntityType(Identifier):
 
 class EntitySet(Identifier):
 
-    def __init__(self, name, namespace, entity_type_name, creatable, updatable,
+    def __init__(self, name, entity_type_info, creatable, updatable,
                  deletable, searchable):
         super(EntitySet, self).__init__(name)
 
-        self._entity_type_namespace = namespace
+        self._entity_type_info = entity_type_info
         self._entity_type = None
-        self._entity_type_name = entity_type_name
         self._creatable = creatable
         self._updatable = updatable
         self._deletable = deletable
         self._searchable = searchable
 
     @property
-    def entity_type_namespace(self):
-        return self._entity_type_namespace
-
-    @property
-    def entity_type_name(self):
-        return self._entity_type_name
+    def entity_type_info(self):
+        return self._entity_type_info
 
     @property
     def entity_type(self):
@@ -644,7 +650,7 @@ class EntitySet(Identifier):
             raise RuntimeError('Cannot replace {0} of {1} to {2}'
                                .format(self._entity_type, self, value))
 
-        if value.name != self.entity_type_name:
+        if value.name != self.entity_type_info[1]:
             raise RuntimeError('{0} cannot be the type of {1}'
                                .format(value, self))
 
@@ -669,7 +675,7 @@ class EntitySet(Identifier):
     @staticmethod
     def from_etree(entity_set_node):
         name = entity_set_node.get('Name')
-        et_ns, et_name = Types.parse_type_name(entity_set_node.get('EntityType'))
+        et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
         # TODO: create a class SAP attributes
         creatable = sap_attribute_get_bool(entity_set_node,
@@ -681,7 +687,7 @@ class EntitySet(Identifier):
         searchable = sap_attribute_get_bool(entity_set_node,
                                             'searchable', True)
 
-        return EntitySet(name, et_ns, et_name, creatable,
+        return EntitySet(name, et_info, creatable,
                          updatable, deletable, searchable)
 
 
@@ -1107,23 +1113,18 @@ class ValueHelperParameter(object):
 
 class FunctionImport(Identifier):
 
-    def __init__(self, name, return_type, return_type_namespace, entity_set, parameters, http_method='GET'):
+    def __init__(self, name, return_type_info, entity_set, parameters, http_method='GET'):
         super(FunctionImport, self).__init__(name)
 
         self._entity_set_name = entity_set
-        self._return_type_name = return_type
-        self._return_type_namespace = return_type_namespace
+        self._return_type_info = return_type_info
         self._return_type = None
         self._parameters = parameters
         self._http_method = http_method
 
     @property
-    def return_type_namespace(self):
-        return self._return_type_namespace
-
-    @property
-    def return_type_name(self):
-        return self._return_type_name
+    def return_type_info(self):
+        return self._return_type_info
 
     @property
     def return_type(self):
@@ -1135,7 +1136,7 @@ class FunctionImport(Identifier):
             raise RuntimeError('Cannot replace {0} of {1} by {2}'
                                .format(self._return_type, self, value))
 
-        if value.name != self.return_type_name:
+        if value.name != self.return_type_info[1]:
             raise RuntimeError('{0} cannot be the type of {1}'
                                .format(value, self))
 
@@ -1161,7 +1162,7 @@ class FunctionImport(Identifier):
         name = function_import_node.get('Name')
         entity_set = function_import_node.get('EntitySet')
         http_method = metadata_attribute_get(function_import_node, 'HttpMethod')
-        rt_ns, rt_name = Types.parse_type_name(function_import_node.get('ReturnType'))
+        rt_info = Types.parse_type_name(function_import_node.get('ReturnType'))
 
         parameters = dict()
         for param in function_import_node.xpath('edm:Parameter',
@@ -1177,7 +1178,7 @@ class FunctionImport(Identifier):
                                                              param_nullable, param_max_length,
                                                              param_precision, param_mode)
 
-        return FunctionImport(name, rt_name, rt_ns, entity_set, parameters, http_method)
+        return FunctionImport(name, rt_info, entity_set, parameters, http_method)
 
 
 class FunctionImportParameter(VariableDeclaration):
