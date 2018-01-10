@@ -179,7 +179,7 @@ def test_types():
 
     # New complex type (entity)
     complex_type = Typ('SomeEntity', None, EdmComplexTypTraits(), kind=Typ.Kinds.Complex)
-    assert repr(complex_type) == 'SomeEntity'
+    assert repr(complex_type) == 'Typ(SomeEntity)'
     assert complex_type.kind is Typ.Kinds.Complex
     assert not complex_type.is_collection
 

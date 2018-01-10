@@ -22,6 +22,9 @@ class Identifier(object):
 
         self._name = name
 
+    def __repr__(self):
+        return "{0}({1})".format(self.__class__.__name__, self._name)
+
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, self._name)
 
@@ -232,29 +235,18 @@ class EdmComplexTypTraits(TypTraits):
         return EdmComplexTypeSerializer.from_odata(self._edm_type, value)
 
 
-class Typ(object):
+class Typ(Identifier):
 
     Types = None
 
     Kinds = enum.Enum('Kinds', 'Primitive Complex')
 
     def __init__(self, name, null_value, traits=TypTraits(), kind=None):
-        super(Typ, self).__init__()
+        super(Typ, self).__init__(name)
 
-        self._name = name
         self._null_value = null_value
         self._kind = kind if kind is not None else Typ.Kinds.Primitive  # no way how to us enum value for parameter default value
         self._traits = traits
-
-    def __repr__(self):
-        return self._name
-
-    def __str__(self):
-        return self._name
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def null_value(self):
@@ -514,24 +506,16 @@ class Schema(object):
         return schema
 
 
-class EntityType(object):
+class EntityType(Identifier):
 
     def __init__(self, name, label, is_value_list):
-        super(EntityType, self).__init__()
+        super(EntityType, self).__init__(name)
 
-        self._name = name
         self._label = label
         self._is_value_list = is_value_list
         self._key = list()
         self._properties = dict()
         self._traits = EdmComplexTypTraits(self)
-
-    def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._name)
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def label(self):
@@ -601,13 +585,12 @@ class EntityType(object):
         return EdmComplexTypTraits(self)
 
 
-class EntitySet(object):
+class EntitySet(Identifier):
 
     def __init__(self, name, namespace, entity_type_name, creatable, updatable,
                  deletable, searchable):
-        super(EntitySet, self).__init__()
+        super(EntitySet, self).__init__(name)
 
-        self._name = name
         self._entity_type_namespace = namespace
         self._entity_type = None
         self._entity_type_name = entity_type_name
@@ -615,13 +598,6 @@ class EntitySet(object):
         self._updatable = updatable
         self._deletable = deletable
         self._searchable = searchable
-
-    def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._name)
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def entity_type_namespace(self):
