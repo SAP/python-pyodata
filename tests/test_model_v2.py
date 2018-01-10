@@ -2,16 +2,15 @@
 # pylint: disable=line-too-long,too-many-locals,too-many-statements
 
 import pytest
-
-from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
-
+from pyodata.v2.model import Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
 from pyodata.exceptions import PyODataException
 
 
-def test_edmx(metadata):
+def test_edmx(schema):
     """Test Edmx class"""
 
-    schema = Edmx.parse(metadata)
+    # pylint: disable=redefined-outer-name
+
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
     assert set((entity_type.name for entity_type in schema.entity_types)) == {'MasterEntity', 'DataEntity', 'AnnotationTest', 'TemperatureMeasurement'}
@@ -80,11 +79,11 @@ def test_edmx(metadata):
     assert non_negative_prop.non_negative
 
 
-def test_edmx_function_imports(metadata):
+def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
-    schema = Edmx.parse(metadata)
     assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max'}
+    # pylint: disable=redefined-outer-name
 
     function_import = schema.function_import('retrieve')
     assert str(function_import) == 'FunctionImport(retrieve)'
@@ -124,10 +123,11 @@ def test_edmx_function_imports(metadata):
     assert function_import.http_method == 'GET'
 
 
-def test_edmx_complex_types(metadata):
+def test_edmx_complex_types(schema):
     """Test parsing of complex types"""
 
-    schema = Edmx.parse(metadata)
+    # pylint: disable=redefined-outer-name
+
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
     assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber'}
@@ -254,10 +254,10 @@ def test_types():
     assert typ.name == 'Edm.String'
 
 
-def test_complex_serializer(metadata):
+def test_complex_serializer(schema):
     """Test de/serializer of complex edm types"""
 
-    schema = Edmx.parse(metadata)
+    # pylint: disable=redefined-outer-name
 
     # encode without edm type information
     with pytest.raises(PyODataException) as e_info:

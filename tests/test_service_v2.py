@@ -12,11 +12,9 @@ URL_ROOT = 'http://odatapy.example.com'
 
 
 @pytest.fixture
-def service(metadata):
+def service(schema):
     """Service fixture"""
-    schema = pyodata.v2.model.schema_from_xml(metadata)
     assert schema.namespaces   # this is pythonic way how to check > 0
-
     return pyodata.v2.service.Service(URL_ROOT, schema, requests)
 
 
