@@ -11,7 +11,7 @@ import StringIO
 import logging
 import enum
 import re
-from pyodata.exceptions import PyODataException
+from pyodata.exceptions import PyODataException, PyODataModelError
 from lxml import etree
 
 
@@ -101,12 +101,6 @@ class Types(object):
         if is_collection:
             name = name[11:-1]   # strip collection() decorator
             search_name = 'Collection({})'.format(name)
-
-        # generate own exception instead of KeyError that would be
-        # raised by accessing Types.Types directly. We want to provide
-        # more descriptive message
-        if search_name not in Types.Types:
-            raise PyODataException('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(name))
 
         return Types.Types[search_name]
 
@@ -397,6 +391,22 @@ class Schema(object):
 
         raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
 
+    def get_type(self, type_name, namespace=None):
+
+        # first look for type in primitive types
+        try:
+            return Types.from_name(type_name)
+        except KeyError:
+            pass
+
+        # then look for type in entity types
+        try:
+            return self.entity_type(type_name, namespace)
+        except KeyError:
+            pass
+
+        raise PyODataModelError('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_name))
+
     @property
     def entity_types(self):
         return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in self._decls.values()))]
@@ -459,10 +469,6 @@ class Schema(object):
             for entity_type in schema_node.xpath('edm:EntityType',
                                                  namespaces=NAMESPACES):
                 etype = EntityType.from_etree(entity_type)
-
-                # register entity type in type repository
-                Types.register_type(etype)
-
                 decl.entity_types[etype.name] = etype
 
         # Then, proces EntitySet and FunctionImport nodes.
@@ -480,6 +486,9 @@ class Schema(object):
             for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
                                                      namespaces=NAMESPACES):
                 efn = FunctionImport.from_etree(function_import)
+                efn.return_type = schema.get_type(efn.return_type_name,
+                                                  namespace=efn.return_type_namespace)
+
                 decl.function_imports[efn.name] = efn
 
         # Finally, process Annotation nodes when all Scheme nodes are completely processed.
@@ -654,7 +663,7 @@ class EntitySet(Identifier):
     @staticmethod
     def from_etree(entity_set_node):
         name = entity_set_node.get('Name')
-        et_ns, et_name = entity_set_node.get('EntityType').split('.')
+        et_ns, et_name = Types.parse_type_name(entity_set_node.get('EntityType'))
 
         # TODO: create a class SAP attributes
         creatable = sap_attribute_get_bool(entity_set_node,
@@ -1092,22 +1101,39 @@ class ValueHelperParameter(object):
 
 class FunctionImport(Identifier):
 
-    def __init__(self, name, return_type, entity_set, parameters, http_method='GET'):
+    def __init__(self, name, return_type, return_type_namespace, entity_set, parameters, http_method='GET'):
         super(FunctionImport, self).__init__(name)
 
         self._entity_set_name = entity_set
-
-        try:
-            self._return_type = Types.from_name(return_type)
-        except KeyError:
-            self._return_type = return_type
-
+        self._return_type_name = return_type
+        self._return_type_namespace = return_type_namespace
+        self._return_type = None
         self._parameters = parameters
         self._http_method = http_method
 
     @property
+    def return_type_namespace(self):
+        return self._return_type_namespace
+
+    @property
+    def return_type_name(self):
+        return self._return_type_name
+
+    @property
     def return_type(self):
         return self._return_type
+
+    @return_type.setter
+    def return_type(self, value):
+        if self._return_type is not None:
+            raise RuntimeError('Cannot replace {0} of {1} by {2}'
+                               .format(self._return_type, self, value))
+
+        if value.name != self.return_type_name:
+            raise RuntimeError('{0} cannot be the type of {1}'
+                               .format(value, self))
+
+        self._return_type = value
 
     @property
     def entity_set_name(self):
@@ -1128,8 +1154,8 @@ class FunctionImport(Identifier):
     def from_etree(function_import_node):
         name = function_import_node.get('Name')
         entity_set = function_import_node.get('EntitySet')
-        return_type = function_import_node.get('ReturnType')
         http_method = metadata_attribute_get(function_import_node, 'HttpMethod')
+        rt_ns, rt_name = Types.parse_type_name(function_import_node.get('ReturnType'))
 
         parameters = dict()
         for param in function_import_node.xpath('edm:Parameter',
@@ -1145,7 +1171,7 @@ class FunctionImport(Identifier):
                                                              param_nullable, param_max_length,
                                                              param_precision, param_mode)
 
-        return FunctionImport(name, return_type, entity_set, parameters, http_method)
+        return FunctionImport(name, rt_name, rt_ns, entity_set, parameters, http_method)
 
 
 class FunctionImportParameter(VariableDeclaration):

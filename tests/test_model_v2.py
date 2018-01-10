@@ -3,7 +3,7 @@
 
 import pytest
 
-from pyodata.v2.model import Edmx, Typ, EntityTypeProperty, Types, EdmComplexTypTraits, EntityType, EdmComplexTypeSerializer
+from pyodata.v2.model import Edmx, Typ, EntityTypeProperty, Types, EntityType, EdmComplexTypeSerializer
 
 from pyodata.exceptions import PyODataException
 
@@ -107,7 +107,7 @@ def test_edmx_function_imports(metadata):
     function_import = schema.function_import('get_max')
     assert str(function_import) == 'FunctionImport(get_max)'
     assert function_import.name == 'get_max'
-    assert function_import.return_type.name == 'TemperatureMeasurement'
+    assert repr(function_import.return_type) == 'EntityType(TemperatureMeasurement)'
     assert function_import.return_type.kind == Typ.Kinds.Complex
     assert repr(function_import.return_type.traits) == 'EdmComplexTypTraits'
     assert function_import.entity_set_name == 'TemperatureMeasurements'
@@ -192,12 +192,6 @@ def test_type_parsing():
 def test_types():
     """Test Types repository"""
 
-    # New complex type (entity)
-    complex_type = Typ('SomeEntity', None, EdmComplexTypTraits(), kind=Typ.Kinds.Complex)
-    assert repr(complex_type) == 'Typ(SomeEntity)'
-    assert complex_type.kind is Typ.Kinds.Complex
-    assert not complex_type.is_collection
-
     # generic
     for type_name in ['Edm.Binary', 'Edm.String', 'Edm.Int16', 'Edm.Guid']:
         typ = Types.from_name(type_name)
@@ -210,26 +204,6 @@ def test_types():
     assert typ.kind is Typ.Kinds.Primitive
     assert typ.is_collection
     assert typ.name == 'Edm.String'
-
-    # Not existing complex type (entity)
-    with pytest.raises(PyODataException) as e_info:
-        typ = Types.from_name('SomeEntity')
-    assert str(e_info.value).startswith('Neither primitive types')
-
-    # register our complex type
-    Types.register_type(complex_type)
-
-    typ = Types.from_name('SomeEntity')
-    assert typ.kind is Typ.Kinds.Complex
-    assert not typ.is_collection
-    assert typ.name == 'SomeEntity'
-
-    # Collection of complex types
-    typ = Types.from_name('Collection(SomeEntity)')
-    assert repr(typ) == 'Collection(SomeEntity)'
-    assert typ.kind is Typ.Kinds.Complex
-    assert typ.is_collection
-    assert typ.name == 'SomeEntity'
 
 
 def test_complex_serializer(metadata):
