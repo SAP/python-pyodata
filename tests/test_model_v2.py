@@ -174,6 +174,21 @@ def test_traits_collections():
     assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
+def test_type_parsing():
+    """Test parsing of type names"""
+    type_info = Types.parse_type_name('Edm.Bool')
+    assert type_info[0] is None
+    assert type_info[1] == 'Edm.Bool'
+
+    type_info = Types.parse_type_name('SomeType')
+    assert type_info[0] is None
+    assert type_info[1] == 'SomeType'
+
+    type_info = Types.parse_type_name('SomeNamespace.SomeType')
+    assert type_info[0] == 'SomeNamespace'
+    assert type_info[1] == 'SomeType'
+
+
 def test_types():
     """Test Types repository"""
 

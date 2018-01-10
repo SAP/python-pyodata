@@ -110,6 +110,18 @@ class Types(object):
 
         return Types.Types[search_name]
 
+    @staticmethod
+    def parse_type_name(type_name):
+        parts = type_name.split('.')
+
+        if len(parts) == 1:
+            return (None, type_name)
+
+        if len(parts) > 1 and parts[0] == 'Edm':
+            return (None, type_name)
+
+        return (parts[0], parts[1])
+
 
 class EdmComplexTypeSerializer(object):
     """Basic implementation of (de)serialization for Edm complex types
