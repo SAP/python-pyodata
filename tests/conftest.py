@@ -50,7 +50,7 @@ def metadata():
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
-           <ComplexType Name="Rectagle">
+           <ComplexType Name="Rectangle">
             <Property Name="Width" Type="Edm.Double" Nullable="false"/>
             <Property Name="Height" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
@@ -91,7 +91,7 @@ def metadata():
            </Annotations>
           </Schema>
           <Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV_SETS" xml:lang="en" sap:schema-version="1">
-           <ComplexType Name="Rectagle">
+           <ComplexType Name="Rectangle">
             <Property Name="Width" Type="Edm.Double" Nullable="false"/>
             <Property Name="Height" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
