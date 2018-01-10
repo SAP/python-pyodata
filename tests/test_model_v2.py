@@ -84,7 +84,7 @@ def test_edmx_function_imports(metadata):
     """Test parsing of function imports"""
 
     schema = Edmx.parse(metadata)
-    assert set((func_import.name for func_import in schema.function_imports)) == {'retrieve', 'get_max'}
+    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max'}
 
     function_import = schema.function_import('retrieve')
     assert str(function_import) == 'FunctionImport(retrieve)'
@@ -111,6 +111,16 @@ def test_edmx_function_imports(metadata):
     assert function_import.return_type.kind == Typ.Kinds.Complex
     assert repr(function_import.return_type.traits) == 'EdmComplexTypTraits'
     assert function_import.entity_set_name == 'TemperatureMeasurements'
+    assert function_import.http_method == 'GET'
+
+    # function import that returns collection of entities
+    function_import = schema.function_import('get_best_measurements')
+    assert str(function_import) == 'FunctionImport(get_best_measurements)'
+    assert function_import.name == 'get_best_measurements'
+    assert repr(function_import.return_type) == 'Collection(EntityType(TemperatureMeasurement))'
+    assert function_import.return_type.kind == Typ.Kinds.Complex
+    assert function_import.return_type.is_collection
+    assert repr(function_import.return_type.traits) == 'Collection(EntityType(TemperatureMeasurement))'
     assert function_import.http_method == 'GET'
 
 
