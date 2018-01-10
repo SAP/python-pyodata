@@ -176,17 +176,37 @@ def test_traits_collections():
 
 def test_type_parsing():
     """Test parsing of type names"""
-    type_info = Types.parse_type_name('Edm.Bool')
+
+    type_info = Types.parse_type_name('Edm.Boolean')
     assert type_info[0] is None
-    assert type_info[1] == 'Edm.Bool'
+    assert type_info[1] == 'Edm.Boolean'
+    assert not type_info[2]
 
     type_info = Types.parse_type_name('SomeType')
     assert type_info[0] is None
     assert type_info[1] == 'SomeType'
+    assert not type_info[2]
 
     type_info = Types.parse_type_name('SomeNamespace.SomeType')
     assert type_info[0] == 'SomeNamespace'
     assert type_info[1] == 'SomeType'
+    assert not type_info[2]
+
+    # collections
+    type_info = Types.parse_type_name('Collection(Edm.String)')
+    assert type_info[0] is None
+    assert type_info[1] == 'Edm.String'
+    assert type_info[2]
+
+    type_info = Types.parse_type_name('Collection(SomeType)')
+    assert type_info[0] is None
+    assert type_info[1] == 'SomeType'
+    assert type_info[2]
+
+    type_info = Types.parse_type_name('Collection(SomeNamespace.SomeType)')
+    assert type_info[0] == 'SomeNamespace'
+    assert type_info[1] == 'SomeType'
+    assert type_info[2]
 
 
 def test_types():

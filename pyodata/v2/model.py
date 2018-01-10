@@ -106,15 +106,21 @@ class Types(object):
 
     @staticmethod
     def parse_type_name(type_name):
+
+        # detect if name represents collection
+        is_collection = type_name.lower().startswith('collection(') and type_name.endswith(')')
+        if is_collection:
+            type_name = type_name[11:-1]   # strip collection() decorator
+
         parts = type_name.split('.')
 
         if len(parts) == 1:
-            return (None, type_name)
+            return (None, type_name, is_collection)
 
         if len(parts) > 1 and parts[0] == 'Edm':
-            return (None, type_name)
+            return (None, type_name, is_collection)
 
-        return (parts[0], parts[1])
+        return (parts[0], parts[1], is_collection)
 
 
 class EdmComplexTypeSerializer(object):
