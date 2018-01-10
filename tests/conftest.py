@@ -1,7 +1,7 @@
 """PyTest Fixtures"""
 
 import pytest
-
+from pyodata.v2.model import Types, Edmx
 
 @pytest.fixture
 def metadata():
@@ -103,3 +103,8 @@ def metadata():
           </Schema>
          </edmx:DataServices>
          </edmx:Edmx>"""
+
+@pytest.fixture
+def schema(metadata):
+    """Parsed metadata"""
+    return Edmx.parse(metadata)
