@@ -285,7 +285,7 @@ class Collection(Typ):
         self._item_type = item_type
 
     def __repr__(self):
-        return 'Collection({})'.format(self.name)
+        return 'Collection({})'.format(repr(self._item_type))
 
     @property
     def is_collection(self):
