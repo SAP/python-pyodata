@@ -115,7 +115,7 @@ def test_edmx_function_imports(metadata):
 
 
 def test_traits():
-    """Test individual Traits"""
+    """Test individual traits"""
 
     # generic
     trait_binary = Types.from_name('Edm.Binary')
