@@ -292,6 +292,10 @@ class Collection(Typ):
         return True
 
     @property
+    def item_type(self):
+        return self._item_type
+
+    @property
     def traits(self):
         return self
 
