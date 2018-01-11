@@ -318,10 +318,11 @@ class VariableDeclaration(Identifier):
 
     MAXIMUM_LENGTH = -1
 
-    def __init__(self, name, typ, nullable, max_length, precision):
+    def __init__(self, name, type_info, nullable, max_length, precision):
         super(VariableDeclaration, self).__init__(name)
 
-        self._typ = Types.from_name(typ)
+        self._type_info = type_info
+        self._typ = None
 
         self._nullable = bool(nullable)
 
@@ -335,8 +336,24 @@ class VariableDeclaration(Identifier):
         self._precision = precision
 
     @property
+    def type_info(self):
+        return self._type_info
+
+    @property
     def typ(self):
         return self._typ
+
+    @typ.setter
+    def typ(self, value):
+        if self._typ is not None:
+            raise RuntimeError('Cannot replace {0} of {1} by {2}'
+                               .format(self._typ, self, value))
+
+        if value.name != self._type_info[1]:
+            raise RuntimeError('{0} cannot be the type of {1}'
+                               .format(value, self))
+
+        self._typ = value
 
     @property
     def nullable(self):
@@ -531,6 +548,17 @@ class Schema(object):
                 etype = EntityType.from_etree(entity_type)
                 decl.add_entity_type(etype)
 
+        # resolve types of properties
+        for stype in itertools.chain(schema.entity_types, schema.complex_types):
+            if stype.kind == Typ.Kinds.Complex:
+                # skip collections (no need to assign any types since type of collection
+                # items is resolved separately
+                if stype.is_collection:
+                    continue
+
+                for prop in stype.proprties():
+                    prop.typ = schema.get_type(prop.type_info)
+
         # Then, proces EntitySet and FunctionImport nodes.
         for schema_node in schema_nodes:
             namespace = schema_node.get('Namespace')
@@ -546,8 +574,11 @@ class Schema(object):
             for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
                                                      namespaces=NAMESPACES):
                 efn = FunctionImport.from_etree(function_import)
-                efn.return_type = schema.get_type(efn.return_type_info)
 
+                # complete type information for return type and parameters
+                efn.return_type = schema.get_type(efn.return_type_info)
+                for param in efn.parameters:
+                    param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
 
         # Finally, process Annotation nodes when all Scheme nodes are completely processed.
@@ -586,16 +617,15 @@ class Schema(object):
         return schema
 
 
-class StructType(Identifier):
+class StructType(Typ):
 
     def __init__(self, name, label, is_value_list):
-        super(StructType, self).__init__(name)
+        super(StructType, self).__init__(name, None, EdmStructTypTraits(self), Typ.Kinds.Complex)
 
         self._label = label
         self._is_value_list = is_value_list
         self._key = list()
         self._properties = dict()
-        self._traits = EdmStructTypTraits(self)
 
     @property
     def label(self):
@@ -754,12 +784,19 @@ class EntitySet(Identifier):
 
 
 class StructTypeProperty(VariableDeclaration):
+    """Property of structure types (Entity/Complex type)
 
+       Type of the property can be:
+        * primitive type
+        * complex type
+        * enumeration type (in version 4)
+        * collection of one of previous
+    """
     # pylint: disable=too-many-locals
-    def __init__(self, name, typ, nullable, max_length, precision, uncode,
+    def __init__(self, name, type_info, nullable, max_length, precision, uncode,
                  label, creatable, updatable, sortable, filterable, text,
                  visible, display_format, value_list):
-        super(StructTypeProperty, self).__init__(name, typ, nullable,
+        super(StructTypeProperty, self).__init__(name, type_info, nullable,
                                                  max_length, precision)
 
         self._value_helper = None
@@ -870,7 +907,7 @@ class StructTypeProperty(VariableDeclaration):
 
         return StructTypeProperty(
             entity_type_property_node.get('Name'),
-            entity_type_property_node.get('Type'),
+            Types.parse_type_name(entity_type_property_node.get('Type')),
             entity_type_property_node.get('Nullable'),
             entity_type_property_node.get('MaxLength'),
             entity_type_property_node.get('Precision'),
@@ -1232,13 +1269,13 @@ class FunctionImport(Identifier):
         for param in function_import_node.xpath('edm:Parameter',
                                                 namespaces=NAMESPACES):
             param_name = param.get('Name')
-            param_type = param.get('Type')
+            param_type_info = Types.parse_type_name(param.get('Type'))
             param_nullable = param.get('Nullable')
             param_max_length = param.get('MaxLength')
             param_precision = param.get('Precision')
             param_mode = param.get('Mode')
 
-            parameters[param_name] = FunctionImportParameter(param_name, param_type,
+            parameters[param_name] = FunctionImportParameter(param_name, param_type_info,
                                                              param_nullable, param_max_length,
                                                              param_precision, param_mode)
 
@@ -1249,9 +1286,9 @@ class FunctionImportParameter(VariableDeclaration):
 
     Modes = enum.Enum('Modes', 'In Out InOut')
 
-    def __init__(self, name, typ, nullable, max_length, precision, mode):
+    def __init__(self, name, type_info, nullable, max_length, precision, mode):
         super(FunctionImportParameter,
-              self).__init__(name, typ, nullable, max_length, precision)
+              self).__init__(name, type_info, nullable, max_length, precision)
 
         self._mode = mode
 

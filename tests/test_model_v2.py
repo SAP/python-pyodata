@@ -130,7 +130,7 @@ def test_edmx_complex_types(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber'}
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber', 'Rectangle'}
 
     complex_number = schema.complex_type('ComplexNumber')
     assert str(complex_number) == 'ComplexType(ComplexNumber)'
@@ -145,20 +145,22 @@ def test_edmx_complex_types(schema):
 def test_traits():
     """Test individual traits"""
 
+    types = Types()
+
     # generic
-    trait_binary = Types.from_name('Edm.Binary')
-    assert repr(trait_binary.traits) == 'TypTraits'
-    assert trait_binary.traits.to_odata('bincontent') == 'bincontent'
-    assert trait_binary.traits.from_odata('some bin content') == 'some bin content'
+    typ = types.from_name('Edm.Binary')
+    assert repr(typ.traits) == 'TypTraits'
+    assert typ.traits.to_odata('bincontent') == 'bincontent'
+    assert typ.traits.from_odata('some bin content') == 'some bin content'
 
     # string
-    trait_string = Types.from_name('Edm.String')
-    assert repr(trait_string.traits) == 'EdmStringTypTraits'
-    assert trait_string.traits.to_odata('Foo Foo') == "'Foo Foo'"
-    assert trait_string.traits.from_odata("'Alice Bob'") == 'Alice Bob'
+    typ = types.from_name('Edm.String')
+    assert repr(typ.traits) == 'EdmStringTypTraits'
+    assert typ.traits.to_odata('Foo Foo') == "'Foo Foo'"
+    assert typ.traits.from_odata("'Alice Bob'") == 'Alice Bob'
 
     # bool
-    typ = Types.from_name('Edm.Boolean')
+    typ = types.from_name('Edm.Boolean')
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
     assert typ.traits.to_odata(True) == 'true'
     assert typ.traits.from_odata('true') is True
@@ -168,37 +170,39 @@ def test_traits():
     assert typ.traits.to_odata(0) == 'false'
 
     # integers
-    trait = Types.from_name('Edm.Int16')
-    assert repr(trait.traits) == 'EdmIntTypTraits'
-    assert trait.traits.to_odata(23) == '23'
-    assert trait.traits.from_odata('345') == 345
+    typ = types.from_name('Edm.Int16')
+    assert repr(typ.traits) == 'EdmIntTypTraits'
+    assert typ.traits.to_odata(23) == '23'
+    assert typ.traits.from_odata('345') == 345
 
-    trait = Types.from_name('Edm.Int32')
-    assert repr(trait.traits) == 'EdmIntTypTraits'
-    assert trait.traits.to_odata(23) == '23'
-    assert trait.traits.from_odata('345') == 345
+    typ = types.from_name('Edm.Int32')
+    assert repr(typ.traits) == 'EdmIntTypTraits'
+    assert typ.traits.to_odata(23) == '23'
+    assert typ.traits.from_odata('345') == 345
 
-    trait = Types.from_name('Edm.Int64')
-    assert repr(trait.traits) == 'EdmIntTypTraits'
-    assert trait.traits.to_odata(23) == '23'
-    assert trait.traits.from_odata('345') == 345
+    typ = types.from_name('Edm.Int64')
+    assert repr(typ.traits) == 'EdmIntTypTraits'
+    assert typ.traits.to_odata(23) == '23'
+    assert typ.traits.from_odata('345') == 345
 
     # GUIDs
-    trait_guid = Types.from_name('Edm.Guid')
-    assert repr(trait_guid.traits) == 'EdmPrefixedTypTraits'
-    assert trait_guid.traits.to_odata('000-0000') == "guid'000-0000'"
-    assert trait_guid.traits.from_odata("guid'1234-56'") == '1234-56'
+    typ = types.from_name('Edm.Guid')
+    assert repr(typ.traits) == 'EdmPrefixedTypTraits'
+    assert typ.traits.to_odata('000-0000') == "guid'000-0000'"
+    assert typ.traits.from_odata("guid'1234-56'") == '1234-56'
     with pytest.raises(RuntimeError, match=r'Malformed.*'):
-        trait_guid.traits.from_odata("'1234-56'")
+        typ.traits.from_odata("'1234-56'")
 
 
 def test_traits_collections():
     """Test collection traits"""
 
-    typ = Types.from_name('Collection(Edm.Int32)')
+    types = Types()
+
+    typ = types.from_name('Collection(Edm.Int32)')
     assert typ.traits.from_odata(['23', '34']) == [23, 34]
 
-    typ = Types.from_name('Collection(Edm.String)')
+    typ = types.from_name('Collection(Edm.String)')
     assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
