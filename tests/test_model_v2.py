@@ -145,22 +145,20 @@ def test_edmx_complex_types(schema):
 def test_traits():
     """Test individual traits"""
 
-    types = Types()
-
     # generic
-    typ = types.from_name('Edm.Binary')
+    typ = Types.from_name('Edm.Binary')
     assert repr(typ.traits) == 'TypTraits'
     assert typ.traits.to_odata('bincontent') == 'bincontent'
     assert typ.traits.from_odata('some bin content') == 'some bin content'
 
     # string
-    typ = types.from_name('Edm.String')
+    typ = Types.from_name('Edm.String')
     assert repr(typ.traits) == 'EdmStringTypTraits'
     assert typ.traits.to_odata('Foo Foo') == "'Foo Foo'"
     assert typ.traits.from_odata("'Alice Bob'") == 'Alice Bob'
 
     # bool
-    typ = types.from_name('Edm.Boolean')
+    typ = Types.from_name('Edm.Boolean')
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
     assert typ.traits.to_odata(True) == 'true'
     assert typ.traits.from_odata('true') is True
@@ -170,23 +168,23 @@ def test_traits():
     assert typ.traits.to_odata(0) == 'false'
 
     # integers
-    typ = types.from_name('Edm.Int16')
+    typ = Types.from_name('Edm.Int16')
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_odata(23) == '23'
     assert typ.traits.from_odata('345') == 345
 
-    typ = types.from_name('Edm.Int32')
+    typ = Types.from_name('Edm.Int32')
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_odata(23) == '23'
     assert typ.traits.from_odata('345') == 345
 
-    typ = types.from_name('Edm.Int64')
+    typ = Types.from_name('Edm.Int64')
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_odata(23) == '23'
     assert typ.traits.from_odata('345') == 345
 
     # GUIDs
-    typ = types.from_name('Edm.Guid')
+    typ = Types.from_name('Edm.Guid')
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
     assert typ.traits.to_odata('000-0000') == "guid'000-0000'"
     assert typ.traits.from_odata("guid'1234-56'") == '1234-56'
@@ -197,12 +195,10 @@ def test_traits():
 def test_traits_collections():
     """Test collection traits"""
 
-    types = Types()
-
-    typ = types.from_name('Collection(Edm.Int32)')
+    typ = Types.from_name('Collection(Edm.Int32)')
     assert typ.traits.from_odata(['23', '34']) == [23, 34]
 
-    typ = types.from_name('Collection(Edm.String)')
+    typ = Types.from_name('Collection(Edm.String)')
     assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
