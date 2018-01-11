@@ -473,6 +473,12 @@ class Schema(object):
         except KeyError:
             pass
 
+        # then look for type in complex types
+        try:
+            return self.complex_type(search_name, type_info[0])
+        except KeyError:
+            pass
+
         raise PyODataModelError('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[1]))
 
     @property

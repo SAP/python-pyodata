@@ -82,7 +82,7 @@ def test_edmx(schema):
 def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
-    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max'}
+    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max', 'sum_complex'}
     # pylint: disable=redefined-outer-name
 
     function_import = schema.function_import('retrieve')
