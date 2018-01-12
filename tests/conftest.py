@@ -55,6 +55,18 @@ def metadata():
             <Property Name="Width" Type="Edm.Double" Nullable="false"/>
             <Property Name="Height" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
+           <Association Name="toDataEntity" sap:content-version="1">
+            <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="1" Role="FromRole_toDataEntity" />
+            <End Type="EXAMPLE_SRV.DataEntity" Multiplicity="*" Role="ToRole_toDataEntity" />
+            <ReferentialConstraint>
+             <Principal Role="FromRole_toDataEntity">
+              <PropertyRef Name="Key" />
+             </Principal>
+             <Dependent Role="ToRole_toDataEntity">
+              <PropertyRef Name="Name" />
+             </Dependent>
+            </ReferentialConstraint>
+           </Association>
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
@@ -62,6 +74,10 @@ def metadata():
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
            </EntityContainer>
+           <AssociationSet Name="toDataEntitySet" Association="EXAMPLE_SRV.toDataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+            <End EntitySet="MasterEntities" Role="FromRole_toDataEntity" />
+            <End EntitySet="DataValueHelp" Role="ToRole_toDataEntity" />
+           </AssociationSet>
            <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.MasterEntity/Data">
             <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
              <Record>

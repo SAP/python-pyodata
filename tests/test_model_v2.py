@@ -79,6 +79,24 @@ def test_edmx(schema):
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
 
+    assert set((association.name for association in schema.associations)) == {'toDataEntity'}
+    association = schema.association('toDataEntity')
+    assert str(association) == 'Association(toDataEntity)'
+    assert association.end_role('FromRole_toDataEntity').multiplicity == '1'
+    assert association.end_role('ToRole_toDataEntity').multiplicity == '*'
+    principal_role = association.referential_constraint.principal
+    assert principal_role.name == 'FromRole_toDataEntity'
+    assert principal_role.property_names == ['Key']
+    dependent_role = association.referential_constraint.dependent
+    assert dependent_role.name == 'ToRole_toDataEntity'
+    assert dependent_role.property_names == ['Name']
+
+    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet'}
+    association_set = schema.association_set('toDataEntitySet')
+    assert str(association_set) == 'AssociationSet(toDataEntitySet)'
+    assert association_set.association_type.name == 'toDataEntity'
+    assert association_set.end_roles == {'DataValueHelp': 'ToRole_toDataEntity', 'MasterEntities': 'FromRole_toDataEntity'}
+
 
 def test_edmx_function_imports(schema):
     """Test parsing of function imports"""

@@ -429,6 +429,8 @@ class Schema(object):
             self.complex_types = dict()
             self.entity_sets = dict()
             self.function_imports = dict()
+            self.associations = dict()
+            self.association_sets = dict()
 
         def list_entity_types(self):
             return self.entity_types.values()
@@ -441,6 +443,12 @@ class Schema(object):
 
         def list_function_imports(self):
             return self.function_imports.values()
+
+        def list_associations(self):
+            return self.associations.values()
+
+        def list_association_sets(self):
+            return self.association_sets.values()
 
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
@@ -577,6 +585,42 @@ class Schema(object):
     def function_imports(self):
         return [func_import for func_import in itertools.chain(*(decl.list_function_imports() for decl in self._decls.values()))]
 
+    def association(self, association_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace].associations[association_name]
+            except KeyError:
+                raise KeyError('Association {} does not exist in namespace {}'.format(association_name,
+                                                                                      namespace))
+        for decl in self._decls.values():
+            try:
+                return decl.associations[association_name]
+            except KeyError:
+                pass
+
+    @property
+    def associations(self):
+        return [association for association in itertools.chain(*(decl.list_associations()
+                                                                 for decl in self._decls.values()))]
+
+    def association_set(self, set_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace].association_sets[set_name]
+            except KeyError:
+                raise KeyError('Association set {} does not exist in namespace {}'.format(set_name,
+                                                                                          namespace))
+        for decl in self._decls.values():
+            try:
+                return decl.association_sets[set_name]
+            except KeyError:
+                pass
+
+    @property
+    def association_sets(self):
+        return [association_set for association_set in itertools.chain(*(decl.list_association_sets()
+                                                                         for decl in self._decls.values()))]
+
     @staticmethod
     # pylint: disable=too-many-locals,too-many-branches
     def from_etree(schema_nodes):
@@ -613,7 +657,62 @@ class Schema(object):
                 for prop in stype.proprties():
                     prop.typ = schema.get_type(prop.type_info)
 
-        # Then, proces EntitySet and FunctionImport nodes.
+        # Then, process Associations nodes because they refer EntityTypes and
+        # they are referenced by AssociationSets.
+        for schema_node in schema_nodes:
+            namespace = schema_node.get('Namespace')
+            decl = schema._decls[namespace]
+
+            for association in schema_node.xpath('edm:Association',
+                                                 namespaces=NAMESPACES):
+                assoc = Association.from_etree(association)
+                for end_role in assoc.end_roles.values():
+                    try:
+                        # Check if entity type exists
+                        schema.entity_type(end_role.entity_type_name)
+                    except KeyError:
+                        raise RuntimeError('Entity type {} does not exist in scheme {}'
+                                           .format(end_role.entity_type_name, decl.namespace))
+
+                if assoc.referential_constraint is not None:
+                    role_names = [end_role.role for end_role in assoc.end_roles.values()]
+                    principal_role = assoc.referential_constraint.principal
+
+                    # Check if the role was defined in the current association
+                    if principal_role.name not in role_names:
+                        raise RuntimeError('Role {} was not defined in association {}'.format(principal_role.name,
+                                                                                              assoc.name))
+
+                    # Check if principal role properties exist
+                    for proprty in principal_role.property_names:
+                        role_name = principal_role.name
+                        entity_type = schema.entity_type(assoc.end_role(role_name).entity_type_name)
+                        try:
+                            entity_type.proprty(proprty)
+                        except KeyError:
+                            raise RuntimeError('Property {} does not exist in {}'
+                                               .format(proprty, entity_type.name))
+
+                    dependent_role = assoc.referential_constraint.dependent
+
+                    # Check if the role was defined in the current association
+                    if dependent_role.name not in role_names:
+                        raise RuntimeError('Role {} was not defined in association {}'.format(dependent_role.name,
+                                                                                              assoc.name))
+
+                    # Check if dependent role properties exist
+                    for proprty in dependent_role.property_names:
+                        role_name = dependent_role.name
+                        entity_type = schema.entity_type(assoc.end_role(role_name).entity_type_name)
+                        try:
+                            entity_type.proprty(proprty)
+                        except KeyError:
+                            raise RuntimeError('Property {} does not exist in {}'
+                                               .format(proprty, entity_type.name))
+
+                decl.associations[assoc.name] = assoc
+
+        # Then, process EntitySet, FunctionImport and AssociationSet nodes.
         for schema_node in schema_nodes:
             namespace = schema_node.get('Namespace')
             decl = schema._decls[namespace]
@@ -634,6 +733,33 @@ class Schema(object):
                 for param in efn.parameters:
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
+
+            for association_set in schema_node.xpath('edm:AssociationSet',
+                                                     namespaces=NAMESPACES):
+                assoc_set = AssociationSet.from_etree(association_set)
+                scheme_namespace, association_name = assoc_set.association_type_name.split('.', 1)
+
+                try:
+                    assoc_set.association_type = schema.association(association_name)
+                except KeyError:
+                    raise RuntimeError('Association {} does not exist in scheme {}'.format(association_name,
+                                                                                           decl.namespace))
+
+                for key, value in assoc_set.end_roles.items():
+                    # Check if entity set exists in current scheme
+                    try:
+                        schema.entity_set(key, decl.namespace)
+                    except KeyError:
+                        raise RuntimeError('Entity {} does not exist in scheme {}'.format(key,
+                                                                                          decl.namespace))
+                    # Check if role is defined in Association
+                    try:
+                        assoc_set.association_type.end_role(value)
+                    except KeyError:
+                        raise RuntimeError('Role {} is not defined in association {}'.format(value,
+                                                                                      assoc_set.association_type_name))
+
+                decl.association_sets[assoc_set.name] = assoc_set
 
         # Finally, process Annotation nodes when all Scheme nodes are completely processed.
         for schema_node in schema_nodes:
@@ -986,6 +1112,217 @@ class StructTypeProperty(VariableDeclaration):
                                      'display-format'),
             sap_attribute_get_string(entity_type_property_node,
                                      'value-list'),)
+
+
+class EndRole(object):
+
+    def __init__(self, namespace, entity_type_name, multiplicity, role):
+        self._namespace = namespace
+        self._entity_type_name = entity_type_name
+        self._multiplicity = multiplicity
+        self._role = role
+
+    @property
+    def namespace(self):
+        return self._namespace
+
+    @property
+    def entity_type_name(self):
+        return self._entity_type_name
+
+    @property
+    def multiplicity(self):
+        return self._multiplicity
+
+    @property
+    def role(self):
+        return self._role
+
+    @staticmethod
+    def from_etree(end_role_node):
+        namespace, entity_type_name = end_role_node.get('Type').split('.')
+        multiplicity = end_role_node.get('Multiplicity')
+        role = end_role_node.get('Role')
+
+        return EndRole(namespace, entity_type_name, multiplicity, role)
+
+
+class ReferentialConstraintRole(object):
+
+    def __init__(self, name, property_names):
+        self._name = name
+        self._property_names = property_names
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def property_names(self):
+        return self._property_names
+
+
+class PrincipalRole(ReferentialConstraintRole):
+
+    def __init__(self, name, property_names):
+        super(PrincipalRole, self).__init__(name, property_names)
+
+
+class DependentRole(ReferentialConstraintRole):
+
+    def __init__(self, name, property_names):
+        super(DependentRole, self).__init__(name, property_names)
+
+
+class ReferentialConstraint(object):
+
+    def __init__(self, principal, dependent):
+        self._principal = principal
+        self._dependent = dependent
+
+    @property
+    def principal(self):
+        return self._principal
+
+    @property
+    def dependent(self):
+        return self._dependent
+
+    @staticmethod
+    def from_etree(referential_constraint_node):
+        principal = referential_constraint_node.xpath('edm:Principal', namespaces=NAMESPACES)
+        if len(principal) != 1:
+            raise RuntimeError('Referential constraint must contain exactly one principal element')
+
+        principal_name = principal[0].get('Role')
+        if principal_name is None:
+            raise RuntimeError('Principal role name was not specified')
+
+        principal_refs = []
+        for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=NAMESPACES):
+            principal_refs.append(property_ref.get('Name'))
+        if not principal_refs:
+            raise RuntimeError('In role {} should be at least one principal property defined'
+                               .format(principal_name))
+
+        dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=NAMESPACES)
+        if len(dependent) != 1:
+            raise RuntimeError('Referential constraint must contain exactly one dependent element')
+
+        dependent_name = dependent[0].get('Role')
+        if dependent_name is None:
+            raise RuntimeError('Dependent role name was not specified')
+
+        dependent_refs = []
+        for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=NAMESPACES):
+            dependent_refs.append(property_ref.get('Name'))
+        if len(principal_refs) != len(dependent_refs):
+            raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
+                               .format(principal_name, dependent_name))
+
+        return ReferentialConstraint(PrincipalRole(principal_name, principal_refs),
+                                     DependentRole(dependent_name, dependent_refs))
+
+
+class Association(object):
+
+    def __init__(self, name):
+        self._name = name
+        self._referential_constraint = None
+        self._end_roles = dict()
+
+    def __str__(self):
+        return '{0}({1})'.format(self.__class__.__name__, self._name)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def end_roles(self):
+        return self._end_roles
+
+    def end_role(self, end_role):
+        return self._end_roles[end_role]
+
+    @property
+    def referential_constraint(self):
+        return self._referential_constraint
+
+    @staticmethod
+    def from_etree(association_node):
+        name = association_node.get('Name')
+        association = Association(name)
+
+        for end in association_node.xpath('edm:End', namespaces=NAMESPACES):
+            end_role = EndRole.from_etree(end)
+            if end_role.role is None:
+                raise RuntimeError('Role is not specified in the association {}'.format(name))
+            association._end_roles[end_role.role] = end_role
+
+        if len(association._end_roles) != 2:
+            raise RuntimeError('Association {} does not have two end roles'.format(name))
+
+        refer = association_node.xpath('edm:ReferentialConstraint', namespaces=NAMESPACES)
+        if len(refer) > 1:
+            raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
+
+        if not refer:
+            referential_constraint = None
+        else:
+            referential_constraint = ReferentialConstraint.from_etree(refer[0])
+
+        association._referential_constraint = referential_constraint
+
+        return association
+
+
+class AssociationSet(object):
+
+    def __init__(self, name, association_type_name, end_roles):
+        self._name = name
+        self._association_type_name = association_type_name
+        self._association_type = None
+        self._end_roles = end_roles
+
+    def __str__(self):
+        return "{0}({1})".format(self.__class__.__name__, self._name)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def association_type(self):
+        return self._association_type
+
+    @property
+    def association_type_name(self):
+        return self._association_type_name
+
+    @property
+    def end_roles(self):
+        return self._end_roles
+
+    @association_type.setter
+    def association_type(self, value):
+        if self._association_type is not None:
+            raise RuntimeError('Cannot replace {} of {} with {}'
+                               .format(self._association_type, self, value))
+        self._association_type = value
+
+    @staticmethod
+    def from_etree(association_set_node):
+        name = association_set_node.get('Name')
+        association_type = association_set_node.get('Association')
+        end_roles = {}
+
+        for end_role in association_set_node.xpath('edm:End', namespaces=NAMESPACES):
+            entity_set = end_role.get('EntitySet')
+            role = end_role.get('Role')
+            end_roles[entity_set] = role
+
+        return AssociationSet(name, association_type, end_roles)
 
 
 class Annotation(object):
