@@ -100,6 +100,10 @@ def metadata():
             <EntitySet Name="TemperatureMeasurements" EntityType="EXAMPLE_SRV.TemperatureMeasurement" sap:creatable="true" sap:updatable="true" sap:deletable="true" sap:searchable="true" sap:content-version="1"/>
             <FunctionImport Name="get_max" ReturnType="TemperatureMeasurement" EntitySet="TemperatureMeasurements" m:HttpMethod="GET" />
             <FunctionImport Name="get_best_measurements" ReturnType="Collection(EXAMPLE_SRV.TemperatureMeasurement)" EntitySet="EXAMPLE_SRV.TemperatureMeasurements" m:HttpMethod="GET" />
+            <FunctionImport Name="sum" ReturnType="Edm.Int32" m:HttpMethod="GET">
+             <Parameter Name="A" Type="Edm.Int32" Mode="In" />
+             <Parameter Name="B" Type="Edm.Int32" Mode="In" />
+            </FunctionImport>
             <FunctionImport Name="sum_complex" ReturnType="EXAMPLE_SRV.ComplexNumber" m:HttpMethod="GET">
              <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
              <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />

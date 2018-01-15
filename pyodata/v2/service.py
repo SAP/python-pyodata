@@ -4,7 +4,9 @@ import logging
 from functools import partial
 import json
 import requests
+import pyodata
 from pyodata.exceptions import HttpError, PyODataException
+
 LOGGER_NAME = 'pyodata.service'
 
 
@@ -556,18 +558,21 @@ class FunctionContainer(object):
 
         fimport = self._service.schema.function_import(name)
 
-        def function_import_handler(response, fimport):
+        def function_import_handler(fimport, response):
             """Get function call response from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
                 raise HttpError('Function import call failed with status code {0}'
                                 .format(response.status_code), response)
 
-            # entities = response.json()['d']['results']
+            response_data = response.json()['d']
 
-            entity_props = response.json()['d']
+            # 1. if return types is "entity type", return instance of appropriate entity proxy
+            if isinstance(fimport.return_type, pyodata.v2.model.EntityType):
+                return EntityProxy(self._service, fimport.entity_set_name, fimport.return_type, response_data)
 
-            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
+            # 2. return raw data for all other return types (primitives, complex types encoded in dicts, etc.)
+            return response_data
 
         return FunctionRequest(
             self._service.url,

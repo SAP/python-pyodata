@@ -114,3 +114,43 @@ def test_entity_key_complex_single_value(service):
             1)
 
     assert str(e_info.value).startswith('Key of entity type')
+
+
+@responses.activate
+def test_function_import_primitive(service):
+    """Simple function call with primitive return type"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/sum?A=2&B=4'".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': 6},
+        status=200)
+
+    result = service.functions.sum.parameter('A', 2).parameter('B', 4).execute()
+    assert result == 6
+
+
+@responses.activate
+def test_function_import_entity(service):
+    """Function call with entity return type"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        '{0}/get_max'.format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Sensor': 'Sensor-address',
+            'Date': "datetime'2000-01-01T00:00'",
+            'Value': 456.8
+        }},
+        status=200)
+
+    result = service.functions.get_max.execute()
+    assert isinstance(result, pyodata.v2.service.EntityProxy)
+    assert result.Sensor == 'Sensor-address'
+    assert result.Value == 456.8
