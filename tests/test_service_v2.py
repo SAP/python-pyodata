@@ -155,3 +155,33 @@ def test_function_import_entity(service):
     assert isinstance(result, pyodata.v2.service.EntityProxy)
     assert result.Sensor == 'Sensor-address'
     assert result.Value == 456.8
+
+
+@responses.activate
+def test_update_entity(service):
+    """Check updating of entity properties"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.PATCH,
+        "{0}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')".format(service.url),
+        json={'d': {
+            'Sensor': 'Sensor-address',
+            'Date': "datetime'2017-12-24T18:00'",
+            'Value': 34
+        }},
+        status=200)
+
+    request = service.entity_sets.TemperatureMeasurements.update_entity(
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    assert isinstance(request, pyodata.v2.service.EntityModifyRequest)
+
+    request.set(Value=34)
+
+    result = request.execute()
+
+    assert result.Sensor == 'Sensor-address'
+    assert result.Value == 34

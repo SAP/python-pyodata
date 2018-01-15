@@ -238,6 +238,57 @@ class EntityCreateRequest(ODataHttpRequest):
         return self
 
 
+class EntityModifyRequest(ODataHttpRequest):
+    """Used for modyfing entities (UPDATE/MERGE operations on a single entity)
+
+       Call execute() to send the update-request to the OData service
+       and get the modified entity."""
+
+    def __init__(self, url, connection, handler, entity_set, entity_key):
+        super(EntityModifyRequest, self).__init__(url, connection, handler)
+        self._logger = logging.getLogger(LOGGER_NAME)
+        self._entity_set = entity_set
+        self._entity_type = entity_set.entity_type
+        self._entity_key = entity_key
+
+        self._values = {}
+
+        # get all properties declared by entity type
+        self._type_props = self._entity_type.proprties()
+
+        self._logger.info('New instance of EntityModifyRequest for entity type: %s', self._entity_type.name)
+
+    def _get_path(self):
+        return self._entity_set.name + self._entity_key.to_key_string()
+
+    def _get_method(self):
+        # pylint: disable=no-self-use
+        return 'PATCH'
+
+    def _get_body(self):
+        # pylint: disable=no-self-use
+        body = {}
+        for key, val in self._values.iteritems():
+            body[key] = val
+        return json.dumps(body)
+
+    def set(self, **kwargs):
+        """Set properties to be changed."""
+
+        self._logger.info(kwargs)
+
+        for key, val in kwargs.iteritems():
+            try:
+                self._entity_type.proprty(key)
+            except KeyError:
+                raise PyODataException('Property {} is not declared in {} entity type'.format(
+                    key, self._entity_type.name))
+
+            self._values[key] = val
+
+        return self
+
+
 class QueryRequest(ODataHttpRequest):
     """INTERFACE A consumer-side query-request builder. Call execute() to issue the request."""
 
@@ -516,6 +567,31 @@ class EntitySetProxy(object):
             self._service.connection,
             create_entity_handler,
             self._entity_set)
+
+    def update_entity(self, key=None, **kwargs):
+        """Updates an existing entity in the given entity-set."""
+
+        def update_entity_handler(response):
+            """Gets modified entity encoded in HTTP Response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
+                                .format(self._name, response.status_code), response)
+
+            entity_props = response.json()['d']
+
+            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
+
+        key = EntityKey(self._entity_set.entity_type, key, **kwargs)
+
+        self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
+
+        return EntityModifyRequest(
+            self._service.url,
+            self._service.connection,
+            update_entity_handler,
+            self._entity_set,
+            key)
 
 
 # pylint: disable=too-few-public-methods
