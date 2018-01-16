@@ -1,9 +1,10 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements
 
+from datetime import datetime
 import pytest
 from pyodata.v2.model import Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
-from pyodata.exceptions import PyODataException
+from pyodata.exceptions import PyODataException, PyODataModelError
 
 
 def test_edmx(schema):
@@ -188,8 +189,64 @@ def test_traits():
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
     assert typ.traits.to_odata('000-0000') == "guid'000-0000'"
     assert typ.traits.from_odata("guid'1234-56'") == '1234-56'
-    with pytest.raises(RuntimeError, match=r'Malformed.*'):
+    with pytest.raises(PyODataModelError) as e_info:
         typ.traits.from_odata("'1234-56'")
+    assert str(e_info.value).startswith("Malformed value '1234-56' for primitive")
+
+
+def test_traits_datetime():
+    """Test Edm.DateTime traits"""
+
+    typ = Types.from_name('Edm.DateTime')
+    assert repr(typ.traits) == 'EdmDateTimeTypTraits'
+
+    # 1. direction Python -> OData
+
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456)
+    assert typ.traits.to_odata(testdate) == "datetime'2005-01-28T18:30:44.123456'"
+
+    # without miliseconds part
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 0)
+    assert typ.traits.to_odata(testdate) == "datetime'2005-01-28T18:30:44'"
+
+    # serialization of invalid value
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.to_odata('xyz')
+    assert str(e_info.value).startswith('Cannot convert value of type')
+
+    # 2. direction OData -> python
+
+    # parsing full representation
+    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33:06.654321'")
+    assert testdate.year == 1976
+    assert testdate.month == 11
+    assert testdate.day == 23
+    assert testdate.hour == 3
+    assert testdate.minute == 33
+    assert testdate.second == 6
+    assert testdate.microsecond == 654321
+
+    # parsing without miliseconds
+    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33:06'")
+    assert testdate.year == 1976
+    assert testdate.second == 6
+    assert testdate.microsecond == 0
+
+    # parsing without seconds and miliseconds
+    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33'")
+    assert testdate.year == 1976
+    assert testdate.minute == 33
+    assert testdate.second == 0
+    assert testdate.microsecond == 0
+
+    # parsing invalid value
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.from_odata('xyz')
+    assert str(e_info.value).startswith('Malformed value xyz for primitive')
+
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.from_odata("datetime'xyz'")
+    assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
 
 def test_traits_collections():

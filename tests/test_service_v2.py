@@ -1,5 +1,6 @@
 """Service tests"""
 
+import datetime
 import responses
 import requests
 import pytest
@@ -100,9 +101,9 @@ def test_entity_key_complex_valid(service):
 
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
-        Sensor='sensor1', Date='2017-12-24T18:00')
+        Sensor='sensor1', Date=datetime.datetime(2017, 12, 24, 18, 0))
 
-    assert key.to_key_string() == "(Sensor='sensor1',Date=2017-12-24T18:00)"
+    assert key.to_key_string() == "(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
 
 
 def test_entity_key_complex_single_value(service):

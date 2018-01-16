@@ -11,6 +11,7 @@ import StringIO
 import logging
 import enum
 import re
+import datetime
 from pyodata.exceptions import PyODataException, PyODataModelError
 from lxml import etree
 
@@ -56,7 +57,7 @@ class Types(object):
             Types.register_type(Typ('Edm.Binary', 'binary\'\''))
             Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
             Types.register_type(Typ('Edm.Byte', '0'))
-            Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\''))
+            Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
             Types.register_type(Typ('Edm.Decimal', '0.0M'))
             Types.register_type(Typ('Edm.Double', '0.0d'))
             Types.register_type(Typ('Edm.Single', '0.0f'))
@@ -191,8 +192,55 @@ class EdmPrefixedTypTraits(TypTraits):
     def from_odata(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
         if not matches:
-            raise RuntimeError('Malformed Edm.Guid {0} '.format(value))
+            raise PyODataModelError("Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
         return matches.group(1)
+
+
+class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
+    """Emd.DateTime traits
+
+       Represents date and time with values ranging from 12:00:00 midnight,
+       January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D.
+
+       Literal form:
+       datetime'yyyy-mm-ddThh:mm[:ss[.fffffff]]'
+       NOTE: Spaces are not allowed between datetime and quoted portion.
+       datetime is case-insensitive
+
+       Example 1: datetime'2000-12-12T12:00'
+    """
+
+    def __init__(self):
+        super(EdmDateTimeTypTraits, self).__init__('datetime')
+
+    def to_odata(self, value):
+        """Convert python datetime representation to odata format
+
+           None: this could be done also via formatting string:
+           value.strftime('%Y-%m-%dT%H:%M:%S.%f')
+        """
+
+        if not isinstance(value, datetime.datetime):
+            raise PyODataModelError('Cannot convert value of type {} to odata. Datetime format is required.'.format(type(value)))
+
+        return super(EdmDateTimeTypTraits, self).to_odata(value.isoformat())
+
+    def from_odata(self, value):
+
+        value = super(EdmDateTimeTypTraits, self).from_odata(value)
+
+        try:
+            value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
+        except ValueError:
+            try:
+                value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                try:
+                    value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
+
+        return value
 
 
 class EdmStringTypTraits(TypTraits):
