@@ -133,8 +133,8 @@ class ODataHttpRequest(object):
         response = self._conn.request(
             self._get_method(),
             url,
-            headers={'Accept': 'application/json'},
-            params=self._get_query_params())
+            params=self._get_query_params(),
+            data=body)
 
         self._logger.info('  url: %s', response.url)
         self._logger.info('  status code: %d', response.status_code)
