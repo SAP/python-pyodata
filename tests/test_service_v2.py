@@ -171,7 +171,7 @@ def test_update_entity(service):
             'Date': "datetime'2017-12-24T18:00'",
             'Value': 34
         }},
-        status=200)
+        status=204)
 
     request = service.entity_sets.TemperatureMeasurements.update_entity(
         Sensor='sensor1',
@@ -181,7 +181,4 @@ def test_update_entity(service):
 
     request.set(Value=34)
 
-    result = request.execute()
-
-    assert result.Sensor == 'Sensor-address'
-    assert result.Value == 34
+    request.execute()

@@ -609,13 +609,9 @@ class EntitySetProxy(object):
         def update_entity_handler(response):
             """Gets modified entity encoded in HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
-                raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
-                                .format(self._name, response.status_code), response)
-
-            entity_props = response.json()['d']
-
-            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
+            if response.status_code != 204:
+                raise HttpError('HTTP {0} for Entity Set {1} failed with status code {2}'
+                                .format(response.request.method, self._name, response.status_code), response)
 
         key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
