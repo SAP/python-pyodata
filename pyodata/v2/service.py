@@ -50,7 +50,7 @@ class EntityKey(object):
 
             self._type = EntityKey.TYPE_SINGLE
 
-            self._logger.info(('Detected single property key, adding pair %s->%s to key'
+            self._logger.debug(('Detected single property key, adding pair %s->%s to key'
                                'properties'), key_prop.name, single_key)
         else:
             for key_prop in self._key:
@@ -133,11 +133,11 @@ class ODataHttpRequest(object):
         headers = {} if self._headers is None else self._headers
         headers.update(self._get_headers())
 
-        self._logger.info('execute %s request to %s', self._get_method(), url)
-        self._logger.info('  query params: %s', self._get_query_params())
-        self._logger.info('  headers: %s', headers)
+        self._logger.debug('execute %s request to %s', self._get_method(), url)
+        self._logger.debug('  query params: %s', self._get_query_params())
+        self._logger.debug('  headers: %s', headers)
         if body:
-            self._logger.info('  body: %s', body)
+            self._logger.debug('  body: %s', body)
 
         response = self._conn.request(
             self._get_method(),
@@ -146,8 +146,8 @@ class ODataHttpRequest(object):
             params=self._get_query_params(),
             data=body)
 
-        self._logger.info('  url: %s', response.url)
-        self._logger.info('  status code: %d', response.status_code)
+        self._logger.debug('  url: %s', response.url)
+        self._logger.debug('  status code: %d', response.status_code)
         self._logger.debug('  body: %s', response.content)
 
         return self._handler(response)
@@ -164,7 +164,7 @@ class EntityGetRequest(ODataHttpRequest):
         self._expand = None
         self._last_segment = last_segment
 
-        self._logger.info('New instance of EntityGetRequest for last segment: %s', self._last_segment)
+        self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._last_segment)
 
     def select(self, select):
         """Specifies a subset of properties to return.
@@ -217,7 +217,7 @@ class EntityCreateRequest(ODataHttpRequest):
         # get all properties declared by entity type
         self._type_props = self._entity_type.proprties()
 
-        self._logger.info('New instance of EntityCreateRequest for entity type: %s', self._entity_type.name)
+        self._logger.debug('New instance of EntityCreateRequest for entity type: %s', self._entity_type.name)
 
     def _get_path(self):
         return self._entity_set.name
@@ -275,7 +275,7 @@ class EntityModifyRequest(ODataHttpRequest):
         # get all properties declared by entity type
         self._type_props = self._entity_type.proprties()
 
-        self._logger.info('New instance of EntityModifyRequest for entity type: %s', self._entity_type.name)
+        self._logger.debug('New instance of EntityModifyRequest for entity type: %s', self._entity_type.name)
 
     def _get_path(self):
         return self._entity_set.name + self._entity_key.to_key_string()
@@ -331,7 +331,7 @@ class QueryRequest(ODataHttpRequest):
         self._expand = None
         self._last_segment = last_segment
         self._customs = {}    # string -> string hash
-        self._logger.info('New instance of QueryRequest for last segment: %s', self._last_segment)
+        self._logger.debug('New instance of QueryRequest for last segment: %s', self._last_segment)
 
     def custom(self, name, value):
         """Adds a custom name-value pair."""
@@ -460,7 +460,7 @@ class EntityProxy(object):
         self._cache = dict()
         self._entity_key = entity_key
 
-        self._logger.info('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
+        self._logger.debug('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
 
         if proprties is not None:
             for type_proprty in self._entity_type.proprties():
@@ -531,7 +531,7 @@ class EntitySetProxy(object):
         self._key = entity_set.entity_type.key_proprties
         self._logger = logging.getLogger(LOGGER_NAME)
 
-        self._logger.info('New entity set proxy instance for %s', self._name)
+        self._logger.debug('New entity set proxy instance for %s', self._name)
 
     def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""
