@@ -1225,6 +1225,15 @@ class ReferentialConstraint(object):
 
 
 class Association(object):
+    """Defines a relationship between two entity types.
+
+       An association must specify the entity types that are involved in
+       the relationship and the possible number of entity types at each
+       end of the relationship, which is known as the multiplicity.
+       The multiplicity of an association end can have a value of one (1),
+       zero or one (0..1), or many (*). This information is specified in
+       two child End elements.
+    """
 
     def __init__(self, name):
         self._name = name
