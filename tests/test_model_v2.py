@@ -14,8 +14,22 @@ def test_edmx(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((entity_type.name for entity_type in schema.entity_types)) == {'MasterEntity', 'DataEntity', 'AnnotationTest', 'TemperatureMeasurement'}
-    assert set((entity_set.name for entity_set in schema.entity_sets)) == {'MasterEntities', 'DataValueHelp', 'TemperatureMeasurements'}
+    assert set((entity_type.name for entity_type in schema.entity_types)) == {
+        'Address',
+        'MasterEntity',
+        'DataEntity',
+        'Employee',
+        'AnnotationTest',
+        'TemperatureMeasurement'
+    }
+
+    assert set((entity_set.name for entity_set in schema.entity_sets)) == {
+        'Addresses',
+        'Employees',
+        'MasterEntities',
+        'DataValueHelp',
+        'TemperatureMeasurements'
+    }
 
     master_entity = schema.entity_type('MasterEntity')
     assert str(master_entity) == 'EntityType(MasterEntity)'

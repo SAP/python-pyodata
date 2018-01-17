@@ -635,8 +635,8 @@ class Schema(object):
         return [association_set for association_set in itertools.chain(*(decl.list_association_sets()
                                                                          for decl in self._decls.values()))]
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
-    # pylint: disable=too-many-locals,too-many-branches
     def from_etree(schema_nodes):
         schema = Schema()
 
@@ -771,7 +771,7 @@ class Schema(object):
                         assoc_set.association_type.end_role(value)
                     except KeyError:
                         raise RuntimeError('Role {} is not defined in association {}'.format(value,
-                                                                                      assoc_set.association_type_name))
+                                                                                             assoc_set.association_type_name))
 
                 decl.association_sets[assoc_set.name] = assoc_set
 
@@ -850,7 +850,7 @@ class StructType(Typ):
 
             if stp.name in stype._properties:
                 raise KeyError('{0} already has property {1}'
-                               .format(stp, stp.name))
+                               .format(stype, stp.name))
 
             stype._properties[stp.name] = stp
 
@@ -1177,15 +1177,11 @@ class ReferentialConstraintRole(object):
 
 
 class PrincipalRole(ReferentialConstraintRole):
-
-    def __init__(self, name, property_names):
-        super(PrincipalRole, self).__init__(name, property_names)
+    pass
 
 
 class DependentRole(ReferentialConstraintRole):
-
-    def __init__(self, name, property_names):
-        super(DependentRole, self).__init__(name, property_names)
+    pass
 
 
 class ReferentialConstraint(object):
