@@ -682,11 +682,18 @@ class Schema(object):
                 assoc = Association.from_etree(association)
                 for end_role in assoc.end_roles.values():
                     try:
-                        # Check if entity type exists
-                        schema.entity_type(end_role.entity_type_name)
+                        # search and assign entity type (it must exist)
+                        if end_role.entity_type_info.namespace is None:
+                            end_role.entity_type_info.namespace = namespace
+
+                        etype = schema.entity_type(
+                            end_role.entity_type_info.name,
+                            end_role.entity_type_info.namespace)
+
+                        end_role.entity_type = etype
                     except KeyError:
-                        raise RuntimeError('Entity type {} does not exist in scheme {}'
-                                           .format(end_role.entity_type_name, decl.namespace))
+                        raise PyODataModelError('Entity type {} does not exist in scheme {}'
+                                                .format(end_role.entity_type_name, decl.namespace))
 
                 if assoc.referential_constraint is not None:
                     role_names = [end_role.role for end_role in assoc.end_roles.values()]
@@ -1130,19 +1137,39 @@ class StructTypeProperty(VariableDeclaration):
 
 class EndRole(object):
 
-    def __init__(self, namespace, entity_type_name, multiplicity, role):
-        self._namespace = namespace
-        self._entity_type_name = entity_type_name
+    def __init__(self, entity_type_info, multiplicity, role):
+        self._entity_type_info = entity_type_info
+        self._entity_type = None
         self._multiplicity = multiplicity
         self._role = role
 
+    def __repr__(self):
+        return "{0}({1})".format(self.__class__.__name__, self.role)
+
     @property
-    def namespace(self):
-        return self._namespace
+    def entity_type_info(self):
+        return self._entity_type_info
 
     @property
     def entity_type_name(self):
-        return self._entity_type_name
+        return self._entity_type_info.name
+
+    @property
+    def entity_type(self):
+        return self._entity_type
+
+    @entity_type.setter
+    def entity_type(self, value):
+
+        if self._entity_type is not None:
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'
+                                    .format(self._entity_type, self, value))
+
+        if value.name != self._entity_type_info.name:
+            raise PyODataModelError('{0} cannot be the type of {1}'
+                                    .format(value, self))
+
+        self._entity_type = value
 
     @property
     def multiplicity(self):
@@ -1154,11 +1181,11 @@ class EndRole(object):
 
     @staticmethod
     def from_etree(end_role_node):
-        namespace, entity_type_name = end_role_node.get('Type').split('.')
+        entity_type_info = Types.parse_type_name(end_role_node.get('Type'))
         multiplicity = end_role_node.get('Multiplicity')
         role = end_role_node.get('Role')
 
-        return EndRole(namespace, entity_type_name, multiplicity, role)
+        return EndRole(entity_type_info, multiplicity, role)
 
 
 class ReferentialConstraintRole(object):

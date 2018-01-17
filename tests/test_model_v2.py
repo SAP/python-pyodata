@@ -93,14 +93,27 @@ def test_edmx(schema):
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
 
-    assert set((association.name for association in schema.associations)) == {'toDataEntity'}
+
+def test_edmx_associations(schema):
+    """Test parsing of associations and association sets"""
+
+    assert set((association.name for association in schema.associations)) == {'toDataEntity', 'AssociationEmployeeAddress'}
+
     association = schema.association('toDataEntity')
     assert str(association) == 'Association(toDataEntity)'
-    assert association.end_role('FromRole_toDataEntity').multiplicity == '1'
-    assert association.end_role('ToRole_toDataEntity').multiplicity == '*'
+
+    from_role = association.end_role('FromRole_toDataEntity')
+    assert from_role.multiplicity == '1'
+    assert str(from_role.entity_type) == 'EntityType(MasterEntity)'
+
+    to_role = association.end_role('ToRole_toDataEntity')
+    assert to_role.multiplicity == '*'
+    assert str(to_role.entity_type) == 'EntityType(DataEntity)'
+
     principal_role = association.referential_constraint.principal
     assert principal_role.name == 'FromRole_toDataEntity'
     assert principal_role.property_names == ['Key']
+
     dependent_role = association.referential_constraint.dependent
     assert dependent_role.name == 'ToRole_toDataEntity'
     assert dependent_role.property_names == ['Name']
