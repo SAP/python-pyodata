@@ -733,6 +733,16 @@ class Schema(object):
 
                 decl.associations[assoc.name] = assoc
 
+        # resolve navigation properties
+        for stype in schema.entity_types:
+            # skip collections
+            if stype.is_collection:
+                continue
+
+            for nav_prop in stype.nav_proprties:
+                assoc = schema.association(nav_prop.association_info.name, nav_prop.association_info.namespace)
+                nav_prop.association = assoc
+
         # Then, process EntitySet, FunctionImport and AssociationSet nodes.
         for schema_node in schema_nodes:
             namespace = schema_node.get('Namespace')
@@ -899,10 +909,19 @@ class EntityType(StructType):
         super(EntityType, self).__init__(name, label, is_value_list)
 
         self._key = list()
+        self._nav_properties = dict()
 
     @property
     def key_proprties(self):
         return list(self._key)
+
+    @property
+    def nav_proprties(self):
+        """Gets the navigation properties defined for this entity type"""
+        return self._nav_properties.values()
+
+    def nav_proprty(self, property_name):
+        return self._nav_properties[property_name]
 
     @classmethod
     def from_etree(cls, type_node):
@@ -912,6 +931,16 @@ class EntityType(StructType):
         for proprty in type_node.xpath('edm:Key/edm:PropertyRef',
                                        namespaces=NAMESPACES):
             etype._key.append(etype.proprty(proprty.get('Name')))
+
+        for proprty in type_node.xpath('edm:NavigationProperty',
+                                       namespaces=NAMESPACES):
+            navp = NavigationTypeProperty.from_etree(proprty)
+
+            if navp.name in etype._nav_properties:
+                raise KeyError('{0} already has navigation property {1}'
+                               .format(etype, navp.name))
+
+            etype._nav_properties[navp.name] = navp
 
         return etype
 
@@ -1133,6 +1162,72 @@ class StructTypeProperty(VariableDeclaration):
                                      'display-format'),
             sap_attribute_get_string(entity_type_property_node,
                                      'value-list'),)
+
+
+class NavigationTypeProperty(VariableDeclaration):
+    """Defines a navigation property, which provides a reference to the other end of an association
+
+       Unlike properties defined with the Property element, navigation properties do not define the
+       shape and characteristics of data. They provide a way to navigate an association between two
+       entity types.
+
+       Note that navigation properties are optional on both entity types at the ends of an association.
+       If you define a navigation property on one entity type at the end of an association, you do not
+       have to define a navigation property on the entity type at the other end of the association.
+
+       The data type returned by a navigation property is determined by the multiplicity of its remote
+       association end. For example, suppose a navigation property, OrdersNavProp, exists on a Customer
+       entity type and navigates a one-to-many association between Customer and Order. Because the
+       remote association end for the navigation property has multiplicity many (*), its data type is
+       a collection (of Order). Similarly, if a navigation property, CustomerNavProp, exists on the Order
+       entity type, its data type would be Customer since the multiplicity of the remote end is one (1).
+    """
+    def __init__(self, name, from_role_name, to_role_name, association_info):
+        super(NavigationTypeProperty, self).__init__(name, None, False, None, None)
+
+        self.from_role_name = from_role_name
+        self.to_role_name = to_role_name
+
+        self._association_info = association_info
+        self._association = None
+
+    @property
+    def association_info(self):
+        return self._association_info
+
+    @property
+    def association(self):
+        return self._association
+
+    @association.setter
+    def association(self, value):
+
+        if self._association is not None:
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'
+                                    .format(self._association, self, value))
+
+        if value.name != self._association_info.name:
+            raise PyODataModelError('{0} cannot be the type of {1}'
+                                    .format(value, self))
+
+        self._association = value
+
+    @property
+    def to_role(self):
+        return self._association.end_role(self.to_role_name)
+
+    @property
+    def typ(self):
+        return self.to_role.entity_type
+
+    @staticmethod
+    def from_etree(node):
+
+        return NavigationTypeProperty(
+            node.get('Name'),
+            node.get('FromRole'),
+            node.get('ToRole'),
+            Identifier.parse(node.get('Relationship')))
 
 
 class EndRole(object):

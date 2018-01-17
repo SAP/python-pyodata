@@ -125,6 +125,19 @@ def test_edmx_associations(schema):
     assert association_set.end_roles == {'DataValueHelp': 'ToRole_toDataEntity', 'MasterEntities': 'FromRole_toDataEntity'}
 
 
+def test_edmx_navigation_properties(schema):
+    """Test parsing of navigation properties"""
+
+    emp_entity = schema.entity_type('Employee')
+    assert str(emp_entity) == 'EntityType(Employee)'
+    assert emp_entity.name == 'Employee'
+
+    nav_prop = emp_entity.nav_proprty('Address')
+    assert str(nav_prop) == 'NavigationTypeProperty(Address)'
+    assert str(nav_prop.to_role) == 'EndRole(AddressRole)'
+    assert str(nav_prop.to_role.entity_type) == 'EntityType(Address)'
+
+
 def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
