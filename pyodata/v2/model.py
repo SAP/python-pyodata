@@ -6,6 +6,7 @@ Date:   2017-08-21
 """
 # pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines
 
+import collections
 import itertools
 import StringIO
 import logging
@@ -14,6 +15,8 @@ import re
 import datetime
 from pyodata.exceptions import PyODataException, PyODataModelError
 from lxml import etree
+
+TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 
 class Identifier(object):
@@ -116,12 +119,12 @@ class Types(object):
         parts = type_name.split('.')
 
         if len(parts) == 1:
-            return (None, type_name, is_collection)
+            return TypeInfo(None, type_name, is_collection)
 
         if len(parts) > 1 and parts[0] == 'Edm':
-            return (None, type_name, is_collection)
+            return TypeInfo(None, type_name, is_collection)
 
-        return (parts[0], parts[1], is_collection)
+        return TypeInfo(parts[0], parts[1], is_collection)
 
 
 class EdmStructTypeSerializer(object):
