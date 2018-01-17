@@ -16,6 +16,7 @@ import datetime
 from pyodata.exceptions import PyODataException, PyODataModelError
 from lxml import etree
 
+IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 
@@ -35,6 +36,16 @@ class Identifier(object):
     @property
     def name(self):
         return self._name
+
+    @staticmethod
+    def parse(value):
+
+        parts = value.split('.')
+
+        if len(parts) == 1:
+            return IdentifierInfo(None, value)
+
+        return IdentifierInfo(parts[0], parts[1])
 
 
 class Types(object):
