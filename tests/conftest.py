@@ -107,24 +107,62 @@ def metadata():
             </Annotation>
            </Annotations>
           </Schema>
+
           <Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV_SETS" xml:lang="en" sap:schema-version="1">
-           <ComplexType Name="Rectangle">
-            <Property Name="Width" Type="Edm.Double" Nullable="false"/>
-            <Property Name="Height" Type="Edm.Double" Nullable="false"/>
-           </ComplexType>
-           <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
-            <EntitySet Name="TemperatureMeasurements" EntityType="EXAMPLE_SRV.TemperatureMeasurement" sap:creatable="true" sap:updatable="true" sap:deletable="true" sap:searchable="true" sap:content-version="1"/>
-            <FunctionImport Name="get_max" ReturnType="TemperatureMeasurement" EntitySet="TemperatureMeasurements" m:HttpMethod="GET" />
-            <FunctionImport Name="get_best_measurements" ReturnType="Collection(EXAMPLE_SRV.TemperatureMeasurement)" EntitySet="EXAMPLE_SRV.TemperatureMeasurements" m:HttpMethod="GET" />
-            <FunctionImport Name="sum" ReturnType="Edm.Int32" m:HttpMethod="GET">
-             <Parameter Name="A" Type="Edm.Int32" Mode="In" />
-             <Parameter Name="B" Type="Edm.Int32" Mode="In" />
-            </FunctionImport>
-            <FunctionImport Name="sum_complex" ReturnType="EXAMPLE_SRV.ComplexNumber" m:HttpMethod="GET">
-             <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
-             <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
-            </FunctionImport>
-           </EntityContainer>
+
+            <EntityType Name="Employee">
+                <Key>
+                    <PropertyRef Name="ID"/>
+                </Key>
+                <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="NameFirst" Type="Edm.String" Nullable="true"/>
+                <Property Name="NameLast" Type="Edm.String" Nullable="true"/>
+                <NavigationProperty Name="Address" Relationship="EXAMPLE_SRV_SETS.AssociationEmployeeAddress" FromRole="EmployeeRole" ToRole="AddressRole"/>
+            </EntityType>
+
+            <EntityType Name="Address">
+                <Key>
+                    <PropertyRef Name="ID"/>
+                </Key>
+                <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+                <Property Name="Street" Type="Edm.String" Nullable="true"/>
+                <Property Name="City" Type="Edm.String" Nullable="true"/>
+            </EntityType>
+
+            <Association Name="AssociationEmployeeAddress">
+                <End Type="EXAMPLE_SRV_SETS.Employee" Multiplicity="1" Role="EmployeeRole"/>
+                <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="*" Role="AddressRole"/>
+            </Association>
+
+            <ComplexType Name="Rectangle">
+                <Property Name="Width" Type="Edm.Double" Nullable="false"/>
+                <Property Name="Height" Type="Edm.Double" Nullable="false"/>
+            </ComplexType>
+
+            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+
+                <EntitySet Name="TemperatureMeasurements" EntityType="EXAMPLE_SRV.TemperatureMeasurement" sap:creatable="true" sap:updatable="true" sap:deletable="true" sap:searchable="true" sap:content-version="1"/>
+
+                <EntitySet Name="Employees" EntityType="Employee"/>
+
+                <EntitySet Name="Addresses" EntityType="Address"/>
+
+                <FunctionImport Name="get_max" ReturnType="TemperatureMeasurement" EntitySet="TemperatureMeasurements" m:HttpMethod="GET" />
+
+                <FunctionImport Name="get_best_measurements" ReturnType="Collection(EXAMPLE_SRV.TemperatureMeasurement)" EntitySet="EXAMPLE_SRV.TemperatureMeasurements" m:HttpMethod="GET" />
+
+                <FunctionImport Name="sum" ReturnType="Edm.Int32" m:HttpMethod="GET">
+                    <Parameter Name="A" Type="Edm.Int32" Mode="In" />
+                    <Parameter Name="B" Type="Edm.Int32" Mode="In" />
+                </FunctionImport>
+
+                <FunctionImport Name="sum_complex" ReturnType="EXAMPLE_SRV.ComplexNumber" m:HttpMethod="GET">
+                    <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
+                    <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
+                </FunctionImport>
+
+            </EntityContainer>
+
           </Schema>
          </edmx:DataServices>
          </edmx:Edmx>"""
