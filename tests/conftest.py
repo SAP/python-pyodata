@@ -171,4 +171,7 @@ def metadata():
 @pytest.fixture
 def schema(metadata):
     """Parsed metadata"""
+
+    # pylint: disable=redefined-outer-name
+
     return Edmx.parse(metadata)

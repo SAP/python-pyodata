@@ -51,7 +51,7 @@ class EntityKey(object):
             self._type = EntityKey.TYPE_SINGLE
 
             self._logger.debug(('Detected single property key, adding pair %s->%s to key'
-                               'properties'), key_prop.name, single_key)
+                                'properties'), key_prop.name, single_key)
         else:
             for key_prop in self._key:
                 if key_prop.name not in args:
