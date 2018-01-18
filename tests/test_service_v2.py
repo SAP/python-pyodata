@@ -208,3 +208,37 @@ def test_get_entity(service):
     assert emp.ID == 23
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
+
+
+@responses.activate
+def test_get_entity_expanded(service):
+    """Check getting entities with expanded navigation properties"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)".format(service.url),
+        json={'d': {
+            'ID': 23,
+            'NameFirst': 'Rob',
+            'NameLast': 'Ickes',
+            'Address': {
+                'ID': 456,
+                'Street': 'Baker Street',
+                'City': 'London'}
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23)
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    emp = request.expand('Address').execute()
+
+    assert emp.ID == 23
+    assert emp.NameFirst == 'Rob'
+    assert emp.NameLast == 'Ickes'
+
+    assert emp.Address.ID == 456
+    assert emp.Address.Street == 'Baker Street'
+    assert emp.Address.City == 'London'

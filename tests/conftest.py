@@ -131,7 +131,7 @@ def metadata():
 
             <Association Name="AssociationEmployeeAddress">
                 <End Type="EXAMPLE_SRV_SETS.Employee" Multiplicity="1" Role="EmployeeRole"/>
-                <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="*" Role="AddressRole"/>
+                <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="0..1" Role="AddressRole"/>
             </Association>
 
             <ComplexType Name="Rectangle">

@@ -451,6 +451,8 @@ class EntityProxy(object):
        named values), and links (references to other entities).
     """
 
+    # pylint: disable=too-many-branches,too-many-nested-blocks
+
     def __init__(self, service, entity_set, entity_type, proprties=None, entity_key=None):
         self._logger = logging.getLogger(LOGGER_NAME)
         self._service = service
@@ -462,10 +464,55 @@ class EntityProxy(object):
 
         self._logger.debug('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
 
+        # cache values of individual properties if provided
         if proprties is not None:
+
+            # first, cache values of direct properties
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
                     self._cache[type_proprty.name] = proprties[type_proprty.name]
+
+            # then, assign all navigation properties
+            for prop in self._entity_type.nav_proprties:
+
+                if prop.name in proprties:
+
+                    # entity type of navigation property
+                    prop_etype = prop.to_role.entity_type
+
+                    # cache value according to multiplicity
+                    if prop.to_role.multiplicity in \
+                        [pyodata.v2.model.EndRole.MULTIPLICITY_ONE,
+                         pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
+
+                        # cache None in case we receive nothing (null) instead of entity data
+                        if proprties[prop.name] is None:
+                            self._cache[prop.name] = None
+                        else:
+                            self._cache[prop.name] = EntityProxy(
+                                service,
+                                None,
+                                prop_etype,
+                                proprties[prop.name])
+
+                    elif prop.to_role.multiplicity == pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
+                        # default value is empty array
+                        self._cache[prop.name] = []
+
+                        # if there are no entities available, received data consists of
+                        # metadata properties only.
+                        if 'results' in proprties[prop.name]:
+
+                            # available entities are serialized in results array
+                            for entity in proprties[prop.name]['results']:
+                                self._cache[prop.name].append(EntityProxy(
+                                    service,
+                                    None,
+                                    prop_etype,
+                                    entity))
+                    else:
+                        raise PyODataException('Unknown multiplicity {0} of association role {1}'
+                                               .format(prop.to_role.multiplicity, prop.to_role.name))
 
         # build entity key if not provided
         if self._entity_key is None:
