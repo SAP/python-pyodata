@@ -182,3 +182,29 @@ def test_update_entity(service):
     request.set(Value=34)
 
     request.execute()
+
+
+@responses.activate
+def test_get_entity(service):
+    """Check getting entities"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)".format(service.url),
+        json={'d': {
+            'ID': 23,
+            'NameFirst': 'Rob',
+            'NameLast': 'Ickes'
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    emp = request.execute()
+    assert emp.ID == 23
+    assert emp.NameFirst == 'Rob'
+    assert emp.NameLast == 'Ickes'
