@@ -1232,6 +1232,10 @@ class NavigationTypeProperty(VariableDeclaration):
 
 class EndRole(object):
 
+    MULTIPLICITY_ONE = '1'
+    MULTIPLICITY_ZERO_OR_ONE = '0..1'
+    MULTIPLICITY_ZERO_OR_MORE = '*'
+
     def __init__(self, entity_type_info, multiplicity, role):
         self._entity_type_info = entity_type_info
         self._entity_type = None
