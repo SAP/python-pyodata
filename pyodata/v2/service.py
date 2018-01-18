@@ -469,12 +469,18 @@ class EntityProxy(object):
 
         # build entity key if not provided
         if self._entity_key is None:
-            # if key seems to be simple (consists of single property)
-            if len(self._key_props) == 1:
-                self._entity_key = EntityKey(entity_type, self._cache[self._key_props[0].name])
-            else:
-                # build complex key
-                self._entity_key = EntityKey(entity_type, **self._cache)
+            # try to build key from available property values
+            try:
+                # if key seems to be simple (consists of single property)
+                if len(self._key_props) == 1:
+                    self._entity_key = EntityKey(entity_type, self._cache[self._key_props[0].name])
+                else:
+                    # build complex key
+                    self._entity_key = EntityKey(entity_type, **self._cache)
+            except KeyError:
+                pass
+            except PyODataException:
+                pass
 
     def __repr__(self):
         return self._entity_key.to_key_string()
