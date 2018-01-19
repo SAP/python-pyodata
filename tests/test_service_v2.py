@@ -20,6 +20,69 @@ def service(schema):
 
 
 @responses.activate
+def test_create_entity(service):
+    """Basic test on creating entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/MasterEntities".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=201)
+
+    result = service.entity_sets.MasterEntities.create_entity().set(**{'Key': '1234', 'Data': 'abcd'}).execute()
+
+    assert result.Key == '12345'
+    assert result.Data == 'abcd'
+
+
+@responses.activate
+def test_create_entity_code_201(service):
+    """Creating entity returns code 201"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/MasterEntities".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=200)
+
+    result = service.entity_sets.MasterEntities.create_entity(200).set(**{'Key': '1234', 'Data': 'abcd'}).execute()
+
+    assert result.Key == '12345'
+    assert result.Data == 'abcd'
+
+
+@responses.activate
+def test_create_entity_code_400(service):
+    """Test that exception is raised in case of incorrect return code"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/MasterEntities".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={},
+        status=400)
+
+    with pytest.raises(PyODataException) as e_info:
+        service.entity_sets.MasterEntities.create_entity().set(**{'Key': '1234', 'Data': 'abcd'}).execute()
+
+    assert str(e_info.value).startswith('HTTP POST for Entity Set')
+
+
+@responses.activate
 def test_get_entity_property(service):
     """Basic test on getting single property of selected entity"""
 
