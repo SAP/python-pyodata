@@ -1,13 +1,132 @@
-"""OData service implementation"""
+"""OData service implementation
+
+   Details regarding batch requests and changesets:
+   http://www.odata.org/documentation/odata-version-2-0/batch-processing/
+"""
+
+# pylint: disable=too-many-lines
 
 import logging
 from functools import partial
 import json
+from email.parser import Parser
+import random
+from httplib import HTTPResponse
+from StringIO import StringIO
 import requests
 import pyodata
 from pyodata.exceptions import HttpError, PyODataException
 
 LOGGER_NAME = 'pyodata.service'
+
+
+def encode_multipart(boundary, http_requests):
+    """Encode list of requests into multipart body"""
+
+    lines = []
+
+    for req in http_requests:
+
+        lines.append('--{0}'.format(boundary))
+
+        # don't insert single request headers in case of
+        # nested content
+        if not isinstance(req, MultipartRequest):
+            lines.extend((
+                'Content-Type: application/http ',
+                'Content-Transfer-Encoding:binary'))
+
+        # request specific headers
+        for hdr, hdr_val in req.get_headers().iteritems():
+            lines.append('{}: {}'.format(hdr, hdr_val))
+
+        lines.append('')
+
+        # don't insert HTTP request line in case of nested content
+        if not isinstance(req, MultipartRequest):
+            lines.append('{method} {path}'.format(method=req.get_method(), path=req.get_path()))
+
+        body = req.get_body()
+        if body is not None:
+            lines.append(req.get_body())
+
+    lines.extend((
+        '--{0}--'.format(boundary),
+        '',
+    ))
+
+    return '\r\n'.join(lines)
+
+
+def decode_multipart(data, content_type):
+    """Decode parts of the multipart mime content"""
+
+    def decode(message):
+        """Decode tree of messages for specific message"""
+
+        messages = []
+        for i, part in enumerate(message.walk()):   # pylint: disable=unused-variable
+            if part.get_content_type() == 'multipart/mixed':
+                for submessage in part.get_payload():
+                    messages.append(decode(submessage))
+                break
+            else:
+                messages.append(part.get_payload())
+        return messages
+
+    data = "Content-type: {}\n".format(content_type) + data
+    parser = Parser()
+    parsed = parser.parsestr(data)
+    decoded = decode(parsed)
+
+    return decoded
+
+
+class ODataHttpResponse(object):
+    """Representation of http response"""
+
+    def __init__(self, headers, status_code, content=None):
+        self.headers = headers
+        self.status_code = status_code
+        self.content = content
+
+    @staticmethod
+    def from_string(data):
+        """Parse http response to status code, headers and body
+
+            Based on: https://stackoverflow.com/questions/24728088/python-parse-http-response-string
+        """
+        class FakeSocket(object):
+            """Fake socket to simulate received http response content"""
+
+            def __init__(self, response_str):
+                self._file = StringIO(response_str)
+
+            def makefile(self, *args, **kwargs):
+                """Fake file that provides string content"""
+                # pylint: disable=unused-argument
+
+                return self._file
+
+        source = FakeSocket(data)
+        response = HTTPResponse(source)
+        response.begin()
+
+        return ODataHttpResponse(
+            response.getheaders(),
+            response.status,
+            response.read(len(data))   # the len here will give a 'big enough' value to read the whole content
+        )
+
+    def json(self):
+        """Return response as decoded json"""
+
+        # TODO: see implementation in python requests, our simple
+        # approach can bring issues with encoding
+        # https://github.com/requests/requests/blob/master/requests/models.py#L868
+        if self.content:
+            return json.loads(self.content)
+        return None
 
 
 class EntityKey(object):
@@ -99,13 +218,19 @@ class ODataHttpRequest(object):
     """Deferred HTTP Request"""
 
     def __init__(self, url, connection, handler, headers=None):
-        self._conn = connection
+        self._connection = connection
         self._url = url
         self._handler = handler
         self._headers = headers
         self._logger = logging.getLogger(LOGGER_NAME)
 
-    def _get_path(self):
+    @property
+    def handler(self):
+        """Getter for handler"""
+        return self._handler
+
+    def get_path(self):
+        """Get path of the HTTP request"""
         # pylint: disable=no-self-use
         return ''
 
@@ -113,15 +238,18 @@ class ODataHttpRequest(object):
         # pylint: disable=no-self-use
         return {}
 
-    def _get_method(self):
+    def get_method(self):
+        """Get HTTP method"""
         # pylint: disable=no-self-use
         return 'GET'
 
-    def _get_body(self):
+    def get_body(self):
+        """Get HTTP body or None if not applicable"""
         # pylint: disable=no-self-use
         return None
 
-    def _get_headers(self):
+    def get_headers(self):
+        """Get dict of HTTP headers"""
         # pylint: disable=no-self-use
         return None
 
@@ -133,20 +261,20 @@ class ODataHttpRequest(object):
 
            Fetches HTTP response and returns processed result"""
 
-        url = self._url.rstrip('/') + '/' + self._get_path()
-        body = self._get_body()
+        url = self._url.rstrip('/') + '/' + self.get_path()
+        body = self.get_body()
 
         headers = {} if self._headers is None else self._headers
-        headers.update(self._get_headers())
+        headers.update(self.get_headers())
 
-        self._logger.debug('execute %s request to %s', self._get_method(), url)
+        self._logger.debug('execute %s request to %s', self.get_method(), url)
         self._logger.debug('  query params: %s', self._get_query_params())
         self._logger.debug('  headers: %s', headers)
         if body:
             self._logger.debug('  body: %s', body)
 
-        response = self._conn.request(
-            self._get_method(),
+        response = self._connection.request(
+            self.get_method(),
             url,
             headers=headers,
             params=self._get_query_params(),
@@ -188,10 +316,10 @@ class EntityGetRequest(ODataHttpRequest):
         self._expand = expand
         return self
 
-    def _get_path(self):
+    def get_path(self):
         return self._last_segment + self._entity_key.to_key_string()
 
-    def _get_headers(self):
+    def get_headers(self):
         return {'Accept': 'application/json'}
 
     def _get_query_params(self):
@@ -225,21 +353,21 @@ class EntityCreateRequest(ODataHttpRequest):
 
         self._logger.debug('New instance of EntityCreateRequest for entity type: %s', self._entity_type.name)
 
-    def _get_path(self):
+    def get_path(self):
         return self._entity_set.name
 
-    def _get_method(self):
+    def get_method(self):
         # pylint: disable=no-self-use
         return 'POST'
 
-    def _get_body(self):
+    def get_body(self):
         # pylint: disable=no-self-use
         body = {}
         for key, val in self._values.iteritems():
             body[key] = val
         return json.dumps(body)
 
-    def _get_headers(self):
+    def get_headers(self):
         return {
             'Accept': 'application/json',
             'Content-type': 'application/json'
@@ -283,21 +411,21 @@ class EntityModifyRequest(ODataHttpRequest):
 
         self._logger.debug('New instance of EntityModifyRequest for entity type: %s', self._entity_type.name)
 
-    def _get_path(self):
+    def get_path(self):
         return self._entity_set.name + self._entity_key.to_key_string()
 
-    def _get_method(self):
+    def get_method(self):
         # pylint: disable=no-self-use
         return 'PATCH'
 
-    def _get_body(self):
+    def get_body(self):
         # pylint: disable=no-self-use
         body = {}
         for key, val in self._values.iteritems():
             body[key] = val
         return json.dumps(body)
 
-    def _get_headers(self):
+    def get_headers(self):
         return {
             'Accept': 'application/json',
             'Content-type': 'application/json'
@@ -381,11 +509,10 @@ class QueryRequest(ODataHttpRequest):
         self._top = top
         return self
 
-    def _get_path(self):
-        # print('last segment {}'.format(self._last_segment))
+    def get_path(self):
         return self._last_segment
 
-    def _get_headers(self):
+    def get_headers(self):
         return {
             'Accept': 'application/json',
         }
@@ -442,10 +569,10 @@ class FunctionRequest(QueryRequest):
 
         return self
 
-    def _get_method(self):
+    def get_method(self):
         return self._function_import.http_method
 
-    def _get_headers(self):
+    def get_headers(self):
         return {
             'Accept': 'application/json',
         }
@@ -681,8 +808,8 @@ class EntitySetProxy(object):
             """Gets modified entity encoded in HTTP Response"""
 
             if response.status_code != 204:
-                raise HttpError('HTTP {0} for Entity Set {1} failed with status code {2}'
-                                .format(response.request.method, self._name, response.status_code), response)
+                raise HttpError('HTTP modify request for Entity Set {} failed with status code {}'
+                                .format(self._name, response.status_code), response)
 
         key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
@@ -820,3 +947,137 @@ class Service(object):
             conn,
             handler,
             headers={'Accept': 'application/json'})
+
+    def create_batch(self, batch_id=None):
+        """Create instance of OData batch request"""
+
+        def batch_handler(batch, parts):
+            """Process parsed multipart request (parts)"""
+
+            logging.getLogger(LOGGER_NAME).debug(
+                'Batch handler called for batch %s', batch.id)
+
+            result = []
+            for part, req in zip(parts, batch.requests):
+                logging.getLogger(LOGGER_NAME).debug(
+                    'Batch handler is processing part %s for request %s', part, req)
+
+                # if part represents multiple requests, dont' parse body and
+                # process parts by appropriate reuqest instance
+                if isinstance(req, MultipartRequest):
+                    result.append(req.handler(req, part))
+                else:
+                    # part represents single request, we have to parse
+                    # content (without checking Content type for binary/http)
+                    response = ODataHttpResponse.from_string(part[0])
+                    result.append(req.handler(response))
+            return result
+
+        return BatchRequest(self._url, self._connection, batch_handler, batch_id)
+
+    def create_changeset(self, changeset_id=None):
+        """Create instance of OData changeset"""
+
+        def changeset_handler(changeset, parts):
+            """Gets changeset response from HTTP response"""
+
+            logging.getLogger(LOGGER_NAME).debug('Changeset handler called for changeset %s', changeset.id)
+
+            result = []
+            for part, req in zip(parts, changeset.requests):
+                logging.getLogger(LOGGER_NAME).debug(
+                    'Changeset handler is processing part %s for request %s', part, req)
+
+                if isinstance(req, MultipartRequest):
+                    raise PyODataException('Changeset cannot contain nested multipart content')
+
+                # part represents single request, we have to parse
+                # content (without checking Content type for binary/http)
+                response = ODataHttpResponse.from_string(part[0])
+
+                result.append(req.handler(response))
+
+            return result
+
+        return Changeset(self._url, self._connection, changeset_handler, changeset_id)
+
+
+class MultipartRequest(ODataHttpRequest):
+    """HTTP Batch request"""
+
+    def __init__(self, url, connection, handler, request_id=None):
+        super(MultipartRequest, self).__init__(url, connection, partial(MultipartRequest.http_response_handler, self))
+
+        self.requests = []
+        self._handler_decoded = handler
+
+        # generate random id of form dddd-dddd-dddd
+        # pylint: disable=invalid-name
+        self.id = request_id if request_id is not None else '{}-{}-{}'.format(
+            random.randint(1000, 9999),
+            random.randint(1000, 9999),
+            random.randint(1000, 9999))
+
+        self._logger.debug('New multipart %s request initialized, id=%s', self.__class__.__name__, self.id)
+
+    @property
+    def handler(self):
+        return self._handler_decoded
+
+    def get_boundary(self):
+        """Get boundary used for request parts"""
+        return self.id
+
+    def get_headers(self):
+        # pylint: disable=no-self-use
+        return {'content-type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
+
+    def get_body(self):
+
+        return encode_multipart(self.get_boundary(), self.requests)
+
+    def add_request(self, request, request_id):
+        """Add request to be sent in batch"""
+
+        self.requests.append(request)
+        self._logger.debug('New %s request %s added to multipart request %s',
+                           request.get_method(),
+                           request_id,
+                           self.id)
+
+    @staticmethod
+    def http_response_handler(request, response):
+        """Process HTTP response to mutipart HTTP request"""
+
+        if response.status_code != 202:   # 202 Accepted
+            raise HttpError('HTTP POST for multipart request {0} failed with status code {1}'
+                            .format(request.id, response.status_code), response)
+
+        logging.getLogger(LOGGER_NAME).debug('Generic multipart http response request handler called')
+
+        # get list of all parts (headers + body)
+        decoded = decode_multipart(response.content, response.headers['content-type'])
+
+        return request.handler(request, decoded)
+
+
+class BatchRequest(MultipartRequest):
+    """HTTP Batch request"""
+
+    def get_boundary(self):
+        return 'batch_' + self.id
+
+    def get_path(self):
+        # pylint: disable=no-self-use
+        return '$batch'
+
+    def get_method(self):
+        # pylint: disable=no-self-use
+        return 'POST'
+
+
+class Changeset(MultipartRequest):
+    """Representation of changeset (unsorted group of requests)"""
+
+    def get_boundary(self):
+        return 'changeset_' + self.id

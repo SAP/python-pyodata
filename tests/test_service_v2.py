@@ -366,3 +366,70 @@ def test_get_entity_expanded(service):
     assert emp.Address.ID == 456
     assert emp.Address.Street == 'Baker Street'
     assert emp.Address.City == 'London'
+
+
+@responses.activate
+def test_batch_request(service):
+    """Batch requests"""
+
+    # pylint: disable=redefined-outer-name
+
+    response_body = ('--batch_r1\n'
+                     'Content-Type: application/http\n'
+                     'Content-Transfer-Encoding: binary\n'
+                     '\n'
+                     'HTTP/1.1 200 OK\n'
+                     'Content-Type: application/json\n'
+                     '\n'
+                     '{"d": {"ID": 23, "NameFirst": "Rob", "NameLast": "Ickes", "Address": { "ID": 456, "Street": "Baker Street", "City": "London"} }}'
+                     '\n'
+                     '--batch_r1\n'
+                     'Content-Type: multipart/mixed; boundary=changeset_1\n'
+                     '\n'
+                     '--changeset_1\n'
+                     'Content-Type: application/http\n'
+                     'Content-Transfer-Encoding: binary\n'
+                     '\n'
+                     'HTTP/1.1 204 Updated\n'
+                     'Content-Type: application/json\n'
+                     '\n'
+                     "{'d': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': 34}}"
+                     '\n'
+                     '--changeset_1--\n'
+                     '\n'
+                     '--batch_r1--')
+
+    responses.add(
+        responses.POST,
+        '{0}/$batch'.format(URL_ROOT),
+        body=response_body,
+        content_type='multipart/mixed; boundary=batch_r1',
+        status=202)
+
+    batch = service.create_batch('batch1')
+
+    chset = service.create_changeset('chset1')
+
+    employee_request = service.entity_sets.Employees.get_entity(23)
+
+    temp_request = service.entity_sets.TemperatureMeasurements.update_entity(
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0)).set(Value=34)
+
+    batch.add_request(employee_request, 'get_emp_23')
+
+    chset.add_request(temp_request, 'temp')
+
+    batch.add_request(chset, 'chset')
+
+    response = batch.execute()
+
+    assert len(response) == 2
+
+    employee_response = response[0]
+    assert isinstance(employee_response, pyodata.v2.service.EntityProxy)
+
+    chset_response = response[1]
+    assert isinstance(chset_response, list)
+    assert len(chset_response) == 1
+    assert chset_response[0] is None   # response to update request is None

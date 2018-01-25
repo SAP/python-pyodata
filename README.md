@@ -26,3 +26,42 @@ employees = client.entity_sets.Employees.get_entities().select('EmployeeID,Lastt
     for employee in employees:
         print(employee.EmployeeID, employee.LastName)
 ```
+
+# Batch requests 
+
+Example of batch request that contains 3 simple entity queries
+```
+client = pyodata.Client(SERVICE_URL, requests.Session())
+
+batch = client.create_batch('batch1')
+
+batch.add_request(client.entity_sets.Employees.get_entity(108), 'emp1')
+batch.add_request(client.entity_sets.Employees.get_entity(234), 'emp1')
+batch.add_request(client.entity_sets.Employees.get_entity(23), 'emp1')
+
+response = batch.execute()
+
+print(response[0].EmployeeID, response[0].LastName)
+print(response[1].EmployeeID, response[1].LastName)
+print(response[1].EmployeeID, response[1].LastName)
+```
+
+Example of batch request that contains simple entity query as well
+as changest consisting of two requests for entity modification
+```
+client = pyodata.Client(SERVICE_URL, requests.Session())
+
+batch = client.create_batch('batch1')
+
+batch.add_request(client.entity_sets.Employees.get_entity(108), 'emp1')
+
+changeset = client.create_changeset('chset1')
+
+changeset.add_request(client.entity_sets.Employees.update_entity(45).set(LastName='Douglas'), 'modify1')
+
+batch.add_request(changeset)
+
+response = batch.execute()
+
+print(response[0].EmployeeID, response[0].LastName)
+```
