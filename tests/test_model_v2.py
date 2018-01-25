@@ -122,11 +122,11 @@ def test_edmx_associations(schema):
     association = schema.association('toDataEntity')
     assert str(association) == 'Association(toDataEntity)'
 
-    from_role = association.end_role('FromRole_toDataEntity')
+    from_role = association.end_by_role('FromRole_toDataEntity')
     assert from_role.multiplicity == '1'
     assert str(from_role.entity_type) == 'EntityType(MasterEntity)'
 
-    to_role = association.end_role('ToRole_toDataEntity')
+    to_role = association.end_by_role('ToRole_toDataEntity')
     assert to_role.multiplicity == '*'
     assert str(to_role.entity_type) == 'EntityType(DataEntity)'
 

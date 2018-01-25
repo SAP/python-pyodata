@@ -713,6 +713,20 @@ class Schema(object):
         return [association_set for association_set in itertools.chain(*(decl.list_association_sets()
                                                                          for decl in self._decls.values()))]
 
+    def check_role_property_names(self, role, entity_type_name, namespace):
+        for proprty in role.property_names:
+            try:
+                entity_type = self.entity_type(entity_type_name, namespace)
+            except KeyError:
+                raise PyODataModelError('EntityType {} does not exist in Schema Namespace {}'
+                                        .format(entity_type_name, namespace))
+            try:
+                entity_type.proprty(proprty)
+            except KeyError:
+                raise PyODataModelError('Property {} does not exist in {}'
+                                   .format(proprty, entity_type.name))
+
+
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
     def from_etree(schema_nodes):
@@ -770,8 +784,9 @@ class Schema(object):
 
                         end_role.entity_type = etype
                     except KeyError:
-                        raise PyODataModelError('Entity type {} does not exist in scheme {}'
-                                                .format(end_role.entity_type_name, decl.namespace))
+                        raise PyODataModelError('EntityType {} does not exist in Schema Namespace {}'
+                                                .format(end_role.entity_type_info.name,
+                                                        end_role.entity_type_info.namespace))
 
                 if assoc.referential_constraint is not None:
                     role_names = [end_role.role for end_role in assoc.end_roles.values()]
@@ -783,14 +798,9 @@ class Schema(object):
                                                                                               assoc.name))
 
                     # Check if principal role properties exist
-                    for proprty in principal_role.property_names:
-                        role_name = principal_role.name
-                        entity_type = schema.entity_type(assoc.end_role(role_name).entity_type_name)
-                        try:
-                            entity_type.proprty(proprty)
-                        except KeyError:
-                            raise RuntimeError('Property {} does not exist in {}'
-                                               .format(proprty, entity_type.name))
+                    role_name = principal_role.name
+                    entity_type_name = assoc.end_by_role(role_name).entity_type_name
+                    schema.check_role_property_names(principal_role, entity_type_name, namespace)
 
                     dependent_role = assoc.referential_constraint.dependent
 
@@ -800,14 +810,9 @@ class Schema(object):
                                                                                               assoc.name))
 
                     # Check if dependent role properties exist
-                    for proprty in dependent_role.property_names:
-                        role_name = dependent_role.name
-                        entity_type = schema.entity_type(assoc.end_role(role_name).entity_type_name)
-                        try:
-                            entity_type.proprty(proprty)
-                        except KeyError:
-                            raise RuntimeError('Property {} does not exist in {}'
-                                               .format(proprty, entity_type.name))
+                    role_name = dependent_role.name
+                    entity_type_name = assoc.end_by_role(role_name).entity_type_name
+                    schema.check_role_property_names(dependent_role, entity_type_name, namespace)
 
                 decl.associations[assoc.name] = assoc
 
@@ -846,27 +851,26 @@ class Schema(object):
             for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet',
                                                      namespaces=NAMESPACES):
                 assoc_set = AssociationSet.from_etree(association_set)
-                scheme_namespace, association_name = assoc_set.association_type_name.split('.', 1)
 
                 try:
-                    assoc_set.association_type = schema.association(association_name)
+                    assoc_set.association_type = schema.association(assoc_set.association_type_name,
+                                                                    assoc_set.association_type_namespace)
                 except KeyError:
-                    raise RuntimeError('Association {} does not exist in scheme {}'.format(association_name,
-                                                                                           decl.namespace))
+                    raise PyODataModelError('Association {} does not exist in namespace {}'
+                                            .format(assoc_set.association_type_name,
+                                                    assoc_set.association_type_namespace))
 
                 for key, value in assoc_set.end_roles.items():
                     # Check if entity set exists in current scheme
                     try:
-                        schema.entity_set(key, decl.namespace)
+                        schema.entity_set(key, namespace)
                     except KeyError:
-                        raise RuntimeError('Entity {} does not exist in scheme {}'.format(key,
-                                                                                          decl.namespace))
+                        raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
+                                                .format(key, namespace))
                     # Check if role is defined in Association
-                    try:
-                        assoc_set.association_type.end_role(value)
-                    except KeyError:
-                        raise RuntimeError('Role {} is not defined in association {}'.format(value,
-                                                                                             assoc_set.association_type_name))
+                    if assoc_set.association_type.end_by_role(value) is None:
+                        raise PyODataModelError('Role {} is not defined in association {}'
+                                                .format(value, assoc_set.association_type_name))
 
                 decl.association_sets[assoc_set.name] = assoc_set
 
@@ -1292,7 +1296,7 @@ class NavigationTypeProperty(VariableDeclaration):
 
     @property
     def to_role(self):
-        return self._association.end_role(self.to_role_name)
+        return self._association.end_by_role(self.to_role_name)
 
     @property
     def typ(self):
@@ -1465,8 +1469,14 @@ class Association(object):
     def end_roles(self):
         return self._end_roles
 
-    def end_role(self, end_role):
-        return self._end_roles[end_role]
+    def end_by_type(self, typ):
+        return self._end_roles[typ]
+
+    def end_by_role(self, end_role):
+        for key, value in self._end_roles.iteritems():
+            if self._end_roles[key].role == end_role:
+                return self._end_roles[key]
+        return None
 
     @property
     def referential_constraint(self):
@@ -1479,9 +1489,10 @@ class Association(object):
 
         for end in association_node.xpath('edm:End', namespaces=NAMESPACES):
             end_role = EndRole.from_etree(end)
-            if end_role.role is None:
-                raise RuntimeError('Role is not specified in the association {}'.format(name))
-            association._end_roles[end_role.role] = end_role
+            if end_role.entity_type_info is None:
+                raise RuntimeError('End type is not specified in the association {}'.format(name))
+            key = '{}.{}'.format(end_role.entity_type_info.namespace, end_role.entity_type_info.name)
+            association._end_roles[key] = end_role
 
         if len(association._end_roles) != 2:
             raise RuntimeError('Association {} does not have two end roles'.format(name))
@@ -1502,9 +1513,10 @@ class Association(object):
 
 class AssociationSet(object):
 
-    def __init__(self, name, association_type_name, end_roles):
+    def __init__(self, name, association_type_name, association_type_namespace, end_roles):
         self._name = name
         self._association_type_name = association_type_name
+        self._association_type_namespace = association_type_namespace
         self._association_type = None
         self._end_roles = end_roles
 
@@ -1524,6 +1536,10 @@ class AssociationSet(object):
         return self._association_type_name
 
     @property
+    def association_type_namespace(self):
+        return self._association_type_namespace
+
+    @property
     def end_roles(self):
         return self._end_roles
 
@@ -1536,16 +1552,20 @@ class AssociationSet(object):
 
     @staticmethod
     def from_etree(association_set_node):
-        name = association_set_node.get('Name')
-        association_type = association_set_node.get('Association')
         end_roles = {}
+        name = association_set_node.get('Name')
+        scheme_namespace, association_type_name = association_set_node.get('Association').split('.', 1)
 
-        for end_role in association_set_node.xpath('edm:End', namespaces=NAMESPACES):
+        end_roles_list = association_set_node.xpath('edm:End', namespaces=NAMESPACES)
+        if len(end_roles) > 2:
+            raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
+
+        for end_role in end_roles_list:
             entity_set = end_role.get('EntitySet')
             role = end_role.get('Role')
             end_roles[entity_set] = role
 
-        return AssociationSet(name, association_type, end_roles)
+        return AssociationSet(name, association_type_name, scheme_namespace, end_roles)
 
 
 class Annotation(object):
