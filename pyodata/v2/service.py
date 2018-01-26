@@ -78,7 +78,7 @@ def decode_multipart(data, content_type):
                 messages.append(part.get_payload())
         return messages
 
-    data = "Content-type: {}\n".format(content_type) + data
+    data = "Content-Type: {}\n".format(content_type) + data
     parser = Parser()
     parsed = parser.parsestr(data)
     decoded = decode(parsed)
@@ -374,7 +374,7 @@ class EntityCreateRequest(ODataHttpRequest):
     def get_headers(self):
         return {
             'Accept': 'application/json',
-            'Content-type': 'application/json'
+            'Content-Type': 'application/json'
         }
 
     def set(self, **kwargs):
@@ -432,7 +432,7 @@ class EntityModifyRequest(ODataHttpRequest):
     def get_headers(self):
         return {
             'Accept': 'application/json',
-            'Content-type': 'application/json'
+            'Content-Type': 'application/json'
         }
 
     def set(self, **kwargs):
@@ -1059,7 +1059,7 @@ class MultipartRequest(ODataHttpRequest):
         logging.getLogger(LOGGER_NAME).debug('Generic multipart http response request handler called')
 
         # get list of all parts (headers + body)
-        decoded = decode_multipart(response.content, response.headers['content-type'])
+        decoded = decode_multipart(response.content, response.headers['Content-Type'])
 
         return request.handler(request, decoded)
 
