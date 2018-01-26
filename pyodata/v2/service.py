@@ -1030,19 +1030,18 @@ class MultipartRequest(ODataHttpRequest):
 
     def get_headers(self):
         # pylint: disable=no-self-use
-        return {'content-type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
+        return {'Content-Type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
 
     def get_body(self):
 
         return encode_multipart(self.get_boundary(), self.requests)
 
-    def add_request(self, request, request_id):
+    def add_request(self, request):
         """Add request to be sent in batch"""
 
         self.requests.append(request)
-        self._logger.debug('New %s request %s added to multipart request %s',
+        self._logger.debug('New %s request added to multipart request %s',
                            request.get_method(),
-                           request_id,
                            self.id)
 
     @staticmethod

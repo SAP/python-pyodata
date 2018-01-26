@@ -33,11 +33,11 @@ Example of batch request that contains 3 simple entity queries
 ```
 client = pyodata.Client(SERVICE_URL, requests.Session())
 
-batch = client.create_batch('batch1')
+batch = client.create_batch()
 
-batch.add_request(client.entity_sets.Employees.get_entity(108), 'emp1')
-batch.add_request(client.entity_sets.Employees.get_entity(234), 'emp1')
-batch.add_request(client.entity_sets.Employees.get_entity(23), 'emp1')
+batch.add_request(client.entity_sets.Employees.get_entity(108))
+batch.add_request(client.entity_sets.Employees.get_entity(234))
+batch.add_request(client.entity_sets.Employees.get_entity(23))
 
 response = batch.execute()
 
@@ -51,13 +51,13 @@ as changest consisting of two requests for entity modification
 ```
 client = pyodata.Client(SERVICE_URL, requests.Session())
 
-batch = client.create_batch('batch1')
+batch = client.create_batch()
 
-batch.add_request(client.entity_sets.Employees.get_entity(108), 'emp1')
+batch.add_request(client.entity_sets.Employees.get_entity(108))
 
-changeset = client.create_changeset('chset1')
+changeset = client.create_changeset()
 
-changeset.add_request(client.entity_sets.Employees.update_entity(45).set(LastName='Douglas'), 'modify1')
+changeset.add_request(client.entity_sets.Employees.update_entity(45).set(LastName='Douglas'))
 
 batch.add_request(changeset)
 

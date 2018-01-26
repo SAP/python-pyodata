@@ -416,11 +416,11 @@ def test_batch_request(service):
         Sensor='sensor1',
         Date=datetime.datetime(2017, 12, 24, 18, 0)).set(Value=34)
 
-    batch.add_request(employee_request, 'get_emp_23')
+    batch.add_request(employee_request)
 
-    chset.add_request(temp_request, 'temp')
+    chset.add_request(temp_request)
 
-    batch.add_request(chset, 'chset')
+    batch.add_request(chset)
 
     response = batch.execute()
 
