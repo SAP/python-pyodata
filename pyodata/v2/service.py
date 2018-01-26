@@ -29,31 +29,35 @@ def encode_multipart(boundary, http_requests):
 
         lines.append('--{0}'.format(boundary))
 
-        # don't insert single request headers in case of
-        # nested content
         if not isinstance(req, MultipartRequest):
             lines.extend((
                 'Content-Type: application/http ',
                 'Content-Transfer-Encoding:binary'))
 
+            #TMP lines.append('')
+
+            # request  line (method + path + query params) 
+            line = '{method} {path}'.format(method=req.get_method(), path=req.get_path())
+            query_params = '&'.join(['{}={}'.format(key, val) for key, val in req.get_query_params().iteritems()])
+            if query_params:
+                line += '?' + query_params
+            line += ' HTTP/1.1'
+
+            lines.append(line)
+
         # request specific headers
         for hdr, hdr_val in req.get_headers().iteritems():
             lines.append('{}: {}'.format(hdr, hdr_val))
 
-        lines.append('')
-
-        # don't insert HTTP request line in case of nested content
+        # this is necessary else we are getting 400 Bad fromat from SAP gateway
         if not isinstance(req, MultipartRequest):
-            lines.append('{method} {path}'.format(method=req.get_method(), path=req.get_path()))
+            lines.append('')
 
         body = req.get_body()
         if body is not None:
             lines.append(req.get_body())
 
-    lines.extend((
-        '--{0}--'.format(boundary),
-        '',
-    ))
+    lines.append('--{0}--'.format(boundary))
 
     return '\r\n'.join(lines)
 
@@ -234,7 +238,7 @@ class ODataHttpRequest(object):
         # pylint: disable=no-self-use
         return ''
 
-    def _get_query_params(self):
+    def get_query_params(self):
         # pylint: disable=no-self-use
         return {}
 
@@ -268,7 +272,7 @@ class ODataHttpRequest(object):
         headers.update(self.get_headers())
 
         self._logger.debug('execute %s request to %s', self.get_method(), url)
-        self._logger.debug('  query params: %s', self._get_query_params())
+        self._logger.debug('  query params: %s', self.get_query_params())
         self._logger.debug('  headers: %s', headers)
         if body:
             self._logger.debug('  body: %s', body)
@@ -277,7 +281,7 @@ class ODataHttpRequest(object):
             self.get_method(),
             url,
             headers=headers,
-            params=self._get_query_params(),
+            params=self.get_query_params(),
             data=body)
 
         self._logger.debug('  url: %s', response.url)
@@ -322,8 +326,8 @@ class EntityGetRequest(ODataHttpRequest):
     def get_headers(self):
         return {'Accept': 'application/json'}
 
-    def _get_query_params(self):
-        qparams = super(EntityGetRequest, self)._get_query_params()
+    def get_query_params(self):
+        qparams = super(EntityGetRequest, self).get_query_params()
 
         if self._select is not None:
             qparams['$select'] = self._select
@@ -517,8 +521,8 @@ class QueryRequest(ODataHttpRequest):
             'Accept': 'application/json',
         }
 
-    def _get_query_params(self):
-        qparams = super(QueryRequest, self)._get_query_params()
+    def get_query_params(self):
+        qparams = super(QueryRequest, self).get_query_params()
 
         if self._top is not None:
             qparams['$top'] = self._top
