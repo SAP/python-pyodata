@@ -25,6 +25,8 @@ def encode_multipart(boundary, http_requests):
 
     lines = []
 
+    lines.append('')
+
     for req in http_requests:
 
         lines.append('--{0}'.format(boundary))
@@ -34,7 +36,7 @@ def encode_multipart(boundary, http_requests):
                 'Content-Type: application/http ',
                 'Content-Transfer-Encoding:binary'))
 
-            #TMP lines.append('')
+            lines.append('')
 
             # request  line (method + path + query params) 
             line = '{method} {path}'.format(method=req.get_method(), path=req.get_path())
@@ -49,13 +51,16 @@ def encode_multipart(boundary, http_requests):
         for hdr, hdr_val in req.get_headers().iteritems():
             lines.append('{}: {}'.format(hdr, hdr_val))
 
-        # this is necessary else we are getting 400 Bad fromat from SAP gateway
-        if not isinstance(req, MultipartRequest):
-            lines.append('')
+        lines.append('')
 
         body = req.get_body()
         if body is not None:
             lines.append(req.get_body())
+        else:
+            # this is very important since SAP gateway rejected request witout this line. It seems
+            # blank line must be provided as a representation of emtpy body, else we are getting
+            # 400 Bad fromat from SAP gateway
+            lines.append('')
 
     lines.append('--{0}--'.format(boundary))
 
@@ -1017,7 +1022,7 @@ class MultipartRequest(ODataHttpRequest):
 
         # generate random id of form dddd-dddd-dddd
         # pylint: disable=invalid-name
-        self.id = request_id if request_id is not None else '{}-{}-{}'.format(
+        self.id = request_id if request_id is not None else '{}_{}_{}'.format(
             random.randint(1000, 9999),
             random.randint(1000, 9999),
             random.randint(1000, 9999))
