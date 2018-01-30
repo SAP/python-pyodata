@@ -636,13 +636,13 @@ class EntitySetProxy(object):
             get_entities_handler,
             self._name)
 
-    def create_entity(self):
+    def create_entity(self, return_code=requests.codes.created):
         """Creates a new entity in the given entity-set."""
 
         def create_entity_handler(response):
             """Gets newly created entity encoded in HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != return_code:
                 raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
