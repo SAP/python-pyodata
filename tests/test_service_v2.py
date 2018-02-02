@@ -6,7 +6,7 @@ import requests
 import pytest
 import pyodata.v2.model
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException
+from pyodata.exceptions import PyODataException, HttpError
 from pyodata.v2.service import EntityKey
 
 URL_ROOT = 'http://odatapy.example.com'
@@ -433,3 +433,46 @@ def test_batch_request(service):
     assert isinstance(chset_response, list)
     assert len(chset_response) == 1
     assert chset_response[0] is None   # response to update request is None
+
+
+@responses.activate
+def test_batch_request_failed_changeset(service):
+    """Check single response for changeset"""
+
+    # pylint: disable=redefined-outer-name
+
+    response_body = ('--batch_r1\n'
+                     'Content-Type: application/http\n'
+                     'Content-Transfer-Encoding: binary\n'
+                     '\n'
+                     'HTTP/1.1 400 Bad Request\n'
+                     'Content-Type: application/json;charset=utf-8'
+                     ''
+                     '{"error": "this is error description"}'
+                     '--batch_r1--')
+
+    responses.add(
+        responses.POST,
+        '{0}/$batch'.format(URL_ROOT),
+        body=response_body,
+        content_type='multipart/mixed; boundary=batch_r1',
+        status=202)
+
+    batch = service.create_batch('batch1')
+
+    chset = service.create_changeset('chset1')
+
+    employee_request1 = service.entity_sets.Employees.get_entity(23)
+    employee_request2 = service.entity_sets.Employees.get_entity(23)
+
+    chset.add_request(employee_request1)
+    chset.add_request(employee_request2)
+
+    batch.add_request(chset)
+
+    with pytest.raises(HttpError) as e_info:
+        batch.execute()
+
+    assert str(e_info.value).startswith('Changeset cannot be processed')
+    assert isinstance(e_info.value, HttpError)
+    assert e_info.value.response.status_code == 400

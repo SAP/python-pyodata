@@ -995,6 +995,19 @@ class Service(object):
             logging.getLogger(LOGGER_NAME).debug('Changeset handler called for changeset %s', changeset.id)
 
             result = []
+
+            # check if changeset response consists of parts, this is important
+            # to distinguish cases when server responds with single HTTP response
+            # for whole request
+            if type(parts[0]) != list:
+
+                # raise error (even for successfull status codes) since such changeset response
+                # always means something wrong happened on server
+                response = ODataHttpResponse.from_string(parts[0])
+                raise HttpError(
+                    'Changeset cannot be processed due to single response received, status code: {}'.format(response.status_code),
+                    response)
+
             for part, req in zip(parts, changeset.requests):
                 logging.getLogger(LOGGER_NAME).debug(
                     'Changeset handler is processing part %s for request %s', part, req)
