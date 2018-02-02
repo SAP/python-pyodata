@@ -276,7 +276,7 @@ class ODataHttpRequest(object):
         headers = {} if self._headers is None else self._headers
         headers.update(self.get_headers())
 
-        self._logger.debug('execute %s request to %s', self.get_method(), url)
+        self._logger.debug('Send (execute) %s request to %s', self.get_method(), url)
         self._logger.debug('  query params: %s', self.get_query_params())
         self._logger.debug('  headers: %s', headers)
         if body:
@@ -289,7 +289,9 @@ class ODataHttpRequest(object):
             params=self.get_query_params(),
             data=body)
 
+        self._logger.debug('Received response')
         self._logger.debug('  url: %s', response.url)
+        self._logger.debug('  headers: %s', response.headers)
         self._logger.debug('  status code: %d', response.status_code)
         self._logger.debug('  body: %s', response.content)
 
