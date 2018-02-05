@@ -115,6 +115,23 @@ def test_entity_url(service):
     assert entity.url == URL_ROOT + "/MasterEntities('12345')"
 
 
+@responses.activate
+def test_entity_entity_set_name(service):
+    """Test correct entity set name"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/MasterEntities('12345')".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    entity = service.entity_sets.MasterEntities.get_entity('12345').execute()
+    assert entity.entity_set_name == "MasterEntities"
+
+
 def test_get_entity_property_complex_key(service):
     """Check identification of entity with key consisting of multiple properites"""
 

@@ -568,6 +568,12 @@ class EntityProxy(object):
                                             connection=connection)
 
     @property
+    def entity_set_name(self):
+        """Name of the entityset"""
+
+        return self._entity_set.name
+
+    @property
     def url(self):
         """URL of the real entity"""
 
