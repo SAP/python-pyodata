@@ -134,7 +134,7 @@ def test_entity_entity_set_name(service):
 
 @responses.activate
 def test_entity_key_simple(service):
-    """Test correct entity set name"""
+    """Test simple key of entity"""
 
     # pylint: disable=redefined-outer-name
 
@@ -152,7 +152,7 @@ def test_entity_key_simple(service):
 
 @responses.activate
 def test_entity_key_complex(service):
-    """Test correct entity set name"""
+    """Test complex key of entity"""
 
     # pylint: disable=redefined-outer-name
 
@@ -173,11 +173,7 @@ def test_entity_key_complex(service):
     key_properties = set(entity_key.keys())
 
     entity = service.entity_sets.TemperatureMeasurements.get_entity(key=None, **entity_key).execute()
-    assert len(entity.entity_key.key_properties) == 2
-    for key_property in entity.entity_key.key_properties:
-        if key_property.name in key_properties:
-            key_properties.remove(key_property.name)
-    assert len(key_properties) == 0
+    assert key_properties == set(entity_property.name for entity_property in  entity.entity_key.key_properties)
 
 
 def test_get_entity_property_complex_key(service):
