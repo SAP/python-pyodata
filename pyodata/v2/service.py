@@ -60,6 +60,12 @@ class EntityKey(object):
 
             self._type = EntityKey.TYPE_COMPLEX
 
+    @property
+    def key_properties(self):
+        """Key properties"""
+
+        return self._key
+
     def to_key_string_without_parentheses(self):
         """Gets the string representation of the key without parentheses"""
 
@@ -572,6 +578,12 @@ class EntityProxy(object):
         """Name of the entityset"""
 
         return self._entity_set.name
+
+    @property
+    def entity_key(self):
+        """Key of entity"""
+
+        return self._entity_key
 
     @property
     def url(self):
