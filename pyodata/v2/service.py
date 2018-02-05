@@ -574,10 +574,10 @@ class EntityProxy(object):
                                             connection=connection)
 
     @property
-    def entity_set_name(self):
-        """Name of the entityset"""
+    def entity_set(self):
+        """Entity set related to this entity"""
 
-        return self._entity_set.name
+        return self._entity_set
 
     @property
     def entity_key(self):

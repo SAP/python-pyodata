@@ -129,7 +129,7 @@ def test_entity_entity_set_name(service):
         status=200)
 
     entity = service.entity_sets.MasterEntities.get_entity('12345').execute()
-    assert entity.entity_set_name == "MasterEntities"
+    assert entity.entity_set.name == "MasterEntities"
 
 
 @responses.activate
