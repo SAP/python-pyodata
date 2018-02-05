@@ -115,6 +115,67 @@ def test_entity_url(service):
     assert entity.url == URL_ROOT + "/MasterEntities('12345')"
 
 
+@responses.activate
+def test_entity_entity_set_name(service):
+    """Test correct entity set name"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/MasterEntities('12345')".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    entity = service.entity_sets.MasterEntities.get_entity('12345').execute()
+    assert entity.entity_set.name == "MasterEntities"
+
+
+@responses.activate
+def test_entity_key_simple(service):
+    """Test simple key of entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/MasterEntities('12345')".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    entity = service.entity_sets.MasterEntities.get_entity('12345').execute()
+    assert len(entity.entity_key.key_properties) == 1
+    assert entity.entity_key.key_properties[0].name == 'Key'
+
+
+@responses.activate
+def test_entity_key_complex(service):
+    """Test complex key of entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Sensor': 'sensor1', 
+            'Date': "datetime'2017-12-24T18:00:00'"
+        }},
+        status=200)
+
+    entity_key = {
+        'Sensor': 'sensor1', 
+        'Date': datetime.datetime(2017, 12, 24, 18, 0)
+    }
+    key_properties = set(entity_key.keys())
+
+    entity = service.entity_sets.TemperatureMeasurements.get_entity(key=None, **entity_key).execute()
+    assert key_properties == set(entity_property.name for entity_property in  entity.entity_key.key_properties)
+
+
 def test_get_entity_property_complex_key(service):
     """Check identification of entity with key consisting of multiple properites"""
 
