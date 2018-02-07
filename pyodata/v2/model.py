@@ -582,7 +582,7 @@ class Schema(object):
 
         for decl in self._decls.values():
             try:
-                return decl.entity_set[set_name]
+                return decl.entity_sets[set_name]
             except KeyError:
                 pass
 
