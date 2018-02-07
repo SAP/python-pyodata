@@ -630,6 +630,20 @@ class Schema(object):
         return [association for association in itertools.chain(*(decl.list_associations()
                                                                  for decl in self._decls.values()))]
 
+    def association_set_by_association(self, association, namespace=None):
+        if namespace is not None:
+            for association_set in self._decls[namespace].association_sets.values():
+                if association_set.association_type == association:
+                    return association_set
+            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association,
+                                                                                                            namespace))
+        for decl in self._decls.values():
+            for association_set in decl.association_sets.values():
+                if association_set.association_type == association:
+                    return association_set
+        raise KeyError('Association set with association type {} does not exist'.format(association))
+
+
     def association_set(self, set_name, namespace=None):
         if namespace is not None:
             try:
