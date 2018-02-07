@@ -733,14 +733,55 @@ class EntityProxy(object):
 class EntitySetProxy(object):
     """EntitySet Proxy"""
 
-    def __init__(self, service, entity_set):
+    def __init__(self, service, entity_set, alias=None, parent_last_segment=None):
+        """Creates new Entity Set object
+
+            @param alias  in case the entity set is access via assossiation
+            @param parent_last_segment  in case of association also parent key must be used
+        """
         self._service = service
         self._entity_set = entity_set
+        self._alias = alias
+        if parent_last_segment is None:
+            self._parent_last_segment = ''
+        else:
+            if parent_last_segment.endswith('/'):
+                self._parent_last_segment = parent_last_segment
+            else:
+                self._parent_last_segment = parent_last_segment + '/'
         self._name = entity_set.name
         self._key = entity_set.entity_type.key_proprties
         self._logger = logging.getLogger(LOGGER_NAME)
 
         self._logger.debug('New entity set proxy instance for %s', self._name)
+
+    def navigate_to(self, nav_property, key=None, **args):
+
+        # Check navigation property exists for given type
+        try:
+            navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
+        except KeyError:
+            raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
+                    nav_property, self._entity_set.entity_type))
+
+        # Get entity set of navigation property
+        association_set = self._service.schema.association_set_by_association(navigation_property.association, navigation_property.association_info.namespace)
+        navigation_entity_set = None
+        for entity_set in association_set.end_roles:
+            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
+                navigation_entity_set = entity_set
+        if not navigation_entity_set:
+            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+
+        navigation_key = EntityKey(self._entity_set.entity_type, key, **args)
+
+        return EntitySetProxy(
+            self._service, 
+            self._service.schema.entity_set(navigation_entity_set), 
+            nav_property,
+            self._entity_set.name + navigation_key.to_key_string()
+        )
+
 
     def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""
@@ -760,11 +801,12 @@ class EntitySetProxy(object):
 
         self._logger.info('Getting entity %s for key %s and args %s', self._entity_set.entity_type.name, key, args)
 
+        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return EntityGetRequest(
             self._service.url,
             self._service.connection,
             get_entity_handler,
-            self._entity_set.name,
+            self._parent_last_segment + entity_set_name,
             key)
 
     def get_entities(self):
@@ -786,11 +828,12 @@ class EntitySetProxy(object):
 
             return result
 
+        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return QueryRequest(
             self._service.url,
             self._service.connection,
             get_entities_handler,
-            self._name)
+            self._parent_last_segment + entity_set_name)
 
     def create_entity(self, return_code=requests.codes.created):
         """Creates a new entity in the given entity-set."""

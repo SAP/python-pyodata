@@ -309,6 +309,76 @@ def test_update_entity(service):
 
 
 @responses.activate
+def test_navigation_multi(service):
+    """Get entities via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Address".format(service.url),
+        json={'d': {
+            'results': [
+                {
+                    'ID': 456,
+                    'Street': 'Baker Street',
+                    'City': 'London'
+                },{
+                    'ID': 457,
+                    'Street': 'Lowth Road',
+                    'City': 'London'
+                },{
+                    'ID': 458,
+                    'Street': 'Warner Road',
+                    'City': 'London'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.navigate_to('Address', 23).get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    addrs = request.execute()
+    assert addrs[0].ID == 456
+    assert addrs[0].Street == 'Baker Street'
+    assert addrs[0].City == 'London'
+    assert addrs[1].ID == 457
+    assert addrs[1].Street == 'Lowth Road'
+    assert addrs[1].City == 'London'
+    assert addrs[2].ID == 458
+    assert addrs[2].Street == 'Warner Road'
+    assert addrs[2].City == 'London'
+
+
+@responses.activate
+def test_navigation(service):
+    """Check getting entity via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Address(456)".format(service.url),
+        json={'d': {
+            'ID': 456,
+            'Street': 'Baker Street',
+            'City': 'London'
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.navigate_to('Address', 23).get_entity(456)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    addr = request.execute()
+    assert addr.ID == 456
+    assert addr.Street == 'Baker Street'
+    assert addr.City == 'London'
+
+
+@responses.activate
 def test_get_entity(service):
     """Check getting entities"""
 
