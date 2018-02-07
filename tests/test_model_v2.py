@@ -138,7 +138,7 @@ def test_edmx_associations(schema):
     assert dependent_role.name == 'ToRole_toDataEntity'
     assert dependent_role.property_names == ['Name']
 
-    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet'}
+    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet', 'AssociationEmployeeAddress_AssocSet'}
     association_set = schema.association_set('toDataEntitySet')
     assert str(association_set) == 'AssociationSet(toDataEntitySet)'
     assert association_set.association_type.name == 'toDataEntity'

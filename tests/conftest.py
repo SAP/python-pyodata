@@ -171,6 +171,11 @@ def metadata():
                 <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="0..1" Role="AddressRole"/>
             </Association>
 
+            <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                <End Role="EmployeeRole" EntitySet="Employees"/>
+                <End Role="AddressRole" EntitySet="Addresses"/>
+            </AssociationSet>
+
             <ComplexType Name="Rectangle">
                 <Property Name="Width" Type="Edm.Double" Nullable="false"/>
                 <Property Name="Height" Type="Edm.Double" Nullable="false"/>
