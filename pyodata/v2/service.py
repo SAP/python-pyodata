@@ -760,17 +760,6 @@ class EntitySetProxy(object):
 
         self._logger.debug('New entity set proxy instance for %s', self._name)
 
-    def __getitem__(self, entity_key):
-        """Return entity proxy with given key"""
-
-        if isinstance(entity_key, dict):
-            key = EntityKey(self._entity_set.entity_type, None, **entity_key)
-        else:
-            key = EntityKey(self._entity_set.entity_type, entity_key)
-
-        # Return entity just with key values
-        return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, None, key)
-
     def nav(self, nav_property, key):
         """Navigates to given navigation property and returns the EntritySetProxy"""
 
