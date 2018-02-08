@@ -336,7 +336,7 @@ def test_navigation_multi(service):
         }},
         status=200)
 
-    request = service.entity_sets.Employees[23].nav('Addresses').get_entities()
+    request = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
 
     assert isinstance(request, pyodata.v2.service.QueryRequest)
 
@@ -368,7 +368,7 @@ def test_navigation(service):
         }},
         status=200)
 
-    request = service.entity_sets.Employees[23].nav('Addresses').get_entity(456)
+    request = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entity(456)
 
     assert isinstance(request, pyodata.v2.service.EntityGetRequest)
 
