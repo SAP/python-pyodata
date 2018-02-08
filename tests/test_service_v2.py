@@ -316,7 +316,7 @@ def test_navigation_multi(service):
 
     responses.add(
         responses.GET,
-        "{0}/Employees(23)/Address".format(service.url),
+        "{0}/Employees(23)/Addresses".format(service.url),
         json={'d': {
             'results': [
                 {
@@ -336,7 +336,7 @@ def test_navigation_multi(service):
         }},
         status=200)
 
-    request = service.entity_sets.Employees.navigate_to('Address', 23).get_entities()
+    request = service.entity_sets.Employees[23].nav('Addresses').get_entities()
 
     assert isinstance(request, pyodata.v2.service.QueryRequest)
 
@@ -360,7 +360,7 @@ def test_navigation(service):
 
     responses.add(
         responses.GET,
-        "{0}/Employees(23)/Address(456)".format(service.url),
+        "{0}/Employees(23)/Addresses(456)".format(service.url),
         json={'d': {
             'ID': 456,
             'Street': 'Baker Street',
@@ -368,7 +368,7 @@ def test_navigation(service):
         }},
         status=200)
 
-    request = service.entity_sets.Employees.navigate_to('Address', 23).get_entity(456)
+    request = service.entity_sets.Employees[23].nav('Addresses').get_entity(456)
 
     assert isinstance(request, pyodata.v2.service.EntityGetRequest)
 
@@ -417,25 +417,30 @@ def test_get_entity_expanded(service):
             'ID': 23,
             'NameFirst': 'Rob',
             'NameLast': 'Ickes',
-            'Address': {
-                'ID': 456,
-                'Street': 'Baker Street',
-                'City': 'London'}
+            'Addresses': {
+                "results": [
+                    {
+                        'ID': 456,
+                        'Street': 'Baker Street',
+                        'City': 'London'
+                    }
+                ]
+            }
         }},
         status=200)
 
     request = service.entity_sets.Employees.get_entity(23)
     assert isinstance(request, pyodata.v2.service.EntityGetRequest)
 
-    emp = request.expand('Address').execute()
+    emp = request.expand('Addresses').execute()
 
     assert emp.ID == 23
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
 
-    assert emp.Address.ID == 456
-    assert emp.Address.Street == 'Baker Street'
-    assert emp.Address.City == 'London'
+    assert emp.Addresses[0].ID == 456
+    assert emp.Addresses[0].Street == 'Baker Street'
+    assert emp.Addresses[0].City == 'London'
 
 
 @responses.activate

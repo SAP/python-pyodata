@@ -154,7 +154,7 @@ def metadata():
                 <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
                 <Property Name="NameFirst" Type="Edm.String" Nullable="true"/>
                 <Property Name="NameLast" Type="Edm.String" Nullable="true"/>
-                <NavigationProperty Name="Address" Relationship="EXAMPLE_SRV_SETS.AssociationEmployeeAddress" FromRole="EmployeeRole" ToRole="AddressRole"/>
+                <NavigationProperty Name="Addresses" Relationship="EXAMPLE_SRV_SETS.AssociationEmployeeAddress" FromRole="EmployeeRole" ToRole="AddressRole"/>
             </EntityType>
 
             <EntityType Name="Address">
@@ -168,7 +168,7 @@ def metadata():
 
             <Association Name="AssociationEmployeeAddress">
                 <End Type="EXAMPLE_SRV_SETS.Employee" Multiplicity="1" Role="EmployeeRole"/>
-                <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="0..1" Role="AddressRole"/>
+                <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="*" Role="AddressRole"/>
             </Association>
 
             <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">

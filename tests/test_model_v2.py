@@ -152,8 +152,8 @@ def test_edmx_navigation_properties(schema):
     assert str(emp_entity) == 'EntityType(Employee)'
     assert emp_entity.name == 'Employee'
 
-    nav_prop = emp_entity.nav_proprty('Address')
-    assert str(nav_prop) == 'NavigationTypeProperty(Address)'
+    nav_prop = emp_entity.nav_proprty('Addresses')
+    assert str(nav_prop) == 'NavigationTypeProperty(Addresses)'
     assert str(nav_prop.to_role) == 'EndRole(AddressRole)'
     assert str(nav_prop.to_role.entity_type) == 'EntityType(Address)'
 
