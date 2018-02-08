@@ -301,16 +301,15 @@ class ODataHttpRequest(object):
 class EntityGetRequest(ODataHttpRequest):
     """Used for GET operations of a single entity"""
 
-    def __init__(self, url, connection, handler, last_segment, entity_key, entity_set_proxy):
-        super(EntityGetRequest, self).__init__(url, connection, handler)
+    def __init__(self, handler, entity_key, entity_set_proxy):
+        super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_key = entity_key
         self._entity_set_proxy = entity_set_proxy
         self._select = None
         self._expand = None
-        self._last_segment = last_segment
 
-        self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._last_segment)
+        self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._entity_set_proxy.last_segment)
 
     def nav(self, nav_property):
 
@@ -333,7 +332,7 @@ class EntityGetRequest(ODataHttpRequest):
         return self
 
     def get_path(self):
-        return self._last_segment + self._entity_key.to_key_string()
+        return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_headers(self):
         return {'Accept': 'application/json'}
@@ -760,6 +759,18 @@ class EntitySetProxy(object):
 
         self._logger.debug('New entity set proxy instance for %s', self._name)
 
+    @property
+    def service(self):
+
+        return self._service
+
+    @property
+    def last_segment(self):
+        """Return last segment of url"""
+
+        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
+        return self._parent_last_segment + entity_set_name
+
     def nav(self, nav_property, key):
         """Navigates to given navigation property and returns the EntritySetProxy"""
 
@@ -803,12 +814,8 @@ class EntitySetProxy(object):
 
         self._logger.info('Getting entity %s for key %s and args %s', self._entity_set.entity_type.name, key, args)
 
-        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return EntityGetRequest(
-            self._service.url,
-            self._service.connection,
             get_entity_handler,
-            self._parent_last_segment + entity_set_name,
             key,
             self)
 
