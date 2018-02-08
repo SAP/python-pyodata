@@ -692,6 +692,32 @@ class EntityProxy(object):
                 raise AttributeError('EntityType {0} does not have Property {1}: {2}'
                                      .format(self._entity_type.name, attr, ex.message))
 
+    def nav(self, nav_property):
+        """Navigates to given navigation property and returns the EntritySetProxy"""
+
+        # for now duplicated with simillar method in entity set proxy class
+        try:
+            navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
+        except KeyError:
+            raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
+                    nav_property, self._entity_set.entity_type))
+
+        # Get entity set of navigation property
+        association_set = self._service.schema.association_set_by_association(navigation_property.association, navigation_property.association_info.namespace)
+        navigation_entity_set = None
+        for entity_set in association_set.end_roles:
+            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
+                navigation_entity_set = entity_set
+        if not navigation_entity_set:
+            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+
+        return EntitySetProxy(
+            self._service, 
+            self._service.schema.entity_set(navigation_entity_set), 
+            nav_property,
+            self._entity_set.name + self._entity_key.to_key_string()
+        )
+
     def get_proprty(self, name, connection=None):
         """Returns value of the property"""
 
