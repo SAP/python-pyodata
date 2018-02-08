@@ -791,34 +791,6 @@ class EntitySetProxy(object):
         # Return entity just with key values
         return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, None, key)
 
-    def navigate_to(self, nav_property, key=None, **args):
-
-        # Check navigation property exists for given type
-        try:
-            navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
-        except KeyError:
-            raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
-                    nav_property, self._entity_set.entity_type))
-
-        # Get entity set of navigation property
-        association_set = self._service.schema.association_set_by_association(navigation_property.association, navigation_property.association_info.namespace)
-        navigation_entity_set = None
-        for entity_set in association_set.end_roles:
-            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
-                navigation_entity_set = entity_set
-        if not navigation_entity_set:
-            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
-
-        navigation_key = EntityKey(self._entity_set.entity_type, key, **args)
-
-        return EntitySetProxy(
-            self._service, 
-            self._service.schema.entity_set(navigation_entity_set), 
-            nav_property,
-            self._entity_set.name + navigation_key.to_key_string()
-        )
-
-
     def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""
 
