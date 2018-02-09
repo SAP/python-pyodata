@@ -964,7 +964,8 @@ class FunctionContainer(object):
 
             # 1. if return types is "entity type", return instance of appropriate entity proxy
             if isinstance(fimport.return_type, pyodata.v2.model.EntityType):
-                return EntityProxy(self._service, fimport.entity_set_name, fimport.return_type, response_data)
+                entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+                return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
 
             # 2. return raw data for all other return types (primitives, complex types encoded in dicts, etc.)
             return response_data
