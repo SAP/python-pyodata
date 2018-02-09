@@ -169,6 +169,46 @@ def metadata():
 
 
 @pytest.fixture
+def metadata_builder_factory():
+    """Skeleton OData metadata"""
+
+    # pylint: disable=line-too-long
+
+    class MetadaBuilder(object):
+        """Helper class for building XML metadata document"""
+
+        PROLOGUE = """
+        <edmx:Edmx xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData" Version="1.0">
+          <edmx:Reference xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Uri="https://example.sap.corp/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
+           <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+          </edmx:Reference>
+         <edmx:DataServices m:DataServiceVersion="2.0">
+         """
+
+        EPILOGUE = """
+         </edmx:DataServices>
+        </edmx:Edmx>
+        """
+
+        def __init__(self):
+            self._schemas = ''
+
+        def add_schema(self, namespace, xml_definition):
+            """Add schema element"""
+
+            self._schemas += '<Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="{0}" xml:lang="en" sap:schema-version="1">'.format(namespace)
+            self._schemas += xml_definition
+            self._schemas += '</Schema>'
+
+        def serialize(self):
+            """Returns full metadata XML document"""
+
+            return MetadaBuilder.PROLOGUE + self._schemas + MetadaBuilder.EPILOGUE
+
+    return MetadaBuilder
+
+
+@pytest.fixture
 def schema(metadata):
     """Parsed metadata"""
 

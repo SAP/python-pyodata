@@ -807,20 +807,20 @@ class Schema(object):
                         try:
                             annotation.entity_set = schema.entity_set(
                                 annotation.collection_path, namespace=annotation.element_namespace)
-                        except KeyError as ex:
+                        except KeyError:
                             raise RuntimeError('Entity Set {0} for {1} does not exist'
                                                .format(annotation.collection_path, annotation))
 
                         try:
                             vh_entity_type = schema.entity_type(
                                 annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
-                        except KeyError as ex:
-                            raise RuntimeError('Target Entity Type {0} of {1} does not exist'.format(annotation.propty_entity_type_name, ex.message))
+                        except KeyError:
+                            raise RuntimeError('Target Enityt Type {0} of {1} does not exist'.format(annotation.proprty_entity_type_name, annotation))
 
                         try:
                             target_proprty = vh_entity_type.proprty(annotation.proprty_name)
-                        except KeyError as ex:
-                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.propty_name, vh_entity_type, ex.message))
+                        except KeyError:
+                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.proprty_name, vh_entity_type, annotation))
 
                         annotation.proprty = target_proprty
                         target_proprty.value_helper = annotation
