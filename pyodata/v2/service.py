@@ -703,7 +703,7 @@ class EntityProxy(object):
                     nav_property, self._entity_set.entity_type))
 
         # Get entity set of navigation property
-        association_set = self._service.schema.association_set_by_association(navigation_property.association, navigation_property.association_info.namespace)
+        association_set = self._service.schema.association_set_by_association(navigation_property.association_info.name, navigation_property.association_info.namespace)
         navigation_entity_set = None
         for entity_set in association_set.end_roles:
             if association_set.end_roles[entity_set] == navigation_property.to_role.role:
@@ -807,7 +807,7 @@ class EntitySetProxy(object):
                     nav_property, self._entity_set.entity_type))
 
         # Get entity set of navigation property
-        association_set = self._service.schema.association_set_by_association(navigation_property.association, navigation_property.association_info.namespace)
+        association_set = self._service.schema.association_set_by_association(navigation_property.association_info.name, navigation_property.association_info.namespace)
         navigation_entity_set = None
         for entity_set in association_set.end_roles:
             if association_set.end_roles[entity_set] == navigation_property.to_role.role:

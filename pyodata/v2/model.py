@@ -630,18 +630,18 @@ class Schema(object):
         return [association for association in itertools.chain(*(decl.list_associations()
                                                                  for decl in self._decls.values()))]
 
-    def association_set_by_association(self, association, namespace=None):
+    def association_set_by_association(self, association_name, namespace=None):
         if namespace is not None:
             for association_set in self._decls[namespace].association_sets.values():
-                if association_set.association_type == association:
+                if association_set.association_type.name == association_name:
                     return association_set
-            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association,
+            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association_name,
                                                                                                             namespace))
         for decl in self._decls.values():
             for association_set in decl.association_sets.values():
-                if association_set.association_type == association:
+                if association_set.association_type == association_name:
                     return association_set
-        raise KeyError('Association set with association type {} does not exist'.format(association))
+        raise KeyError('Association set with association type {} does not exist'.format(association_name))
 
 
     def association_set(self, set_name, namespace=None):
@@ -792,7 +792,7 @@ class Schema(object):
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
 
-            for association_set in schema_node.xpath('edm:AssociationSet',
+            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet',
                                                      namespaces=NAMESPACES):
                 assoc_set = AssociationSet.from_etree(association_set)
                 scheme_namespace, association_name = assoc_set.association_type_name.split('.', 1)

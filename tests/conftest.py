@@ -90,11 +90,11 @@ def metadata():
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
+            <AssociationSet Name="toDataEntitySet" Association="EXAMPLE_SRV.toDataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                <End EntitySet="MasterEntities" Role="FromRole_toDataEntity" />
+                <End EntitySet="DataValueHelp" Role="ToRole_toDataEntity" />
+            </AssociationSet>
            </EntityContainer>
-           <AssociationSet Name="toDataEntitySet" Association="EXAMPLE_SRV.toDataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
-            <End EntitySet="MasterEntities" Role="FromRole_toDataEntity" />
-            <End EntitySet="DataValueHelp" Role="ToRole_toDataEntity" />
-           </AssociationSet>
            <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.MasterEntity/Data">
             <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
              <Record>
@@ -171,11 +171,6 @@ def metadata():
                 <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="*" Role="AddressRole"/>
             </Association>
 
-            <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
-                <End Role="EmployeeRole" EntitySet="Employees"/>
-                <End Role="AddressRole" EntitySet="Addresses"/>
-            </AssociationSet>
-
             <ComplexType Name="Rectangle">
                 <Property Name="Width" Type="Edm.Double" Nullable="false"/>
                 <Property Name="Height" Type="Edm.Double" Nullable="false"/>
@@ -202,6 +197,11 @@ def metadata():
                     <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
                     <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
                 </FunctionImport>
+
+                <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                    <End Role="EmployeeRole" EntitySet="Employees"/>
+                    <End Role="AddressRole" EntitySet="Addresses"/>
+                </AssociationSet>
 
             </EntityContainer>
 
