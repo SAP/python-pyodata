@@ -93,6 +93,24 @@ def test_edmx(schema):
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
 
+    # EntityType from the method typ
+    assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
+    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity', namespace='EXAMPLE_SRV')
+
+    # ComplexType from the method typ
+    assert schema.typ('Building') == schema.complex_type('Building')
+    assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
+
+    # Error handling in the method typ - without namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.typ('FooBar')
+    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema'
+
+    # Error handling in the method typ - with namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
+    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+
 
 def test_edmx_associations(schema):
     """Test parsing of associations and association sets"""
@@ -189,7 +207,7 @@ def test_edmx_complex_types(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber', 'Rectangle'}
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber', 'Rectangle'}
 
     complex_number = schema.complex_type('ComplexNumber')
     assert str(complex_number) == 'ComplexType(ComplexNumber)'

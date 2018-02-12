@@ -494,6 +494,19 @@ class Schema(object):
     def namespaces(self):
         return self._decls.keys()
 
+    def typ(self, type_name, namespace=None):
+        """Returns either EntityType or ComplexType that matches the name.
+        """
+
+        for type_space in (self.entity_type, self.complex_type):
+            try:
+                return type_space(type_name, namespace=namespace)
+            except KeyError:
+                pass
+
+        raise KeyError('Type {} does not exist in Schema{}'
+                       .format(type_name, ' Namespace ' + namespace if namespace else ''))
+
     def entity_type(self, type_name, namespace=None):
         if namespace is not None:
             try:

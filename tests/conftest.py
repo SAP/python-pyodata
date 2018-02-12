@@ -55,6 +55,13 @@ def metadata():
             <Property Name="Width" Type="Edm.Double" Nullable="false"/>
             <Property Name="Height" Type="Edm.Double" Nullable="false"/>
            </ComplexType>
+           <ComplexType Name="Building">
+             <Property Name="Street" Type="Edm.String" Nullable="true"/>
+             <Property Name="Number" Type="Edm.String" Nullable="false"/>
+             <Property Name="City" Type="Edm.String" Nullable="false"/>
+             <Property Name="Region" Type="Edm.String" Nullable="false"/>
+             <Property Name="Country" Type="Edm.String" Nullable="false"/>
+           </ComplexType>
            <Association Name="toDataEntity" sap:content-version="1">
             <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="1" Role="FromRole_toDataEntity" />
             <End Type="EXAMPLE_SRV.DataEntity" Multiplicity="*" Role="ToRole_toDataEntity" />
