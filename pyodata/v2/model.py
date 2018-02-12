@@ -825,15 +825,15 @@ class Schema(object):
                                                .format(annotation.collection_path, annotation))
 
                         try:
-                            vh_entity_type = schema.entity_type(
+                            vh_type = schema.typ(
                                 annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
                         except KeyError:
-                            raise RuntimeError('Target Enityt Type {0} of {1} does not exist'.format(annotation.proprty_entity_type_name, annotation))
+                            raise RuntimeError('Target Type {0} of {1} does not exist'.format(annotation.proprty_entity_type_name, annotation))
 
                         try:
-                            target_proprty = vh_entity_type.proprty(annotation.proprty_name)
+                            target_proprty = vh_type.proprty(annotation.proprty_name)
                         except KeyError:
-                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.proprty_name, vh_entity_type, annotation))
+                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.proprty_name, vh_type, annotation))
 
                         annotation.proprty = target_proprty
                         target_proprty.value_helper = annotation

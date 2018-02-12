@@ -47,6 +47,15 @@ def metadata():
             <Property Name="Date" Type="Edm.DateTime" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <Property Name="Value" Type="Edm.Double" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
            </EntityType>
+           <EntityType Name="City" sap:content-version="1" sap:value-list="true" sap:label="City">
+            <Key>
+              <PropertyRef Name="Name"/>
+              <PropertyRef Name="CountryISO"/>
+            </Key>
+            <Property Name="Name" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="CountryISO" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="Country" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+           </EntityType>
            <ComplexType Name="ComplexNumber">
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
@@ -77,6 +86,7 @@ def metadata():
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+            <EntitySet Name="Cities" EntityType="EXAMPLE_SRV.City" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
@@ -107,6 +117,26 @@ def metadata():
                 </Record>
                 <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
                  <PropertyValue Property="ValueListProperty" String="Description"/>
+                </Record>
+               </Collection>
+              </PropertyValue>
+             </Record>
+            </Annotation>
+           </Annotations>
+           <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.Building/City">
+            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+             <Record>
+              <PropertyValue Property="Label" String="Name"/>
+              <PropertyValue Property="CollectionPath" String="Cities"/>
+              <PropertyValue Property="SearchSupported" Bool="true"/>
+              <PropertyValue Property="Parameters">
+               <Collection>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterInOut">
+                 <PropertyValue Property="LocalDataProperty" PropertyPath="City"/>
+                 <PropertyValue Property="ValueListProperty" String="Name"/>
+                </Record>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
+                 <PropertyValue Property="ValueListProperty" String="Country"/>
                 </Record>
                </Collection>
               </PropertyValue>

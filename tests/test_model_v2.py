@@ -20,6 +20,7 @@ def test_edmx(schema):
         'DataEntity',
         'Employee',
         'AnnotationTest',
+        'City',
         'TemperatureMeasurement'
     }
 
@@ -28,6 +29,7 @@ def test_edmx(schema):
         'Employees',
         'MasterEntities',
         'DataValueHelp',
+        'Cities',
         'TemperatureMeasurements'
     }
 
@@ -217,6 +219,19 @@ def test_edmx_complex_types(schema):
     real_prop = complex_number.proprty('Real')
     assert str(real_prop) == 'StructTypeProperty(Real)'
     assert str(real_prop.struct_type) == 'ComplexType(ComplexNumber)'
+
+
+def test_edmx_complex_type_prop_vh(schema):
+    """Check that value helpers work also for ComplexType properties"""
+
+    building = schema.complex_type('Building')
+    city_prop = building.proprty('City')
+    city_prop_vh = city_prop.value_helper
+
+    assert city_prop_vh is not None
+    assert city_prop_vh.proprty.name == 'City'
+    assert city_prop_vh.entity_set.name == 'Cities'
+    assert city_prop_vh.entity_set.entity_type.name == 'City'
 
 
 def test_traits():
