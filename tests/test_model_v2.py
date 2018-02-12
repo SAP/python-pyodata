@@ -3,7 +3,7 @@
 
 from datetime import datetime
 import pytest
-from pyodata.v2.model import Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
+from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
 from pyodata.exceptions import PyODataException, PyODataModelError
 
 
@@ -20,6 +20,7 @@ def test_edmx(schema):
         'DataEntity',
         'Employee',
         'AnnotationTest',
+        'City',
         'TemperatureMeasurement'
     }
 
@@ -28,6 +29,7 @@ def test_edmx(schema):
         'Employees',
         'MasterEntities',
         'DataValueHelp',
+        'Cities',
         'TemperatureMeasurements'
     }
 
@@ -92,6 +94,24 @@ def test_edmx(schema):
     assert not non_negative_prop.upper_case
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
+
+    # EntityType from the method typ
+    assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
+    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity', namespace='EXAMPLE_SRV')
+
+    # ComplexType from the method typ
+    assert schema.typ('Building') == schema.complex_type('Building')
+    assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
+
+    # Error handling in the method typ - without namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.typ('FooBar')
+    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema'
+
+    # Error handling in the method typ - with namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
+    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
 def test_edmx_associations(schema):
@@ -189,7 +209,7 @@ def test_edmx_complex_types(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((complex_type.name for complex_type in schema.complex_types)) == {'ComplexNumber', 'Rectangle'}
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber', 'Rectangle'}
 
     complex_number = schema.complex_type('ComplexNumber')
     assert str(complex_number) == 'ComplexType(ComplexNumber)'
@@ -199,6 +219,19 @@ def test_edmx_complex_types(schema):
     real_prop = complex_number.proprty('Real')
     assert str(real_prop) == 'StructTypeProperty(Real)'
     assert str(real_prop.struct_type) == 'ComplexType(ComplexNumber)'
+
+
+def test_edmx_complex_type_prop_vh(schema):
+    """Check that value helpers work also for ComplexType properties"""
+
+    building = schema.complex_type('Building')
+    city_prop = building.proprty('City')
+    city_prop_vh = city_prop.value_helper
+
+    assert city_prop_vh is not None
+    assert city_prop_vh.proprty.name == 'City'
+    assert city_prop_vh.entity_set.name == 'Cities'
+    assert city_prop_vh.entity_set.entity_type.name == 'City'
 
 
 def test_traits():
@@ -394,3 +427,129 @@ def test_complex_serializer(schema):
     entity_type = schema.entity_type('TemperatureMeasurement')
     assert srl.to_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
     assert srl.from_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
+
+
+def test_annot_v_l_missing_e_s(metadata_builder_factory):
+    """Test correct handling of annotations whose entity set does not exist"""
+
+    builder = metadata_builder_factory()
+    builder.add_schema(
+        'MISSING_ES',
+        """
+        <EntityType Name="Dict" sap:content-version="1">
+         <Key><PropertyRef Name="Key"/></Key>
+         <Property Name="Key" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+         <Property Name="Value" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+        </EntityType>
+        <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="MISSING_ES.Dict/Value">
+         <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+          <Record>
+           <PropertyValue Property="Label" String="Data"/>
+           <PropertyValue Property="CollectionPath" String="DataValueHelp"/>
+           <PropertyValue Property="SearchSupported" Bool="true"/>
+           <PropertyValue Property="Parameters">
+            <Collection>
+             <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterOut">
+              <PropertyValue Property="LocalDataProperty" PropertyPath="Value"/>
+              <PropertyValue Property="ValueListProperty" String="Data"/>
+             </Record>
+            </Collection>
+           </PropertyValue>
+          </Record>
+         </Annotation>
+        </Annotations>
+        """
+    )
+
+    try:
+        Edmx.parse(builder.serialize())
+        assert 'Expected' == 'RuntimeError'
+    except RuntimeError as ex:
+        assert ex.message == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+
+
+def test_annot_v_l_missing_e_t(metadata_builder_factory):
+    """Test correct handling of annotations whose target type does not exist"""
+
+    builder = metadata_builder_factory()
+    builder.add_schema(
+        'MISSING_ET',
+        """
+        <EntityType Name="Database" sap:content-version="1">
+         <Key><PropertyRef Name="Data"/></Key>
+         <Property Name="Data" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+        </EntityType>
+        <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+         <EntitySet Name="DataValueHelp" EntityType="MISSING_ET.Database" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+        </EntityContainer>
+        <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="MISSING_ET.Dict/Value">
+         <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+          <Record>
+           <PropertyValue Property="Label" String="Data"/>
+           <PropertyValue Property="CollectionPath" String="DataValueHelp"/>
+           <PropertyValue Property="SearchSupported" Bool="true"/>
+           <PropertyValue Property="Parameters">
+            <Collection>
+             <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterOut">
+              <PropertyValue Property="LocalDataProperty" PropertyPath="Value"/>
+              <PropertyValue Property="ValueListProperty" String="Data"/>
+             </Record>
+            </Collection>
+           </PropertyValue>
+          </Record>
+         </Annotation>
+        </Annotations>
+        """
+    )
+
+    try:
+        Edmx.parse(builder.serialize())
+        assert 'Expected' == 'RuntimeError'
+    except RuntimeError as ex:
+        assert ex.message == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+
+
+def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
+    """Test correct handling of annotations whose target property does not exist"""
+
+    builder = metadata_builder_factory()
+    builder.add_schema(
+        'MISSING_TP',
+        """
+        <EntityType Name="Dict" sap:content-version="1">
+         <Key><PropertyRef Name="Key"/></Key>
+         <Property Name="Key" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+         <Property Name="Value" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+        </EntityType>
+        <EntityType Name="Database" sap:content-version="1">
+         <Key><PropertyRef Name="Data"/></Key>
+         <Property Name="Data" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Key" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:value-list="standard"/>
+        </EntityType>
+        <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+         <EntitySet Name="DataValueHelp" EntityType="MISSING_TP.Database" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+        </EntityContainer>
+        <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="MISSING_TP.Dict/NoExisting">
+         <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+          <Record>
+           <PropertyValue Property="Label" String="Data"/>
+           <PropertyValue Property="CollectionPath" String="DataValueHelp"/>
+           <PropertyValue Property="SearchSupported" Bool="true"/>
+           <PropertyValue Property="Parameters">
+            <Collection>
+             <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterOut">
+              <PropertyValue Property="LocalDataProperty" PropertyPath="Value"/>
+              <PropertyValue Property="ValueListProperty" String="Data"/>
+             </Record>
+            </Collection>
+           </PropertyValue>
+          </Record>
+         </Annotation>
+        </Annotations>
+        """
+    )
+
+    try:
+        Edmx.parse(builder.serialize())
+        assert 'Expected' == 'RuntimeError'
+    except RuntimeError as ex:
+        assert ex.message == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'

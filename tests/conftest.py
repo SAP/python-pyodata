@@ -47,6 +47,15 @@ def metadata():
             <Property Name="Date" Type="Edm.DateTime" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <Property Name="Value" Type="Edm.Double" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
            </EntityType>
+           <EntityType Name="City" sap:content-version="1" sap:value-list="true" sap:label="City">
+            <Key>
+              <PropertyRef Name="Name"/>
+              <PropertyRef Name="CountryISO"/>
+            </Key>
+            <Property Name="Name" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="CountryISO" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="Country" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+           </EntityType>
            <ComplexType Name="ComplexNumber">
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
@@ -54,6 +63,13 @@ def metadata():
            <ComplexType Name="Rectangle">
             <Property Name="Width" Type="Edm.Double" Nullable="false"/>
             <Property Name="Height" Type="Edm.Double" Nullable="false"/>
+           </ComplexType>
+           <ComplexType Name="Building">
+             <Property Name="Street" Type="Edm.String" Nullable="true"/>
+             <Property Name="Number" Type="Edm.String" Nullable="false"/>
+             <Property Name="City" Type="Edm.String" Nullable="false"/>
+             <Property Name="Region" Type="Edm.String" Nullable="false"/>
+             <Property Name="Country" Type="Edm.String" Nullable="false"/>
            </ComplexType>
            <Association Name="toDataEntity" sap:content-version="1">
             <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="1" Role="FromRole_toDataEntity" />
@@ -70,6 +86,7 @@ def metadata():
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+            <EntitySet Name="Cities" EntityType="EXAMPLE_SRV.City" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
@@ -100,6 +117,26 @@ def metadata():
                 </Record>
                 <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
                  <PropertyValue Property="ValueListProperty" String="Description"/>
+                </Record>
+               </Collection>
+              </PropertyValue>
+             </Record>
+            </Annotation>
+           </Annotations>
+           <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.Building/City">
+            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+             <Record>
+              <PropertyValue Property="Label" String="Name"/>
+              <PropertyValue Property="CollectionPath" String="Cities"/>
+              <PropertyValue Property="SearchSupported" Bool="true"/>
+              <PropertyValue Property="Parameters">
+               <Collection>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterInOut">
+                 <PropertyValue Property="LocalDataProperty" PropertyPath="City"/>
+                 <PropertyValue Property="ValueListProperty" String="Name"/>
+                </Record>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
+                 <PropertyValue Property="ValueListProperty" String="Country"/>
                 </Record>
                </Collection>
               </PropertyValue>
@@ -166,6 +203,46 @@ def metadata():
           </Schema>
          </edmx:DataServices>
          </edmx:Edmx>"""
+
+
+@pytest.fixture
+def metadata_builder_factory():
+    """Skeleton OData metadata"""
+
+    # pylint: disable=line-too-long
+
+    class MetadaBuilder(object):
+        """Helper class for building XML metadata document"""
+
+        PROLOGUE = """
+        <edmx:Edmx xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData" Version="1.0">
+          <edmx:Reference xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" Uri="https://example.sap.corp/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
+           <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+          </edmx:Reference>
+         <edmx:DataServices m:DataServiceVersion="2.0">
+         """
+
+        EPILOGUE = """
+         </edmx:DataServices>
+        </edmx:Edmx>
+        """
+
+        def __init__(self):
+            self._schemas = ''
+
+        def add_schema(self, namespace, xml_definition):
+            """Add schema element"""
+
+            self._schemas += '<Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="{0}" xml:lang="en" sap:schema-version="1">'.format(namespace)
+            self._schemas += xml_definition
+            self._schemas += '</Schema>'
+
+        def serialize(self):
+            """Returns full metadata XML document"""
+
+            return MetadaBuilder.PROLOGUE + self._schemas + MetadaBuilder.EPILOGUE
+
+    return MetadaBuilder
 
 
 @pytest.fixture

@@ -494,6 +494,19 @@ class Schema(object):
     def namespaces(self):
         return self._decls.keys()
 
+    def typ(self, type_name, namespace=None):
+        """Returns either EntityType or ComplexType that matches the name.
+        """
+
+        for type_space in (self.entity_type, self.complex_type):
+            try:
+                return type_space(type_name, namespace=namespace)
+            except KeyError:
+                pass
+
+        raise KeyError('Type {} does not exist in Schema{}'
+                       .format(type_name, ' Namespace ' + namespace if namespace else ''))
+
     def entity_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
@@ -807,20 +820,20 @@ class Schema(object):
                         try:
                             annotation.entity_set = schema.entity_set(
                                 annotation.collection_path, namespace=annotation.element_namespace)
-                        except KeyError as ex:
+                        except KeyError:
                             raise RuntimeError('Entity Set {0} for {1} does not exist'
                                                .format(annotation.collection_path, annotation))
 
                         try:
-                            vh_entity_type = schema.entity_type(
+                            vh_type = schema.typ(
                                 annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
-                        except KeyError as ex:
-                            raise RuntimeError('Target Entity Type {0} of {1} does not exist'.format(annotation.propty_entity_type_name, ex.message))
+                        except KeyError:
+                            raise RuntimeError('Target Type {0} of {1} does not exist'.format(annotation.proprty_entity_type_name, annotation))
 
                         try:
-                            target_proprty = vh_entity_type.proprty(annotation.proprty_name)
-                        except KeyError as ex:
-                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.propty_name, vh_entity_type, ex.message))
+                            target_proprty = vh_type.proprty(annotation.proprty_name)
+                        except KeyError:
+                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.proprty_name, vh_type, annotation))
 
                         annotation.proprty = target_proprty
                         target_proprty.value_helper = annotation
