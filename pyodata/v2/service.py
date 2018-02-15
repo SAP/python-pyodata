@@ -200,7 +200,7 @@ class EntityKey(object):
         if self._type == EntityKey.TYPE_SINGLE:
             # first property is the key property
             key_prop = self._key[0]
-            return key_prop.typ.traits.to_odata(self._proprties[key_prop.name])
+            return key_prop.typ.traits.to_literal(self._proprties[key_prop.name])
 
         key_pairs = []
         for key_prop in self._key:
@@ -210,7 +210,7 @@ class EntityKey(object):
 
             key_pairs.append('{0}={1}'.format(
                 key_prop.name,
-                key_prop.typ.traits.to_odata(self._proprties[key_prop.name])))
+                key_prop.typ.traits.to_literal(self._proprties[key_prop.name])))
 
         return ','.join(key_pairs)
 
@@ -577,7 +577,7 @@ class FunctionRequest(QueryRequest):
             param = self._function_import.get_parameter(name)
 
             # add parameter as custom query argument
-            self.custom(param.name, param.typ.traits.to_odata(value))
+            self.custom(param.name, param.typ.traits.to_literal(value))
         except KeyError:
             raise PyODataException('Function import {0} does not have pararmeter {1}'
                                    .format(self._function_import.name, name))
@@ -618,7 +618,11 @@ class EntityProxy(object):
             # first, cache values of direct properties
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
-                    self._cache[type_proprty.name] = proprties[type_proprty.name]
+                    if proprties[type_proprty.name] is not None:
+                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_odata(proprties[type_proprty.name])
+                    else:
+                        # null value is in literal form for now, convert it to python representation
+                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_literal(type_proprty.typ.null_value)
 
             # then, assign all navigation properties
             for prop in self._entity_type.nav_proprties:

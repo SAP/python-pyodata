@@ -162,7 +162,7 @@ def test_entity_key_complex(service):
         headers={'Content-type': 'application/json'},
         json={'d': {
             'Sensor': 'sensor1', 
-            'Date': "datetime'2017-12-24T18:00:00'"
+            'Date': "/Date(1514138400000)/"
         }},
         status=200)
 
@@ -174,6 +174,8 @@ def test_entity_key_complex(service):
 
     entity = service.entity_sets.TemperatureMeasurements.get_entity(key=None, **entity_key).execute()
     assert key_properties == set(entity_property.name for entity_property in  entity.entity_key.key_properties)
+    # check also python represantation of date
+    assert entity.Date == datetime.datetime(2017, 12, 24, 18, 0)
 
 
 def test_get_entity_property_complex_key(service):
@@ -270,7 +272,7 @@ def test_function_import_entity(service):
         headers={'Content-type': 'application/json'},
         json={'d': {
             'Sensor': 'Sensor-address',
-            'Date': "datetime'2000-01-01T00:00'",
+            'Date': "/Date(1516614510000)/",
             'Value': 456.8
         }},
         status=200)
@@ -476,6 +478,9 @@ def test_navigation_from_entity(service):
     assert addr.ID == 456
     assert addr.Street == 'Baker Street'
     assert addr.City == 'London'
+
+
+# TODO add test_get_entity_with_guid
 
 
 @responses.activate
