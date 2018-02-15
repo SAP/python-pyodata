@@ -619,7 +619,7 @@ class EntityProxy(object):
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
                     if proprties[type_proprty.name] is not None:
-                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_odata(proprties[type_proprty.name])
+                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_json(proprties[type_proprty.name])
                     else:
                         # null value is in literal form for now, convert it to python representation
                         self._cache[type_proprty.name] = type_proprty.typ.traits.from_literal(type_proprty.typ.null_value)
@@ -735,7 +735,7 @@ class EntityProxy(object):
                                 .format(proprty.name, key, response.status_code), response)
 
             data = response.json()['d']
-            return proprty.typ.traits.from_odata(data[proprty.name])
+            return proprty.typ.traits.from_json(data[proprty.name])
 
         path = '{0}({1})'.format(self._entity_set._name, self._entity_key.to_key_string())   # pylint: disable=protected-access
 

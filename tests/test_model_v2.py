@@ -342,7 +342,7 @@ def test_traits_datetime():
     # 3. direction OData -> python
 
     # parsing full representation
-    testdate = typ.traits.from_odata("/Date(217567986010)/")
+    testdate = typ.traits.from_json("/Date(217567986010)/")
     assert testdate.year == 1976
     assert testdate.month == 11
     assert testdate.day == 23
@@ -352,13 +352,13 @@ def test_traits_datetime():
     assert testdate.microsecond == 10000
 
     # parsing without miliseconds
-    testdate = typ.traits.from_odata("/Date(217567986000)/")
+    testdate = typ.traits.from_json("/Date(217567986000)/")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
 
     # parsing without seconds and miliseconds
-    testdate = typ.traits.from_odata("/Date(217567980000)/")
+    testdate = typ.traits.from_json("/Date(217567980000)/")
     assert testdate.year == 1976
     assert testdate.minute == 33
     assert testdate.second == 0
@@ -366,11 +366,11 @@ def test_traits_datetime():
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_odata("xyz")
+        typ.traits.from_json("xyz")
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_odata("/Date(xyz)/")
+        typ.traits.from_json("/Date(xyz)/")
     assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
 
@@ -378,10 +378,10 @@ def test_traits_collections():
     """Test collection traits"""
 
     typ = Types.from_name('Collection(Edm.Int32)')
-    assert typ.traits.from_odata(['23', '34']) == [23, 34]
+    assert typ.traits.from_json(['23', '34']) == [23, 34]
 
     typ = Types.from_name('Collection(Edm.String)')
-    assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
+    assert typ.traits.from_json(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
 def test_type_parsing():
@@ -448,19 +448,19 @@ def test_complex_serializer(schema):
 
     # decode without edm type information
     with pytest.raises(PyODataException) as e_info:
-        EdmStructTypeSerializer().from_odata(None, 'something')
+        EdmStructTypeSerializer().from_json(None, 'something')
     assert str(e_info.value).startswith('Cannot decode value something')
 
     # entity without properties
     entity_type = EntityType('Box', 'Box', False)
     srl = EdmStructTypeSerializer()
     assert srl.to_literal(entity_type, 'something') == {}
-    assert srl.from_odata(entity_type, 'something') == {}
+    assert srl.from_json(entity_type, 'something') == {}
 
     # entity with properties of ODATA primitive types
     entity_type = schema.entity_type('TemperatureMeasurement')
     assert srl.to_literal(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
-    assert srl.from_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
+    assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
 
 
 def test_annot_v_l_missing_e_s(metadata_builder_factory):

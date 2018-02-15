@@ -164,7 +164,7 @@ class EdmStructTypeSerializer(object):
         return result
 
     @staticmethod
-    def from_odata(edm_type, value):
+    def from_json(edm_type, value):
 
         # pylint: disable=no-self-use
         if not edm_type:
@@ -173,7 +173,7 @@ class EdmStructTypeSerializer(object):
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.from_odata(value[type_prop.name])
+                result[type_prop.name] = type_prop.typ.traits.from_json(value[type_prop.name])
 
         return result
 
@@ -202,7 +202,7 @@ class TypTraits(object):
         return value
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return value
 
     def from_literal(self, value):
@@ -218,8 +218,8 @@ class EdmPrefixedTypTraits(TypTraits):
     def to_literal(self, value):
         return '{}\'{}\''.format(self._prefix, value)
 
-    def from_odata(self, value):
-        return super(EdmPrefixedTypTraits, self).from_odata(value)
+    def from_json(self, value):
+        return super(EdmPrefixedTypTraits, self).from_json(value)
 
     def from_literal(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
@@ -259,7 +259,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         return super(EdmDateTimeTypTraits, self).to_literal(value.isoformat())
 
-    def from_odata(self, value):
+    def from_json(self, value):
 
         if value is None:
             return None
@@ -306,7 +306,7 @@ class EdmStringTypTraits(TypTraits):
         return '\'%s\'' % (value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return value.strip('\'')
 
     def from_literal(self, value):
@@ -321,7 +321,7 @@ class EdmBooleanTypTraits(TypTraits):
         return 'true' if value else 'false'
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return value == 'true'
 
     def from_literal(self, value):
@@ -335,7 +335,7 @@ class EdmIntTypTraits(TypTraits):
         return '%d' % (value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return int(value)
 
     def from_literal(self, value):
@@ -353,11 +353,11 @@ class EdmStructTypTraits(TypTraits):
         return EdmStructTypeSerializer.to_literal(self._edm_type, value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
-        return EdmStructTypeSerializer.from_odata(self._edm_type, value)
+    def from_json(self, value):
+        return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
     def from_literal(self, value):
-        return EdmStructTypeSerializer.from_odata(self._edm_type, value)
+        return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
 
 class Typ(Identifier):
@@ -420,11 +420,11 @@ class Collection(Typ):
         return [self._item_type.traits.to_literal(v) for v in value]
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         if not isinstance(value, list):
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
-        return [self._item_type.traits.from_odata(v) for v in value]
+        return [self._item_type.traits.from_json(v) for v in value]
 
 
 class VariableDeclaration(Identifier):
