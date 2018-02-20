@@ -200,7 +200,7 @@ class EntityKey(object):
         if self._type == EntityKey.TYPE_SINGLE:
             # first property is the key property
             key_prop = self._key[0]
-            return key_prop.typ.traits.to_odata(self._proprties[key_prop.name])
+            return key_prop.typ.traits.to_literal(self._proprties[key_prop.name])
 
         key_pairs = []
         for key_prop in self._key:
@@ -210,7 +210,7 @@ class EntityKey(object):
 
             key_pairs.append('{0}={1}'.format(
                 key_prop.name,
-                key_prop.typ.traits.to_odata(self._proprties[key_prop.name])))
+                key_prop.typ.traits.to_literal(self._proprties[key_prop.name])))
 
         return ','.join(key_pairs)
 
@@ -301,15 +301,19 @@ class ODataHttpRequest(object):
 class EntityGetRequest(ODataHttpRequest):
     """Used for GET operations of a single entity"""
 
-    def __init__(self, url, connection, handler, last_segment, entity_key):
-        super(EntityGetRequest, self).__init__(url, connection, handler)
+    def __init__(self, handler, entity_key, entity_set_proxy):
+        super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_key = entity_key
+        self._entity_set_proxy = entity_set_proxy
         self._select = None
         self._expand = None
-        self._last_segment = last_segment
 
-        self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._last_segment)
+        self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._entity_set_proxy.last_segment)
+
+    def nav(self, nav_property):
+
+        return self._entity_set_proxy.nav(nav_property, self._entity_key)
 
     def select(self, select):
         """Specifies a subset of properties to return.
@@ -328,7 +332,7 @@ class EntityGetRequest(ODataHttpRequest):
         return self
 
     def get_path(self):
-        return self._last_segment + self._entity_key.to_key_string()
+        return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_headers(self):
         return {'Accept': 'application/json'}
@@ -573,7 +577,7 @@ class FunctionRequest(QueryRequest):
             param = self._function_import.get_parameter(name)
 
             # add parameter as custom query argument
-            self.custom(param.name, param.typ.traits.to_odata(value))
+            self.custom(param.name, param.typ.traits.to_literal(value))
         except KeyError:
             raise PyODataException('Function import {0} does not have pararmeter {1}'
                                    .format(self._function_import.name, name))
@@ -614,7 +618,11 @@ class EntityProxy(object):
             # first, cache values of direct properties
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
-                    self._cache[type_proprty.name] = proprties[type_proprty.name]
+                    if proprties[type_proprty.name] is not None:
+                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_json(proprties[type_proprty.name])
+                    else:
+                        # null value is in literal form for now, convert it to python representation
+                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_literal(type_proprty.typ.null_value)
 
             # then, assign all navigation properties
             for prop in self._entity_type.nav_proprties:
@@ -688,6 +696,32 @@ class EntityProxy(object):
                 raise AttributeError('EntityType {0} does not have Property {1}: {2}'
                                      .format(self._entity_type.name, attr, ex.message))
 
+    def nav(self, nav_property):
+        """Navigates to given navigation property and returns the EntritySetProxy"""
+
+        # for now duplicated with simillar method in entity set proxy class
+        try:
+            navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
+        except KeyError:
+            raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
+                    nav_property, self._entity_set.entity_type))
+
+        # Get entity set of navigation property
+        association_set = self._service.schema.association_set_by_association(navigation_property.association_info.name, navigation_property.association_info.namespace)
+        navigation_entity_set = None
+        for entity_set in association_set.end_roles:
+            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
+                navigation_entity_set = entity_set
+        if not navigation_entity_set:
+            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+
+        return EntitySetProxy(
+            self._service, 
+            self._service.schema.entity_set(navigation_entity_set), 
+            nav_property,
+            self._entity_set.name + self._entity_key.to_key_string()
+        )
+
     def get_proprty(self, name, connection=None):
         """Returns value of the property"""
 
@@ -701,7 +735,7 @@ class EntityProxy(object):
                                 .format(proprty.name, key, response.status_code), response)
 
             data = response.json()['d']
-            return proprty.typ.traits.from_odata(data[proprty.name])
+            return proprty.typ.traits.from_json(data[proprty.name])
 
         path = '{0}({1})'.format(self._entity_set._name, self._entity_key.to_key_string())   # pylint: disable=protected-access
 
@@ -733,14 +767,64 @@ class EntityProxy(object):
 class EntitySetProxy(object):
     """EntitySet Proxy"""
 
-    def __init__(self, service, entity_set):
+    def __init__(self, service, entity_set, alias=None, parent_last_segment=None):
+        """Creates new Entity Set object
+
+            @param alias  in case the entity set is access via assossiation
+            @param parent_last_segment  in case of association also parent key must be used
+        """
         self._service = service
         self._entity_set = entity_set
+        self._alias = alias
+        if parent_last_segment is None:
+            self._parent_last_segment = ''
+        else:
+            if parent_last_segment.endswith('/'):
+                self._parent_last_segment = parent_last_segment
+            else:
+                self._parent_last_segment = parent_last_segment + '/'
         self._name = entity_set.name
         self._key = entity_set.entity_type.key_proprties
         self._logger = logging.getLogger(LOGGER_NAME)
 
         self._logger.debug('New entity set proxy instance for %s', self._name)
+
+    @property
+    def service(self):
+
+        return self._service
+
+    @property
+    def last_segment(self):
+        """Return last segment of url"""
+
+        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
+        return self._parent_last_segment + entity_set_name
+
+    def nav(self, nav_property, key):
+        """Navigates to given navigation property and returns the EntritySetProxy"""
+
+        try:
+            navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
+        except KeyError:
+            raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
+                    nav_property, self._entity_set.entity_type))
+
+        # Get entity set of navigation property
+        association_set = self._service.schema.association_set_by_association(navigation_property.association_info.name, navigation_property.association_info.namespace)
+        navigation_entity_set = None
+        for entity_set in association_set.end_roles:
+            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
+                navigation_entity_set = entity_set
+        if not navigation_entity_set:
+            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+
+        return EntitySetProxy(
+            self._service, 
+            self._service.schema.entity_set(navigation_entity_set), 
+            nav_property,
+            self._entity_set.name + key.to_key_string()
+        )
 
     def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""
@@ -761,11 +845,9 @@ class EntitySetProxy(object):
         self._logger.info('Getting entity %s for key %s and args %s', self._entity_set.entity_type.name, key, args)
 
         return EntityGetRequest(
-            self._service.url,
-            self._service.connection,
             get_entity_handler,
-            self._entity_set.name,
-            key)
+            key,
+            self)
 
     def get_entities(self):
         """Get all entities"""
@@ -786,11 +868,12 @@ class EntitySetProxy(object):
 
             return result
 
+        entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return QueryRequest(
             self._service.url,
             self._service.connection,
             get_entities_handler,
-            self._name)
+            self._parent_last_segment + entity_set_name)
 
     def create_entity(self, return_code=requests.codes.created):
         """Creates a new entity in the given entity-set."""
@@ -885,7 +968,8 @@ class FunctionContainer(object):
 
             # 1. if return types is "entity type", return instance of appropriate entity proxy
             if isinstance(fimport.return_type, pyodata.v2.model.EntityType):
-                return EntityProxy(self._service, fimport.entity_set_name, fimport.return_type, response_data)
+                entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+                return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
 
             # 2. return raw data for all other return types (primitives, complex types encoded in dicts, etc.)
             return response_data

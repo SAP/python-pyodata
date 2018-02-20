@@ -162,7 +162,7 @@ def test_entity_key_complex(service):
         headers={'Content-type': 'application/json'},
         json={'d': {
             'Sensor': 'sensor1', 
-            'Date': "datetime'2017-12-24T18:00:00'"
+            'Date': "/Date(1514138400000)/"
         }},
         status=200)
 
@@ -174,6 +174,8 @@ def test_entity_key_complex(service):
 
     entity = service.entity_sets.TemperatureMeasurements.get_entity(key=None, **entity_key).execute()
     assert key_properties == set(entity_property.name for entity_property in  entity.entity_key.key_properties)
+    # check also python represantation of date
+    assert entity.Date == datetime.datetime(2017, 12, 24, 18, 0)
 
 
 def test_get_entity_property_complex_key(service):
@@ -270,7 +272,7 @@ def test_function_import_entity(service):
         headers={'Content-type': 'application/json'},
         json={'d': {
             'Sensor': 'Sensor-address',
-            'Date': "datetime'2000-01-01T00:00'",
+            'Date': "/Date(1516614510000)/",
             'Value': 456.8
         }},
         status=200)
@@ -306,6 +308,179 @@ def test_update_entity(service):
     request.set(Value=34)
 
     request.execute()
+
+
+@responses.activate
+def test_navigation_multi(service):
+    """Get entities via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses".format(service.url),
+        json={'d': {
+            'results': [
+                {
+                    'ID': 456,
+                    'Street': 'Baker Street',
+                    'City': 'London'
+                },{
+                    'ID': 457,
+                    'Street': 'Lowth Road',
+                    'City': 'London'
+                },{
+                    'ID': 458,
+                    'Street': 'Warner Road',
+                    'City': 'London'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    addrs = request.execute()
+    assert addrs[0].ID == 456
+    assert addrs[0].Street == 'Baker Street'
+    assert addrs[0].City == 'London'
+    assert addrs[1].ID == 457
+    assert addrs[1].Street == 'Lowth Road'
+    assert addrs[1].City == 'London'
+    assert addrs[2].ID == 458
+    assert addrs[2].Street == 'Warner Road'
+    assert addrs[2].City == 'London'
+
+
+@responses.activate
+def test_navigation(service):
+    """Check getting entity via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses(456)".format(service.url),
+        json={'d': {
+            'ID': 456,
+            'Street': 'Baker Street',
+            'City': 'London'
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entity(456)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    addr = request.execute()
+    assert addr.ID == 456
+    assert addr.Street == 'Baker Street'
+    assert addr.City == 'London'
+
+
+@responses.activate
+def test_navigation_from_entity_multi(service):
+    """Get entities via navigation property from entity proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)".format(service.url),
+        json={'d': {
+            'ID': 23,
+            'NameFirst': 'Rob',
+            'NameLast': 'Ickes'
+        }},
+        status=200)
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses".format(service.url),
+        json={'d': {
+            'results': [
+                {
+                    'ID': 456,
+                    'Street': 'Baker Street',
+                    'City': 'London'
+                },{
+                    'ID': 457,
+                    'Street': 'Lowth Road',
+                    'City': 'London'
+                },{
+                    'ID': 458,
+                    'Street': 'Warner Road',
+                    'City': 'London'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    emp = request.execute()
+
+    request = emp.nav('Addresses').get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    addrs = request.execute()
+    assert addrs[0].ID == 456
+    assert addrs[0].Street == 'Baker Street'
+    assert addrs[0].City == 'London'
+    assert addrs[1].ID == 457
+    assert addrs[1].Street == 'Lowth Road'
+    assert addrs[1].City == 'London'
+    assert addrs[2].ID == 458
+    assert addrs[2].Street == 'Warner Road'
+    assert addrs[2].City == 'London'
+
+
+@responses.activate
+def test_navigation_from_entity(service):
+    """Check getting entity via navigation property from entity proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)".format(service.url),
+        json={'d': {
+            'ID': 23,
+            'NameFirst': 'Rob',
+            'NameLast': 'Ickes'
+        }},
+        status=200)
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses(456)".format(service.url),
+        json={'d': {
+            'ID': 456,
+            'Street': 'Baker Street',
+            'City': 'London'
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    emp = request.execute()
+
+    request = emp.nav('Addresses').get_entity(456)
+
+    addr = request.execute()
+    assert addr.ID == 456
+    assert addr.Street == 'Baker Street'
+    assert addr.City == 'London'
+
+
+# TODO add test_get_entity_with_guid
 
 
 @responses.activate
@@ -347,25 +522,30 @@ def test_get_entity_expanded(service):
             'ID': 23,
             'NameFirst': 'Rob',
             'NameLast': 'Ickes',
-            'Address': {
-                'ID': 456,
-                'Street': 'Baker Street',
-                'City': 'London'}
+            'Addresses': {
+                "results": [
+                    {
+                        'ID': 456,
+                        'Street': 'Baker Street',
+                        'City': 'London'
+                    }
+                ]
+            }
         }},
         status=200)
 
     request = service.entity_sets.Employees.get_entity(23)
     assert isinstance(request, pyodata.v2.service.EntityGetRequest)
 
-    emp = request.expand('Address').execute()
+    emp = request.expand('Addresses').execute()
 
     assert emp.ID == 23
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
 
-    assert emp.Address.ID == 456
-    assert emp.Address.Street == 'Baker Street'
-    assert emp.Address.City == 'London'
+    assert emp.Addresses[0].ID == 456
+    assert emp.Addresses[0].Street == 'Baker Street'
+    assert emp.Addresses[0].City == 'London'
 
 
 @responses.activate

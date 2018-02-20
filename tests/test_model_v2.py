@@ -138,7 +138,7 @@ def test_edmx_associations(schema):
     assert dependent_role.name == 'ToRole_toDataEntity'
     assert dependent_role.property_names == ['Name']
 
-    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet'}
+    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet', 'AssociationEmployeeAddress_AssocSet'}
     association_set = schema.association_set('toDataEntitySet')
     assert str(association_set) == 'AssociationSet(toDataEntitySet)'
     assert association_set.association_type.name == 'toDataEntity'
@@ -152,8 +152,8 @@ def test_edmx_navigation_properties(schema):
     assert str(emp_entity) == 'EntityType(Employee)'
     assert emp_entity.name == 'Employee'
 
-    nav_prop = emp_entity.nav_proprty('Address')
-    assert str(nav_prop) == 'NavigationTypeProperty(Address)'
+    nav_prop = emp_entity.nav_proprty('Addresses')
+    assert str(nav_prop) == 'NavigationTypeProperty(Addresses)'
     assert str(nav_prop.to_role) == 'EndRole(AddressRole)'
     assert str(nav_prop.to_role.entity_type) == 'EntityType(Address)'
 
@@ -178,8 +178,8 @@ def test_edmx_function_imports(schema):
     assert not param.nullable
     assert param.max_length is None
     assert param.mode == 'In'
-    assert param.typ.traits.to_odata('Foo') == "'Foo'"
-    assert param.typ.traits.from_odata("'Foo'") == 'Foo'
+    assert param.typ.traits.to_literal('Foo') == "'Foo'"
+    assert param.typ.traits.from_literal("'Foo'") == 'Foo'
 
     # function import that returns entity
     function_import = schema.function_import('get_max')
@@ -240,48 +240,48 @@ def test_traits():
     # generic
     typ = Types.from_name('Edm.Binary')
     assert repr(typ.traits) == 'TypTraits'
-    assert typ.traits.to_odata('bincontent') == 'bincontent'
-    assert typ.traits.from_odata('some bin content') == 'some bin content'
+    assert typ.traits.to_literal('bincontent') == 'bincontent'
+    assert typ.traits.from_literal('some bin content') == 'some bin content'
 
     # string
     typ = Types.from_name('Edm.String')
     assert repr(typ.traits) == 'EdmStringTypTraits'
-    assert typ.traits.to_odata('Foo Foo') == "'Foo Foo'"
-    assert typ.traits.from_odata("'Alice Bob'") == 'Alice Bob'
+    assert typ.traits.to_literal('Foo Foo') == "'Foo Foo'"
+    assert typ.traits.from_literal("'Alice Bob'") == 'Alice Bob'
 
     # bool
     typ = Types.from_name('Edm.Boolean')
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
-    assert typ.traits.to_odata(True) == 'true'
-    assert typ.traits.from_odata('true') is True
-    assert typ.traits.to_odata(False) == 'false'
-    assert typ.traits.from_odata('false') is False
-    assert typ.traits.to_odata(1) == 'true'
-    assert typ.traits.to_odata(0) == 'false'
+    assert typ.traits.to_literal(True) == 'true'
+    assert typ.traits.from_literal('true') is True
+    assert typ.traits.to_literal(False) == 'false'
+    assert typ.traits.from_literal('false') is False
+    assert typ.traits.to_literal(1) == 'true'
+    assert typ.traits.to_literal(0) == 'false'
 
     # integers
     typ = Types.from_name('Edm.Int16')
     assert repr(typ.traits) == 'EdmIntTypTraits'
-    assert typ.traits.to_odata(23) == '23'
-    assert typ.traits.from_odata('345') == 345
+    assert typ.traits.to_literal(23) == '23'
+    assert typ.traits.from_literal('345') == 345
 
     typ = Types.from_name('Edm.Int32')
     assert repr(typ.traits) == 'EdmIntTypTraits'
-    assert typ.traits.to_odata(23) == '23'
-    assert typ.traits.from_odata('345') == 345
+    assert typ.traits.to_literal(23) == '23'
+    assert typ.traits.from_literal('345') == 345
 
     typ = Types.from_name('Edm.Int64')
     assert repr(typ.traits) == 'EdmIntTypTraits'
-    assert typ.traits.to_odata(23) == '23'
-    assert typ.traits.from_odata('345') == 345
+    assert typ.traits.to_literal(23) == '23'
+    assert typ.traits.from_literal('345') == 345
 
     # GUIDs
     typ = Types.from_name('Edm.Guid')
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
-    assert typ.traits.to_odata('000-0000') == "guid'000-0000'"
-    assert typ.traits.from_odata("guid'1234-56'") == '1234-56'
+    assert typ.traits.to_literal('000-0000') == "guid'000-0000'"
+    assert typ.traits.from_literal("guid'1234-56'") == '1234-56'
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_odata("'1234-56'")
+        typ.traits.from_literal("'1234-56'")
     assert str(e_info.value).startswith("Malformed value '1234-56' for primitive")
 
 
@@ -294,21 +294,21 @@ def test_traits_datetime():
     # 1. direction Python -> OData
 
     testdate = datetime(2005, 1, 28, 18, 30, 44, 123456)
-    assert typ.traits.to_odata(testdate) == "datetime'2005-01-28T18:30:44.123456'"
+    assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44.123456'"
 
     # without miliseconds part
     testdate = datetime(2005, 1, 28, 18, 30, 44, 0)
-    assert typ.traits.to_odata(testdate) == "datetime'2005-01-28T18:30:44'"
+    assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44'"
 
     # serialization of invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.to_odata('xyz')
+        typ.traits.to_literal('xyz')
     assert str(e_info.value).startswith('Cannot convert value of type')
 
-    # 2. direction OData -> python
+    # 2. direction Literal -> python
 
     # parsing full representation
-    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33:06.654321'")
+    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33:06.654321'")
     assert testdate.year == 1976
     assert testdate.month == 11
     assert testdate.day == 23
@@ -318,13 +318,13 @@ def test_traits_datetime():
     assert testdate.microsecond == 654321
 
     # parsing without miliseconds
-    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33:06'")
+    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33:06'")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
 
     # parsing without seconds and miliseconds
-    testdate = typ.traits.from_odata("datetime'1976-11-23T03:33'")
+    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33'")
     assert testdate.year == 1976
     assert testdate.minute == 33
     assert testdate.second == 0
@@ -332,11 +332,45 @@ def test_traits_datetime():
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_odata('xyz')
+        typ.traits.from_literal('xyz')
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_odata("datetime'xyz'")
+        typ.traits.from_literal("datetime'xyz'")
+    assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
+
+    # 3. direction OData -> python
+
+    # parsing full representation
+    testdate = typ.traits.from_json("/Date(217567986010)/")
+    assert testdate.year == 1976
+    assert testdate.month == 11
+    assert testdate.day == 23
+    assert testdate.hour == 3
+    assert testdate.minute == 33
+    assert testdate.second == 6
+    assert testdate.microsecond == 10000
+
+    # parsing without miliseconds
+    testdate = typ.traits.from_json("/Date(217567986000)/")
+    assert testdate.year == 1976
+    assert testdate.second == 6
+    assert testdate.microsecond == 0
+
+    # parsing without seconds and miliseconds
+    testdate = typ.traits.from_json("/Date(217567980000)/")
+    assert testdate.year == 1976
+    assert testdate.minute == 33
+    assert testdate.second == 0
+    assert testdate.microsecond == 0
+
+    # parsing invalid value
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.from_json("xyz")
+    assert str(e_info.value).startswith('Malformed value xyz for primitive')
+
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.from_json("/Date(xyz)/")
     assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
 
@@ -344,10 +378,10 @@ def test_traits_collections():
     """Test collection traits"""
 
     typ = Types.from_name('Collection(Edm.Int32)')
-    assert typ.traits.from_odata(['23', '34']) == [23, 34]
+    assert typ.traits.from_json(['23', '34']) == [23, 34]
 
     typ = Types.from_name('Collection(Edm.String)')
-    assert typ.traits.from_odata(['Bob', 'Alice']) == ['Bob', 'Alice']
+    assert typ.traits.from_json(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
 def test_type_parsing():
@@ -409,24 +443,24 @@ def test_complex_serializer(schema):
 
     # encode without edm type information
     with pytest.raises(PyODataException) as e_info:
-        EdmStructTypeSerializer().to_odata(None, 'something')
+        EdmStructTypeSerializer().to_literal(None, 'something')
     assert str(e_info.value).startswith('Cannot encode value something')
 
     # decode without edm type information
     with pytest.raises(PyODataException) as e_info:
-        EdmStructTypeSerializer().from_odata(None, 'something')
+        EdmStructTypeSerializer().from_json(None, 'something')
     assert str(e_info.value).startswith('Cannot decode value something')
 
     # entity without properties
     entity_type = EntityType('Box', 'Box', False)
     srl = EdmStructTypeSerializer()
-    assert srl.to_odata(entity_type, 'something') == {}
-    assert srl.from_odata(entity_type, 'something') == {}
+    assert srl.to_literal(entity_type, 'something') == {}
+    assert srl.from_json(entity_type, 'something') == {}
 
     # entity with properties of ODATA primitive types
     entity_type = schema.entity_type('TemperatureMeasurement')
-    assert srl.to_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
-    assert srl.from_odata(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
+    assert srl.to_literal(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
+    assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
 
 
 def test_annot_v_l_missing_e_s(metadata_builder_factory):

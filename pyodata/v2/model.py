@@ -150,7 +150,7 @@ class EdmStructTypeSerializer(object):
     """
 
     @staticmethod
-    def to_odata(edm_type, value):
+    def to_literal(edm_type, value):
 
         # pylint: disable=no-self-use
         if not edm_type:
@@ -159,12 +159,12 @@ class EdmStructTypeSerializer(object):
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.to_odata(value[type_prop.name])
+                result[type_prop.name] = type_prop.typ.traits.to_literal(value[type_prop.name])
 
         return result
 
     @staticmethod
-    def from_odata(edm_type, value):
+    def from_json(edm_type, value):
 
         # pylint: disable=no-self-use
         if not edm_type:
@@ -173,10 +173,23 @@ class EdmStructTypeSerializer(object):
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.from_odata(value[type_prop.name])
+                result[type_prop.name] = type_prop.typ.traits.from_json(value[type_prop.name])
 
         return result
 
+    @staticmethod
+    def from_literal(edm_type, value):
+
+        # pylint: disable=no-self-use
+        if not edm_type:
+            raise PyODataException('Cannot decode value {} without complex type information'.format(value))
+
+        result = {}
+        for type_prop in edm_type.proprties():
+            if type_prop.name in value:
+                result[type_prop.name] = type_prop.typ.traits.from_literal(value[type_prop.name])
+
+        return result
 
 class TypTraits(object):
     """Encapsulated differences between types"""
@@ -185,13 +198,15 @@ class TypTraits(object):
         return self.__class__.__name__
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
+    def to_literal(self, value):
         return value
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return value
 
+    def from_literal(self, value):
+        return value
 
 class EdmPrefixedTypTraits(TypTraits):
     """Is good for all types where values have form: prefix'value'"""
@@ -200,10 +215,13 @@ class EdmPrefixedTypTraits(TypTraits):
         super(EdmPrefixedTypTraits, self).__init__()
         self._prefix = prefix
 
-    def to_odata(self, value):
+    def to_literal(self, value):
         return '{}\'{}\''.format(self._prefix, value)
 
-    def from_odata(self, value):
+    def from_json(self, value):
+        return super(EdmPrefixedTypTraits, self).from_json(value)
+
+    def from_literal(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
         if not matches:
             raise PyODataModelError("Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
@@ -222,26 +240,49 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
        datetime is case-insensitive
 
        Example 1: datetime'2000-12-12T12:00'
+       JSON has following format: /Date(1516614510000)/
+       https://blogs.sap.com/2017/01/05/date-and-time-in-sap-gateway-foundation/
     """
 
     def __init__(self):
         super(EdmDateTimeTypTraits, self).__init__('datetime')
 
-    def to_odata(self, value):
-        """Convert python datetime representation to odata format
+    def to_literal(self, value):
+        """Convert python datetime representation to literal format
 
            None: this could be done also via formatting string:
            value.strftime('%Y-%m-%dT%H:%M:%S.%f')
         """
 
         if not isinstance(value, datetime.datetime):
-            raise PyODataModelError('Cannot convert value of type {} to odata. Datetime format is required.'.format(type(value)))
+            raise PyODataModelError('Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
 
-        return super(EdmDateTimeTypTraits, self).to_odata(value.isoformat())
+        return super(EdmDateTimeTypTraits, self).to_literal(value.isoformat())
 
-    def from_odata(self, value):
+    def from_json(self, value):
 
-        value = super(EdmDateTimeTypTraits, self).from_odata(value)
+        if value is None:
+            return None
+
+        matches = re.match(r"^/Date\((.*)\)/$", value)
+        if not matches:
+            raise PyODataModelError("Malformed value {0} for primitive Edm type. Expected format is /Date(value)/".format(value))
+        value = matches.group(1)
+
+        try:
+            # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
+            value = datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=int(value))
+        except ValueError:
+            raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
+
+        return value
+
+    def from_literal(self, value):
+
+        if value is None:
+            return None
+
+        value = super(EdmDateTimeTypTraits, self).from_literal(value)
 
         try:
             value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
@@ -261,11 +302,14 @@ class EdmStringTypTraits(TypTraits):
     """Edm.String traits"""
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
+    def to_literal(self, value):
         return '\'%s\'' % (value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
+        return value.strip('\'')
+
+    def from_literal(self, value):
         return value.strip('\'')
 
 
@@ -273,25 +317,29 @@ class EdmBooleanTypTraits(TypTraits):
     """Edm.Boolean traits"""
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
+    def to_literal(self, value):
         return 'true' if value else 'false'
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return value == 'true'
 
+    def from_literal(self, value):
+        return value == 'true'
 
 class EdmIntTypTraits(TypTraits):
     """All Edm Integer traits"""
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
+    def to_literal(self, value):
         return '%d' % (value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         return int(value)
 
+    def from_literal(self, value):
+        return int(value)
 
 class EdmStructTypTraits(TypTraits):
     """Edm structural types (EntityType, ComplexType) traits"""
@@ -301,12 +349,15 @@ class EdmStructTypTraits(TypTraits):
         self._edm_type = edm_type
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
-        return EdmStructTypeSerializer.to_odata(self._edm_type, value)
+    def to_literal(self, value):
+        return EdmStructTypeSerializer.to_literal(self._edm_type, value)
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
-        return EdmStructTypeSerializer.from_odata(self._edm_type, value)
+    def from_json(self, value):
+        return EdmStructTypeSerializer.from_json(self._edm_type, value)
+
+    def from_literal(self, value):
+        return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
 
 class Typ(Identifier):
@@ -362,18 +413,18 @@ class Collection(Typ):
         return self
 
     # pylint: disable=no-self-use
-    def to_odata(self, value):
+    def to_literal(self, value):
         if not isinstance(value, list):
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
-        return [self._item_type.traits.to_odata(v) for v in value]
+        return [self._item_type.traits.to_literal(v) for v in value]
 
     # pylint: disable=no-self-use
-    def from_odata(self, value):
+    def from_json(self, value):
         if not isinstance(value, list):
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
-        return [self._item_type.traits.from_odata(v) for v in value]
+        return [self._item_type.traits.from_json(v) for v in value]
 
 
 class VariableDeclaration(Identifier):
@@ -582,7 +633,7 @@ class Schema(object):
 
         for decl in self._decls.values():
             try:
-                return decl.entity_set[set_name]
+                return decl.entity_sets[set_name]
             except KeyError:
                 pass
 
@@ -629,6 +680,20 @@ class Schema(object):
     def associations(self):
         return [association for association in itertools.chain(*(decl.list_associations()
                                                                  for decl in self._decls.values()))]
+
+    def association_set_by_association(self, association_name, namespace=None):
+        if namespace is not None:
+            for association_set in self._decls[namespace].association_sets.values():
+                if association_set.association_type.name == association_name:
+                    return association_set
+            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association_name,
+                                                                                                            namespace))
+        for decl in self._decls.values():
+            for association_set in decl.association_sets.values():
+                if association_set.association_type == association_name:
+                    return association_set
+        raise KeyError('Association set with association type {} does not exist'.format(association_name))
+
 
     def association_set(self, set_name, namespace=None):
         if namespace is not None:
@@ -778,7 +843,7 @@ class Schema(object):
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
 
-            for association_set in schema_node.xpath('edm:AssociationSet',
+            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet',
                                                      namespaces=NAMESPACES):
                 assoc_set = AssociationSet.from_etree(association_set)
                 scheme_namespace, association_name = assoc_set.association_type_name.split('.', 1)
