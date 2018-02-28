@@ -198,7 +198,7 @@ def metadata():
                     <Parameter Name="Param" Type="EXAMPLE_SRV.ComplexNumber" Mode="In" />
                 </FunctionImport>
 
-                <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV_SETS.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
                     <End Role="EmployeeRole" EntitySet="Employees"/>
                     <End Role="AddressRole" EntitySet="Addresses"/>
                 </AssociationSet>
