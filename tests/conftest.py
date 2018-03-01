@@ -87,6 +87,7 @@ def metadata():
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="Cities" EntityType="EXAMPLE_SRV.City" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+            <EntitySet Name="CitiesWithFilter" EntityType="EXAMPLE_SRV.City" sap:requires-filter="true"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>

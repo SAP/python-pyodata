@@ -30,6 +30,7 @@ def test_edmx(schema):
         'MasterEntities',
         'DataValueHelp',
         'Cities',
+        'CitiesWithFilter',
         'TemperatureMeasurements'
     }
 
@@ -611,3 +612,10 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert ex.message == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
+
+
+def test_edmx_entity_sets(schema):
+    """Test EntitySet"""
+
+    assert schema.entity_set('Cities').requires_filter == False
+    assert schema.entity_set('CitiesWithFilter').requires_filter == True

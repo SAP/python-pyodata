@@ -1030,7 +1030,7 @@ class EntityType(StructType):
 class EntitySet(Identifier):
 
     def __init__(self, name, entity_type_info, creatable, updatable,
-                 deletable, searchable):
+                 deletable, searchable, req_filter):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
@@ -1039,6 +1039,7 @@ class EntitySet(Identifier):
         self._updatable = updatable
         self._deletable = deletable
         self._searchable = searchable
+        self._req_filter = req_filter
 
     @property
     def entity_type_info(self):
@@ -1076,6 +1077,10 @@ class EntitySet(Identifier):
     def searchable(self):
         return self._searchable
 
+    @property
+    def requires_filter(self):
+        return self._req_filter
+
     @staticmethod
     def from_etree(entity_set_node):
         name = entity_set_node.get('Name')
@@ -1090,9 +1095,11 @@ class EntitySet(Identifier):
                                            'deletable', True)
         searchable = sap_attribute_get_bool(entity_set_node,
                                             'searchable', True)
+        req_filter = sap_attribute_get_bool(entity_set_node,
+                                            'requires-filter', False)
 
         return EntitySet(name, et_info, creatable,
-                         updatable, deletable, searchable)
+                         updatable, deletable, searchable, req_filter)
 
 
 class StructTypeProperty(VariableDeclaration):
