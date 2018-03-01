@@ -840,13 +840,16 @@ class EntitySetProxy(object):
 
             return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity)
 
-        key = EntityKey(self._entity_set.entity_type, key, **args)
+        if key is not None and isinstance(key, EntityKey):
+            entity_key = key
+        else:
+            entity_key = EntityKey(self._entity_set.entity_type, key, **args)
 
         self._logger.info('Getting entity %s for key %s and args %s', self._entity_set.entity_type.name, key, args)
 
         return EntityGetRequest(
             get_entity_handler,
-            key,
+            entity_key,
             self)
 
     def get_entities(self):

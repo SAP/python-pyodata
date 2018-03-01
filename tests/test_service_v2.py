@@ -656,3 +656,32 @@ def test_batch_request_failed_changeset(service):
     assert str(e_info.value).startswith('Changeset cannot be processed')
     assert isinstance(e_info.value, HttpError)
     assert e_info.value.response.status_code == 400
+
+
+def test_get_entity_with_entity_key(service):
+    """Make sure the method get_entity handles correctly the parameter key which is EntityKey"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.get_entity(key)
+    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+
+
+def test_get_entity_with_entity_key_and_other_params(service):
+    """Make sure the method get_entity handles correctly the parameter key which is EntityKey"""
+
+    # pylint: disable=redefined-outer-name
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.get_entity(key=key, Foo='Bar')
+    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
