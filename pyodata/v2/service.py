@@ -967,7 +967,11 @@ class EntitySetProxy(object):
                 raise HttpError('HTTP modify request for Entity Set {} failed with status code {}'
                                 .format(self._name, response.status_code), response)
 
-        key = EntityKey(self._entity_set.entity_type, key, **kwargs)
+
+        if key is not None and isinstance(key, EntityKey):
+            entity_key = key
+        else:
+            entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
         self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
 
@@ -976,7 +980,7 @@ class EntitySetProxy(object):
             self._service.connection,
             update_entity_handler,
             self._entity_set,
-            key)
+            entity_key)
 
 
 # pylint: disable=too-few-public-methods

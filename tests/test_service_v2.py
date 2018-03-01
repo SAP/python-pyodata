@@ -310,6 +310,34 @@ def test_update_entity(service):
     request.execute()
 
 
+def test_update_entity_with_entity_key(service):
+    """Make sure the method update_entity handles correctly the parameter key which is EntityKey"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key)
+    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+
+
+def test_get_entity_with_entity_key_and_other_params(service):
+    """Make sure the method update_entity handles correctly the parameter key which is EntityKey"""
+
+    # pylint: disable=redefined-outer-name
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key=key, Foo='Bar')
+    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+
 @responses.activate
 def test_navigation_multi(service):
     """Get entities via navigation property"""
