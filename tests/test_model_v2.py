@@ -114,6 +114,30 @@ def test_edmx(schema):
     assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
+def test_schema_entity_sets(schema):
+    """Test Schema methods for EntitySets"""
+
+    for entity_set in schema.entity_sets:
+        assert schema.entity_set(entity_set.name) == entity_set
+
+    assert schema.entity_set('Cities', namespace='EXAMPLE_SRV') is not None
+
+    # without namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in any Schema Namespace'
+
+    # with unknown namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar', namespace='BLAH')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
+
+    # with namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+
+
 def test_edmx_associations(schema):
     """Test parsing of associations and association sets"""
 
