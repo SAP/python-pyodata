@@ -1029,12 +1029,13 @@ class EntityType(StructType):
 
 class EntitySet(Identifier):
 
-    def __init__(self, name, entity_type_info, creatable, updatable,
-                 deletable, searchable, req_filter):
+    def __init__(self, name, entity_type_info, addressable, creatable,
+                 updatable, deletable, searchable, req_filter):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
         self._entity_type = None
+        self._addressable = addressable
         self._creatable = creatable
         self._updatable = updatable
         self._deletable = deletable
@@ -1062,6 +1063,10 @@ class EntitySet(Identifier):
         self._entity_type = value
 
     @property
+    def addressable(self):
+        return self._addressable
+
+    @property
     def creatable(self):
         return self._creatable
 
@@ -1087,6 +1092,8 @@ class EntitySet(Identifier):
         et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
         # TODO: create a class SAP attributes
+        addressable = sap_attribute_get_bool(entity_set_node,
+                                             'addressable', True)
         creatable = sap_attribute_get_bool(entity_set_node,
                                            'creatable', True)
         updatable = sap_attribute_get_bool(entity_set_node,
@@ -1098,7 +1105,7 @@ class EntitySet(Identifier):
         req_filter = sap_attribute_get_bool(entity_set_node,
                                             'requires-filter', False)
 
-        return EntitySet(name, et_info, creatable,
+        return EntitySet(name, et_info, addressable, creatable,
                          updatable, deletable, searchable, req_filter)
 
 

@@ -30,6 +30,7 @@ def test_edmx(schema):
         'MasterEntities',
         'DataValueHelp',
         'Cities',
+        'CitiesNotAddressable',
         'CitiesWithFilter',
         'TemperatureMeasurements'
     }
@@ -619,3 +620,6 @@ def test_edmx_entity_sets(schema):
 
     assert schema.entity_set('Cities').requires_filter == False
     assert schema.entity_set('CitiesWithFilter').requires_filter == True
+
+    assert schema.entity_set('Cities').addressable == True
+    assert schema.entity_set('CitiesNotAddressable').addressable == False
