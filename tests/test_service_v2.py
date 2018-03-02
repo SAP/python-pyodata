@@ -7,7 +7,7 @@ import pytest
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError
-from pyodata.v2.service import EntityKey
+from pyodata.v2.service import EntityKey, EntityProxy
 
 URL_ROOT = 'http://odatapy.example.com'
 
@@ -685,3 +685,25 @@ def test_get_entity_with_entity_key_and_other_params(service):
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key=key, Foo='Bar')
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+
+
+def test_entity_proxy_equals(service):
+    """Two entity proxies are equal if they hold the same data"""
+
+    properties = {'Key': 'a', 'DataType': 'b', 'Data': 'c', 'DataName': 'd'}
+    fst_entity = EntityProxy(service, service.entity_sets.MasterEntities,
+                             service.schema.entity_type('MasterEntity'), properties)
+    scn_entity = EntityProxy(service, service.entity_sets.MasterEntities,
+                             service.schema.entity_type('MasterEntity'), properties)
+
+    properties['DataType'] = 'g'
+    thr_entity = EntityProxy(service, service.entity_sets.MasterEntities,
+                             service.schema.entity_type('MasterEntity'), properties)
+
+    assert fst_entity.equals(fst_entity)
+
+    assert fst_entity.equals(scn_entity)
+    assert scn_entity.equals(fst_entity)
+
+    assert not fst_entity.equals(thr_entity)
+    assert not scn_entity.equals(thr_entity)

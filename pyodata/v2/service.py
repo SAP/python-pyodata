@@ -763,6 +763,11 @@ class EntityProxy(object):
 
         return self._service.url.rstrip('/') + '/' + self._entity_set._name + self._entity_key.to_key_string()  # pylint: disable=protected-access
 
+    def equals(self, other):
+        """Returns true if the self and the other contains the same data"""
+
+        return self._cache == other._cache
+
 
 class EntitySetProxy(object):
     """EntitySet Proxy"""
