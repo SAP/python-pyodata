@@ -27,7 +27,7 @@ employees = client.entity_sets.Employees.get_entities().select('EmployeeID,Lastt
         print(employee.EmployeeID, employee.LastName)
 ```
 
-# Batch requests 
+### Batch requests
 
 Example of batch request that contains 3 simple entity queries
 ```
@@ -65,3 +65,40 @@ response = batch.execute()
 
 print(response[0].EmployeeID, response[0].LastName)
 ```
+
+# Contributing
+
+Before contributing, please, make yourself familiar with git. You can [try git
+online](https://try.github.io/). Things would be easier for all of us if you do
+your changes on a branch. Use a single commit for every logical reviewable
+change, without unrelated modifications (that will help us if need to revert a
+particular commit). Please avoid adding commits fixing your previous
+commits, do amend or rebase instead.
+
+Every commit must have either comprehensive commit message saying what is being
+changed and why or a link (an issue number on Github) to a bug report where
+this information is available. It is also useful to include notes about
+negative decisions - i.e. why you decided to not do particular things. Please
+bare in mind that other developers might not understand what the original
+problem was.
+
+## Full example
+
+Here's an example workflow for a project `PyOData` hosted on Github
+Your username is `yourname` and you're submitting a basic bugfix or feature.
+
+* Hit 'fork' on Github, creating e.g. `yourname/PyOData`.
+* `git clone git@github.com:yourname/PyOData`
+* `git checkout -b foo_the_bars` to create new local branch named foo_the_bars
+* Hack, hack, hack
+* Run `python -m pytest`
+* `git status`
+* `git add`
+* `git commit -s -m "Foo the bars"`
+* `git push -u origin HEAD` to create foo_the_bars branch in your fork
+* Visit your fork at Github and click handy "Pull request" button.
+* In the description field, write down issue number (if submitting code fixing
+  an existing issue) or describe the issue + your fix (if submitting a wholly
+  new bugfix).
+* Hit 'submit'! And please be patient - the maintainers will get to you when
+  they can.
