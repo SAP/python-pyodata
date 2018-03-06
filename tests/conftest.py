@@ -145,6 +145,23 @@ def metadata():
              </Record>
             </Annotation>
            </Annotations>
+           <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.Building/City" Qualifier="2ND_BUILDING_CITY_IGNORED">
+            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+             <Record>
+              <PropertyValue Property="Label" String="Name"/>
+              <PropertyValue Property="CollectionPath" String="Cities"/>
+              <PropertyValue Property="SearchSupported" Bool="true"/>
+              <PropertyValue Property="Parameters">
+               <Collection>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterInOut">
+                 <PropertyValue Property="LocalDataProperty" PropertyPath="City"/>
+                 <PropertyValue Property="ValueListProperty" String="Name"/>
+                </Record>
+               </Collection>
+              </PropertyValue>
+             </Record>
+            </Annotation>
+           </Annotations>
           </Schema>
 
           <Schema xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" Namespace="EXAMPLE_SRV_SETS" xml:lang="en" sap:schema-version="1">

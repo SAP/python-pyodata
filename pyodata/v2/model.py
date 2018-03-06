@@ -1623,6 +1623,11 @@ class ExternalAnnontation(object):
     @staticmethod
     def from_etree(annotations_node):
         target = annotations_node.get('Target')
+
+        if annotations_node.get('Qualifier'):
+            logging.warn('Ignoring qualified Annotations of {}'.format(target))
+            return
+
         for annotation in annotations_node.xpath('edm:Annotation',
                                                  namespaces=ANNOTATION_NAMESPACES):
             annot = Annotation.from_etree(target, annotation)
