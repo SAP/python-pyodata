@@ -3,6 +3,7 @@
 
 from datetime import datetime
 import pytest
+import pyodata.v2.model
 from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
 from pyodata.exceptions import PyODataException, PyODataModelError
 
@@ -623,3 +624,21 @@ def test_edmx_entity_sets(schema):
 
     assert schema.entity_set('Cities').addressable == True
     assert schema.entity_set('CitiesNotAddressable').addressable == False
+
+
+def test_edmx_association_end_by_role():
+    """Test the method end_by_role of the class Association"""
+
+    end_from = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ONE, 'From')
+    end_to = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_ONE, 'To')
+
+    association = pyodata.v2.model.Association('FooBar')
+    association.end_roles.append(end_from)
+    association.end_roles.append(end_to)
+
+    assert association.end_by_role(end_from.role) == end_from
+    assert association.end_by_role(end_to.role) == end_to
+
+    with pytest.raises(KeyError) as typ_ex_info:
+        association.end_by_role('Blah')
+    assert typ_ex_info.value.message == 'Association FooBar has no End with Role Blah'

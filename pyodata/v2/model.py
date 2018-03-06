@@ -772,7 +772,7 @@ class Schema(object):
             for association in schema_node.xpath('edm:Association',
                                                  namespaces=NAMESPACES):
                 assoc = Association.from_etree(association)
-                for end_role in assoc.end_roles.values():
+                for end_role in assoc.end_roles:
                     try:
                         # search and assign entity type (it must exist)
                         if end_role.entity_type_info.namespace is None:
@@ -789,7 +789,7 @@ class Schema(object):
                                                         end_role.entity_type_info.namespace))
 
                 if assoc.referential_constraint is not None:
-                    role_names = [end_role.role for end_role in assoc.end_roles.values()]
+                    role_names = [end_role.role for end_role in assoc.end_roles]
                     principal_role = assoc.referential_constraint.principal
 
                     # Check if the role was defined in the current association
@@ -1470,7 +1470,7 @@ class Association(object):
     def __init__(self, name):
         self._name = name
         self._referential_constraint = None
-        self._end_roles = dict()
+        self._end_roles = list()
 
     def __str__(self):
         return '{0}({1})'.format(self.__class__.__name__, self._name)
@@ -1483,14 +1483,11 @@ class Association(object):
     def end_roles(self):
         return self._end_roles
 
-    def end_by_type(self, typ):
-        return self._end_roles[typ]
-
     def end_by_role(self, end_role):
-        for key, value in self._end_roles.iteritems():
-            if self._end_roles[key].role == end_role:
-                return self._end_roles[key]
-        return None
+        try:
+            return next((item for item in self._end_roles if item.role == end_role))
+        except StopIteration:
+            raise KeyError('Association {} has no End with Role {}'.format(self._name, end_role))
 
     @property
     def referential_constraint(self):
@@ -1505,8 +1502,7 @@ class Association(object):
             end_role = EndRole.from_etree(end)
             if end_role.entity_type_info is None:
                 raise RuntimeError('End type is not specified in the association {}'.format(name))
-            key = '{}.{}'.format(end_role.entity_type_info.namespace, end_role.entity_type_info.name)
-            association._end_roles[key] = end_role
+            association._end_roles.append(end_role)
 
         if len(association._end_roles) != 2:
             raise RuntimeError('Association {} does not have two end roles'.format(name))
