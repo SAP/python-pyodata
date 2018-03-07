@@ -12,6 +12,10 @@ class PyODataModelError(PyODataException):
     """Raised when model error occurs"""
 
 
+class ExpressionError(PyODataException):
+    """Raise when runtime logical expression error occurs"""
+
+
 class HttpError(PyODataException):
     """Raised when unexpected HTTP status code is received """
 

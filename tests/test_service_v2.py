@@ -6,8 +6,8 @@ import requests
 import pytest
 import pyodata.v2.model
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException, HttpError
-from pyodata.v2.service import EntityKey, EntityProxy
+from pyodata.exceptions import PyODataException, HttpError, ExpressionError
+from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
 URL_ROOT = 'http://odatapy.example.com'
 
@@ -707,3 +707,77 @@ def test_entity_proxy_equals(service):
 
     assert not fst_entity.equals(thr_entity)
     assert not scn_entity.equals(thr_entity)
+
+
+def test_get_entity_set_query_filter_eq(service):
+    """Test the operator 'eq' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.MasterEntities.get_entities()
+    filter_str = request.Key == 'foo'
+
+    assert filter_str == "Key eq 'foo'"
+
+
+def test_get_entity_set_query_filter_ne(service):
+    """Test the operator 'ne' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.MasterEntities.get_entities()
+    filter_str = request.Key != 'bar'
+
+    assert filter_str == "Key ne 'bar'"
+
+
+def test_get_entity_set_query_filter_and(service):
+    """Test the operator 'and' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.MasterEntities.get_entities()
+
+    filter_str = GetEntitySetFilter.and_(request.Key == 'bar', request.DataType != 'foo')
+
+    assert filter_str == "(Key eq 'bar' and DataType ne 'foo')"
+
+    with pytest.raises(ExpressionError) as e_info:
+        GetEntitySetFilter.and_()
+    assert e_info.value.message == 'The $filter operator \'and\' needs at least two operands'
+
+    with pytest.raises(ExpressionError) as e_info:
+        GetEntitySetFilter.and_('foo')
+    assert e_info.value.message == 'The $filter operator \'and\' needs at least two operands'
+
+
+def test_get_entity_set_query_filter_or(service):
+    """Test the operator 'and' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.MasterEntities.get_entities()
+
+    filter_str = GetEntitySetFilter.or_(request.Key == 'bar', request.DataType != 'foo')
+
+    assert filter_str == "(Key eq 'bar' or DataType ne 'foo')"
+
+    with pytest.raises(ExpressionError) as e_info:
+        GetEntitySetFilter.or_()
+    assert e_info.value.message == 'The $filter operator \'or\' needs at least two operands'
+
+    with pytest.raises(ExpressionError) as e_info:
+        GetEntitySetFilter.or_('foo')
+    assert e_info.value.message == 'The $filter operator \'or\' needs at least two operands'
+
+
+def test_get_entity_set_query_filter_property_error(service):
+    """Test the operator 'and' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.MasterEntities.get_entities()
+
+    with pytest.raises(KeyError) as e_info:
+        assert not request.Foo == 'bar'
+    assert e_info.value.message == 'Foo'

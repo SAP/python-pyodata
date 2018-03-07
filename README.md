@@ -8,6 +8,8 @@ OData client Python module
 
 ## Usage
 
+### Get the service
+
 ```python
 import requests
 import pyodata
@@ -16,15 +18,48 @@ SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
 
 # Create instance of OData client 
 client = pyodata.Client(SERVICE_URL, requests.Session())
+```
 
+### Get one entity identified by its key value
+
+```python
 # Get employee identified by 1 and print employee first name
 employee1 = client.entity_sets.Employees.get_entity(1).execute()
 print employee1.FirstName
+```
+
+### Get all entities of an entity set
+
+```python
 
 # Print unique identification (Id) and last name of all cemployees
 employees = client.entity_sets.Employees.get_entities().select('EmployeeID,LasttName').execute()
     for employee in employees:
         print(employee.EmployeeID, employee.LastName)
+```
+
+### Get entities matching a filter
+
+```python
+# Print unique identification (Id) of all employees with name John Smith
+smith_employees_request = client.entity_sets.Employees.get_entities()
+smith_employees_request = smith_employees_request.filter("FirstName eq 'John' and LastName eq 'Smith'")
+for smith in smith_employees.execute():
+    print(smith.EmployeeID)
+```
+
+### Get entities matching a filter in more Pythonic way
+
+```python
+from pyodata.v2.service import GetEntitySetFilter
+
+# Print unique identification (Id) of all employees with name John Smith
+smith_employees_request = client.entity_sets.Employees.get_entities()
+smith_employees_request = smith_employees_request.filter(GetEntitySetFilter.and_(
+                                                         smith_employees_request.FirstName == 'Jonh',
+                                                         smith_employees_request.LastName == 'Smith'))
+for smith in smith_employees_request.execute():
+    print(smith.EmployeeID)
 ```
 
 ### Batch requests

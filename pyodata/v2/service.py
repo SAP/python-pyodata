@@ -15,7 +15,7 @@ from httplib import HTTPResponse
 from StringIO import StringIO
 import requests
 import pyodata
-from pyodata.exceptions import HttpError, PyODataException
+from pyodata.exceptions import HttpError, PyODataException, ExpressionError
 
 LOGGER_NAME = 'pyodata.service'
 
@@ -769,6 +769,59 @@ class EntityProxy(object):
         return self._cache == other._cache
 
 
+class GetEntitySetFilter(object):
+    """Create filters for humans"""
+
+    def __init__(self, proprty):
+        self._proprty = proprty
+
+    @staticmethod
+    def build_expression(operator, operands):
+        """Creates a expression by joining the operands with the operator"""
+
+        if len(operands) < 2:
+            raise ExpressionError('The $filter operator \'{}\' needs at least two operands'.format(operator))
+
+        return '({})'.format(' {} '.format(operator).join(operands))
+
+    @staticmethod
+    def and_(*operands):
+        """Creates logical AND expression from the operands"""
+
+        return GetEntitySetFilter.build_expression('and', operands)
+
+    @staticmethod
+    def or_(*operands):
+        """Creates logical OR expression from the operands"""
+
+        return GetEntitySetFilter.build_expression('or', operands)
+
+    @staticmethod
+    def format_filter(proprty, operator, value):
+        """Creates a filter expression """
+
+        return '{} {} {}'.format(proprty.name, operator, proprty.typ.traits.to_literal(value))
+
+    def __eq__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'eq', value)
+
+    def __ne__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'ne', value)
+
+
+class GetEntitySetRequest(QueryRequest):
+    """GET on EntitySet"""
+
+    def __init__(self, url, connection, handler, last_segment, entity_type):
+        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment)
+
+        self._entity_type = entity_type
+
+    def __getattr__(self, name):
+        proprty = self._entity_type.proprty(name)
+        return GetEntitySetFilter(proprty)
+
+
 class EntitySetProxy(object):
     """EntitySet Proxy"""
 
@@ -877,11 +930,12 @@ class EntitySetProxy(object):
             return result
 
         entity_set_name = self._alias if self._alias is not None else self._entity_set.name
-        return QueryRequest(
+        return GetEntitySetRequest(
             self._service.url,
             self._service.connection,
             get_entities_handler,
-            self._parent_last_segment + entity_set_name)
+            self._parent_last_segment + entity_set_name,
+            self._entity_set.entity_type)
 
     def create_entity(self, return_code=requests.codes.created):
         """Creates a new entity in the given entity-set."""
