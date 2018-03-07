@@ -3,6 +3,7 @@
 
 from datetime import datetime
 import pytest
+import pyodata.v2.model
 from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
 from pyodata.exceptions import PyODataException, PyODataModelError
 
@@ -30,6 +31,8 @@ def test_edmx(schema):
         'MasterEntities',
         'DataValueHelp',
         'Cities',
+        'CitiesNotAddressable',
+        'CitiesWithFilter',
         'TemperatureMeasurements'
     }
 
@@ -112,6 +115,30 @@ def test_edmx(schema):
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+
+
+def test_schema_entity_sets(schema):
+    """Test Schema methods for EntitySets"""
+
+    for entity_set in schema.entity_sets:
+        assert schema.entity_set(entity_set.name) == entity_set
+
+    assert schema.entity_set('Cities', namespace='EXAMPLE_SRV') is not None
+
+    # without namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in any Schema Namespace'
+
+    # with unknown namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar', namespace='BLAH')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
+
+    # with namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
+    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
 def test_edmx_associations(schema):
@@ -587,3 +614,31 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert ex.message == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
+
+
+def test_edmx_entity_sets(schema):
+    """Test EntitySet"""
+
+    assert schema.entity_set('Cities').requires_filter == False
+    assert schema.entity_set('CitiesWithFilter').requires_filter == True
+
+    assert schema.entity_set('Cities').addressable == True
+    assert schema.entity_set('CitiesNotAddressable').addressable == False
+
+
+def test_edmx_association_end_by_role():
+    """Test the method end_by_role of the class Association"""
+
+    end_from = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ONE, 'From')
+    end_to = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_ONE, 'To')
+
+    association = pyodata.v2.model.Association('FooBar')
+    association.end_roles.append(end_from)
+    association.end_roles.append(end_to)
+
+    assert association.end_by_role(end_from.role) == end_from
+    assert association.end_by_role(end_to.role) == end_to
+
+    with pytest.raises(KeyError) as typ_ex_info:
+        association.end_by_role('Blah')
+    assert typ_ex_info.value.message == 'Association FooBar has no End with Role Blah'

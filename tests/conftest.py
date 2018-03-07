@@ -87,6 +87,8 @@ def metadata():
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="Cities" EntityType="EXAMPLE_SRV.City" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
+            <EntitySet Name="CitiesWithFilter" EntityType="EXAMPLE_SRV.City" sap:requires-filter="true"/>
+            <EntitySet Name="CitiesNotAddressable" EntityType="EXAMPLE_SRV.City" sap:addressable="false"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
@@ -137,6 +139,23 @@ def metadata():
                 </Record>
                 <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
                  <PropertyValue Property="ValueListProperty" String="Country"/>
+                </Record>
+               </Collection>
+              </PropertyValue>
+             </Record>
+            </Annotation>
+           </Annotations>
+           <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.Building/City" Qualifier="2ND_BUILDING_CITY_IGNORED">
+            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+             <Record>
+              <PropertyValue Property="Label" String="Name"/>
+              <PropertyValue Property="CollectionPath" String="Cities"/>
+              <PropertyValue Property="SearchSupported" Bool="true"/>
+              <PropertyValue Property="Parameters">
+               <Collection>
+                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterInOut">
+                 <PropertyValue Property="LocalDataProperty" PropertyPath="City"/>
+                 <PropertyValue Property="ValueListProperty" String="Name"/>
                 </Record>
                </Collection>
               </PropertyValue>

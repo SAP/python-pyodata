@@ -772,7 +772,7 @@ class Schema(object):
             for association in schema_node.xpath('edm:Association',
                                                  namespaces=NAMESPACES):
                 assoc = Association.from_etree(association)
-                for end_role in assoc.end_roles.values():
+                for end_role in assoc.end_roles:
                     try:
                         # search and assign entity type (it must exist)
                         if end_role.entity_type_info.namespace is None:
@@ -789,7 +789,7 @@ class Schema(object):
                                                         end_role.entity_type_info.namespace))
 
                 if assoc.referential_constraint is not None:
-                    role_names = [end_role.role for end_role in assoc.end_roles.values()]
+                    role_names = [end_role.role for end_role in assoc.end_roles]
                     principal_role = assoc.referential_constraint.principal
 
                     # Check if the role was defined in the current association
@@ -1029,16 +1029,18 @@ class EntityType(StructType):
 
 class EntitySet(Identifier):
 
-    def __init__(self, name, entity_type_info, creatable, updatable,
-                 deletable, searchable):
+    def __init__(self, name, entity_type_info, addressable, creatable,
+                 updatable, deletable, searchable, req_filter):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
         self._entity_type = None
+        self._addressable = addressable
         self._creatable = creatable
         self._updatable = updatable
         self._deletable = deletable
         self._searchable = searchable
+        self._req_filter = req_filter
 
     @property
     def entity_type_info(self):
@@ -1061,6 +1063,10 @@ class EntitySet(Identifier):
         self._entity_type = value
 
     @property
+    def addressable(self):
+        return self._addressable
+
+    @property
     def creatable(self):
         return self._creatable
 
@@ -1076,12 +1082,18 @@ class EntitySet(Identifier):
     def searchable(self):
         return self._searchable
 
+    @property
+    def requires_filter(self):
+        return self._req_filter
+
     @staticmethod
     def from_etree(entity_set_node):
         name = entity_set_node.get('Name')
         et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
         # TODO: create a class SAP attributes
+        addressable = sap_attribute_get_bool(entity_set_node,
+                                             'addressable', True)
         creatable = sap_attribute_get_bool(entity_set_node,
                                            'creatable', True)
         updatable = sap_attribute_get_bool(entity_set_node,
@@ -1090,9 +1102,11 @@ class EntitySet(Identifier):
                                            'deletable', True)
         searchable = sap_attribute_get_bool(entity_set_node,
                                             'searchable', True)
+        req_filter = sap_attribute_get_bool(entity_set_node,
+                                            'requires-filter', False)
 
-        return EntitySet(name, et_info, creatable,
-                         updatable, deletable, searchable)
+        return EntitySet(name, et_info, addressable, creatable,
+                         updatable, deletable, searchable, req_filter)
 
 
 class StructTypeProperty(VariableDeclaration):
@@ -1456,7 +1470,7 @@ class Association(object):
     def __init__(self, name):
         self._name = name
         self._referential_constraint = None
-        self._end_roles = dict()
+        self._end_roles = list()
 
     def __str__(self):
         return '{0}({1})'.format(self.__class__.__name__, self._name)
@@ -1469,14 +1483,11 @@ class Association(object):
     def end_roles(self):
         return self._end_roles
 
-    def end_by_type(self, typ):
-        return self._end_roles[typ]
-
     def end_by_role(self, end_role):
-        for key, value in self._end_roles.iteritems():
-            if self._end_roles[key].role == end_role:
-                return self._end_roles[key]
-        return None
+        try:
+            return next((item for item in self._end_roles if item.role == end_role))
+        except StopIteration:
+            raise KeyError('Association {} has no End with Role {}'.format(self._name, end_role))
 
     @property
     def referential_constraint(self):
@@ -1491,8 +1502,7 @@ class Association(object):
             end_role = EndRole.from_etree(end)
             if end_role.entity_type_info is None:
                 raise RuntimeError('End type is not specified in the association {}'.format(name))
-            key = '{}.{}'.format(end_role.entity_type_info.namespace, end_role.entity_type_info.name)
-            association._end_roles[key] = end_role
+            association._end_roles.append(end_role)
 
         if len(association._end_roles) != 2:
             raise RuntimeError('Association {} does not have two end roles'.format(name))
@@ -1613,6 +1623,11 @@ class ExternalAnnontation(object):
     @staticmethod
     def from_etree(annotations_node):
         target = annotations_node.get('Target')
+
+        if annotations_node.get('Qualifier'):
+            logging.warn('Ignoring qualified Annotations of {}'.format(target))
+            return
+
         for annotation in annotations_node.xpath('edm:Annotation',
                                                  namespaces=ANNOTATION_NAMESPACES):
             annot = Annotation.from_etree(target, annotation)
