@@ -355,21 +355,27 @@ class EntityCreateRequest(ODataHttpRequest):
        Call execute() to send the create-request to the OData service
        and get the newly created entity."""
 
-    def __init__(self, url, connection, handler, entity_set):
+    def __init__(self, url, connection, handler, entity_set, last_segment=None):
         super(EntityCreateRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
+
+        if last_segment is None:
+            self._last_segment = self._entity_set.name
+        else:
+            self._last_segment = last_segment
 
         self._values = {}
 
         # get all properties declared by entity type
         self._type_props = self._entity_type.proprties()
 
-        self._logger.debug('New instance of EntityCreateRequest for entity type: %s', self._entity_type.name)
+        self._logger.debug('New instance of EntityCreateRequest for entity type: %s on path %s',
+                            self._entity_type.name, self._last_segment)
 
     def get_path(self):
-        return self._entity_set.name
+        return self._last_segment
 
     def get_method(self):
         # pylint: disable=no-self-use
@@ -955,7 +961,8 @@ class EntitySetProxy(object):
             self._service.url,
             self._service.connection,
             create_entity_handler,
-            self._entity_set)
+            self._entity_set,
+            self.last_segment)
 
     def update_entity(self, key=None, **kwargs):
         """Updates an existing entity in the given entity-set."""
@@ -967,7 +974,11 @@ class EntitySetProxy(object):
                 raise HttpError('HTTP modify request for Entity Set {} failed with status code {}'
                                 .format(self._name, response.status_code), response)
 
-        key = EntityKey(self._entity_set.entity_type, key, **kwargs)
+
+        if key is not None and isinstance(key, EntityKey):
+            entity_key = key
+        else:
+            entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
         self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
 
@@ -976,7 +987,7 @@ class EntitySetProxy(object):
             self._service.connection,
             update_entity_handler,
             self._entity_set,
-            key)
+            entity_key)
 
 
 # pylint: disable=too-few-public-methods
