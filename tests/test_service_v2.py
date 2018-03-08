@@ -409,6 +409,36 @@ def test_navigation(service):
 
 
 @responses.activate
+def test_navigation_create_entity(service):
+    """Check creating entity via a navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/Employees(23)/Addresses".format(service.url),
+        json={'d': {
+            'ID': 42,
+            'Street': 'Holandska',
+            'City': 'Brno'
+        }},
+        status=201)
+
+    request = service.entity_sets.Employees.get_entity(23).nav('Addresses').create_entity()
+    request.set(ID='42', Street='Holandska', City='Brno')
+
+    assert isinstance(request, pyodata.v2.service.EntityCreateRequest)
+
+    addr = request.execute()
+
+    assert len(responses.calls) == 1
+
+    assert addr.ID == 42
+    assert addr.Street == 'Holandska'
+    assert addr.City == 'Brno'
+
+
+@responses.activate
 def test_navigation_from_entity_multi(service):
     """Get entities via navigation property from entity proxy"""
 
