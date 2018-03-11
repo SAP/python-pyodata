@@ -436,7 +436,7 @@ class VariableDeclaration(Identifier):
 
     MAXIMUM_LENGTH = -1
 
-    def __init__(self, name, type_info, nullable, max_length, precision):
+    def __init__(self, name, type_info, nullable, max_length, precision, scale):
         super(VariableDeclaration, self).__init__(name)
 
         self._type_info = type_info
@@ -451,7 +451,15 @@ class VariableDeclaration(Identifier):
         else:
             self._max_length = int(max_length)
 
-        self._precision = precision
+        if not precision:
+            self._precision = 0
+        else:
+            self._precision = int(precision)
+        if not scale:
+            self._scale = 0
+        else:
+            self._scale = int(scale)
+        self._check_scale_value()
 
     @property
     def type_info(self):
@@ -484,6 +492,15 @@ class VariableDeclaration(Identifier):
     @property
     def precision(self):
         return self._precision
+
+    @property
+    def scale(self):
+        return self._scale
+
+    def _check_scale_value(self):
+        if self._scale > self._precision:
+            raise PyODataModelError('Scale value ({}) must be less than or equal to precision value ({})'
+                                    .format(self._scale, self._precision))
 
 
 class Schema(object):
@@ -1035,7 +1052,8 @@ class EntityType(StructType):
 class EntitySet(Identifier):
 
     def __init__(self, name, entity_type_info, addressable, creatable,
-                 updatable, deletable, searchable, req_filter):
+                 updatable, deletable, searchable, countable, pageable,
+                 topable, req_filter):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
@@ -1045,6 +1063,9 @@ class EntitySet(Identifier):
         self._updatable = updatable
         self._deletable = deletable
         self._searchable = searchable
+        self._countable = countable
+        self._pageable = pageable
+        self._topable = topable
         self._req_filter = req_filter
 
     @property
@@ -1088,6 +1109,18 @@ class EntitySet(Identifier):
         return self._searchable
 
     @property
+    def countable(self):
+        return self._countable
+
+    @property
+    def pageable(self):
+        return self._pageable
+
+    @property
+    def topable(self):
+        return self._topable
+
+    @property
     def requires_filter(self):
         return self._req_filter
 
@@ -1106,12 +1139,19 @@ class EntitySet(Identifier):
         deletable = sap_attribute_get_bool(entity_set_node,
                                            'deletable', True)
         searchable = sap_attribute_get_bool(entity_set_node,
-                                            'searchable', True)
+                                            'searchable', False)
+        countable = sap_attribute_get_bool(entity_set_node,
+                                           'countable', True)
+        pageable = sap_attribute_get_bool(entity_set_node,
+                                          'pageable', True)
+        topable = sap_attribute_get_bool(entity_set_node,
+                                         'topable', pageable)
         req_filter = sap_attribute_get_bool(entity_set_node,
                                             'requires-filter', False)
 
         return EntitySet(name, et_info, addressable, creatable,
-                         updatable, deletable, searchable, req_filter)
+                         updatable, deletable, searchable, countable,
+                         pageable, topable, req_filter)
 
 
 class StructTypeProperty(VariableDeclaration):
@@ -1124,11 +1164,11 @@ class StructTypeProperty(VariableDeclaration):
         * collection of one of previous
     """
     # pylint: disable=too-many-locals
-    def __init__(self, name, type_info, nullable, max_length, precision, uncode,
-                 label, creatable, updatable, sortable, filterable, text,
-                 visible, display_format, value_list):
+    def __init__(self, name, type_info, nullable, max_length, precision, scale,
+                 uncode, label, creatable, updatable, sortable, filterable,
+                 filter_restr, text, visible, display_format, value_list):
         super(StructTypeProperty, self).__init__(name, type_info, nullable,
-                                                 max_length, precision)
+                                                 max_length, precision, scale)
 
         self._value_helper = None
         self._struct_type = None
@@ -1138,6 +1178,7 @@ class StructTypeProperty(VariableDeclaration):
         self._updatable = updatable
         self._sortable = sortable
         self._filterable = filterable
+        self._filter_restr = filter_restr
         self._text_proprty_name = text
         self._visible = visible
         self._display_format = display_format
@@ -1201,6 +1242,10 @@ class StructTypeProperty(VariableDeclaration):
         return self._filterable
 
     @property
+    def filter_restriction(self):
+        return self._filter_restr
+
+    @property
     def visible(self):
         return self._visible
 
@@ -1242,6 +1287,7 @@ class StructTypeProperty(VariableDeclaration):
             entity_type_property_node.get('Nullable'),
             entity_type_property_node.get('MaxLength'),
             entity_type_property_node.get('Precision'),
+            entity_type_property_node.get('Scale'),
             # TODO: create a class SAP attributes
             sap_attribute_get_bool(entity_type_property_node,
                                    'unicode', True),
@@ -1255,6 +1301,8 @@ class StructTypeProperty(VariableDeclaration):
                                    'sortable', True),
             sap_attribute_get_bool(entity_type_property_node,
                                    'filterable', True),
+            sap_attribute_get_string(entity_type_property_node,
+                                     'filter-restriction'),
             sap_attribute_get_string(entity_type_property_node,
                                      'text'),
             sap_attribute_get_bool(entity_type_property_node,
@@ -1284,7 +1332,7 @@ class NavigationTypeProperty(VariableDeclaration):
        entity type, its data type would be Customer since the multiplicity of the remote end is one (1).
     """
     def __init__(self, name, from_role_name, to_role_name, association_info):
-        super(NavigationTypeProperty, self).__init__(name, None, False, None, None)
+        super(NavigationTypeProperty, self).__init__(name, None, False, None, None, None)
 
         self.from_role_name = from_role_name
         self.to_role_name = to_role_name
@@ -1927,11 +1975,13 @@ class FunctionImport(Identifier):
             param_nullable = param.get('Nullable')
             param_max_length = param.get('MaxLength')
             param_precision = param.get('Precision')
+            param_scale = param.get('Scale')
             param_mode = param.get('Mode')
 
             parameters[param_name] = FunctionImportParameter(param_name, param_type_info,
                                                              param_nullable, param_max_length,
-                                                             param_precision, param_mode)
+                                                             param_precision, param_scale,
+                                                             param_mode)
 
         return FunctionImport(name, rt_info, entity_set, parameters, http_method)
 
@@ -1940,9 +1990,9 @@ class FunctionImportParameter(VariableDeclaration):
 
     Modes = enum.Enum('Modes', 'In Out InOut')
 
-    def __init__(self, name, type_info, nullable, max_length, precision, mode):
+    def __init__(self, name, type_info, nullable, max_length, precision, scale, mode):
         super(FunctionImportParameter,
-              self).__init__(name, type_info, nullable, max_length, precision)
+              self).__init__(name, type_info, nullable, max_length, precision, scale)
 
         self._mode = mode
 

@@ -22,7 +22,8 @@ def test_edmx(schema):
         'Employee',
         'AnnotationTest',
         'City',
-        'TemperatureMeasurement'
+        'TemperatureMeasurement',
+        'Car'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -33,7 +34,8 @@ def test_edmx(schema):
         'Cities',
         'CitiesNotAddressable',
         'CitiesWithFilter',
-        'TemperatureMeasurements'
+        'TemperatureMeasurements',
+        'Cars'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -97,6 +99,13 @@ def test_edmx(schema):
     assert not non_negative_prop.upper_case
     assert not non_negative_prop.date
     assert non_negative_prop.non_negative
+
+    car_entity = schema.entity_type('Car')
+    assert car_entity.proprty('CodeName').filter_restriction == 'single-value'
+
+    price_prop = car_entity.proprty('Price')
+    assert price_prop.precision == 7
+    assert price_prop.scale == 3
 
     # EntityType from the method typ
     assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
@@ -627,6 +636,12 @@ def test_edmx_entity_sets(schema):
 
     assert schema.entity_set('Cities').addressable == True
     assert schema.entity_set('CitiesNotAddressable').addressable == False
+
+    cars_set = schema.entity_set('Cars')
+    assert cars_set.pageable == False
+    assert cars_set.countable == False
+    assert cars_set.searchable == False
+    assert cars_set.topable == True
 
 
 def test_edmx_association_end_by_role():

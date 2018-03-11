@@ -56,6 +56,14 @@ def metadata():
             <Property Name="CountryISO" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <Property Name="Country" Type="Edm.String" Nullable="false"  sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
            </EntityType>
+           <EntityType Name="Car" sap:content-version="1" sap:value-list="true" sap:label="Car">
+            <Key>
+              <PropertyRef Name="Name"/>
+            </Key>
+            <Property Name="Name" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="CodeName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"  sap:filter-restriction="single-value"/>
+            <Property Name="Price" Type="Edm.Decimal" Nullable="false" Precision="7" Scale="3" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+           </EntityType>
            <ComplexType Name="ComplexNumber">
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
@@ -89,6 +97,7 @@ def metadata():
             <EntitySet Name="Cities" EntityType="EXAMPLE_SRV.City" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="CitiesWithFilter" EntityType="EXAMPLE_SRV.City" sap:requires-filter="true"/>
             <EntitySet Name="CitiesNotAddressable" EntityType="EXAMPLE_SRV.City" sap:addressable="false"/>
+            <EntitySet Name="Cars" EntityType="EXAMPLE_SRV.Car" sap:countable="false" sap:pageable="false" sap:topable="true"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
