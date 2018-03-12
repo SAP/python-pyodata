@@ -322,7 +322,7 @@ class EdmBooleanTypTraits(TypTraits):
 
     # pylint: disable=no-self-use
     def from_json(self, value):
-        return value == 'true'
+        return value
 
     def from_literal(self, value):
         return value == 'true'

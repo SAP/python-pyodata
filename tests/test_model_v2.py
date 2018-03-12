@@ -286,6 +286,9 @@ def test_traits():
     assert typ.traits.to_literal(1) == 'true'
     assert typ.traits.to_literal(0) == 'false'
 
+    assert typ.traits.from_json(True) is True
+    assert typ.traits.from_json(False) is False
+
     # integers
     typ = Types.from_name('Edm.Int16')
     assert repr(typ.traits) == 'EdmIntTypTraits'
