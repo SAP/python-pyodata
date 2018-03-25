@@ -34,8 +34,8 @@ print employee1.FirstName
 
 # Print unique identification (Id) and last name of all cemployees
 employees = client.entity_sets.Employees.get_entities().select('EmployeeID,LasttName').execute()
-    for employee in employees:
-        print(employee.EmployeeID, employee.LastName)
+for employee in employees:
+    print(employee.EmployeeID, employee.LastName)
 ```
 
 ### Get entities matching a filter
