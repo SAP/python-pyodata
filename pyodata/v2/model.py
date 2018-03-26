@@ -16,8 +16,13 @@ import datetime
 from pyodata.exceptions import PyODataException, PyODataModelError
 from lxml import etree
 
+LOGGER_NAME = 'pyodata.model'
+
 IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
+
+def modlog():
+    return logging.getLogger(LOGGER_NAME) 
 
 
 class Identifier(object):
@@ -880,8 +885,8 @@ class Schema(object):
                                                       namespaces=ANNOTATION_NAMESPACES):
                 for annotation in ExternalAnnontation.from_etree(annotation_group):
                     if not annotation.element_namespace != schema.namespaces:
-                        logging.warn('{0} not in the namespaces {1}'
-                                     .format(annotation, ','.join(schema.namespaces)))
+                        modlog().warn('{0} not in the namespaces {1}'
+                                      .format(annotation, ','.join(schema.namespaces)))
                         continue
 
                     if annotation.kind == Annotation.Kinds.ValueHelper:
@@ -1614,7 +1619,7 @@ class Annotation(object):
         if term == SAP_ANNOTATION_VALUE_LIST:
             return ValueHelper.from_etree(target, annotation_node)
 
-        logging.warn('Unsupported Annotation({0})'.format(term))
+        modlog().warn('Unsupported Annotation({0})'.format(term))
         return None
 
 
@@ -1625,7 +1630,7 @@ class ExternalAnnontation(object):
         target = annotations_node.get('Target')
 
         if annotations_node.get('Qualifier'):
-            logging.warn('Ignoring qualified Annotations of {}'.format(target))
+            modlog().warn('Ignoring qualified Annotations of {}'.format(target))
             return
 
         for annotation in annotations_node.xpath('edm:Annotation',
