@@ -118,12 +118,11 @@ def test_edmx(schema):
     # Error handling in the method typ - without namespace
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.typ('FooBar')
-    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema'
-
+    assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema'
     # Error handling in the method typ - with namespace
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
-    assert typ_ex_info.value.message == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+    assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
 def test_schema_entity_sets(schema):
@@ -137,17 +136,17 @@ def test_schema_entity_sets(schema):
     # without namespace
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.entity_set('FooBar')
-    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in any Schema Namespace'
+    assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in any Schema Namespace'
 
     # with unknown namespace
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='BLAH')
-    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
+    assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
 
     # with namespace
     with pytest.raises(KeyError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
-    assert typ_ex_info.value.message == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+    assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
 def test_edmx_associations(schema):
@@ -538,7 +537,7 @@ def test_annot_v_l_missing_e_s(metadata_builder_factory):
         Edmx.parse(builder.serialize())
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
-        assert ex.message == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+        assert str(ex) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
 
 
 def test_annot_v_l_missing_e_t(metadata_builder_factory):
@@ -579,7 +578,7 @@ def test_annot_v_l_missing_e_t(metadata_builder_factory):
         Edmx.parse(builder.serialize())
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
-        assert ex.message == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+        assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
 
 
 def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
@@ -625,7 +624,7 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
         Edmx.parse(builder.serialize())
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
-        assert ex.message == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
+        assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
 
 
 def test_edmx_entity_sets(schema):
@@ -659,4 +658,4 @@ def test_edmx_association_end_by_role():
 
     with pytest.raises(KeyError) as typ_ex_info:
         association.end_by_role('Blah')
-    assert typ_ex_info.value.message == 'Association FooBar has no End with Role Blah'
+    assert typ_ex_info.value.args[0] == 'Association FooBar has no End with Role Blah'
