@@ -11,8 +11,8 @@ from functools import partial
 import json
 from email.parser import Parser
 import random
-from httplib import HTTPResponse
-from StringIO import StringIO
+from http.client import HTTPResponse
+from io import StringIO, BytesIO
 import requests
 import pyodata
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError
@@ -40,7 +40,7 @@ def encode_multipart(boundary, http_requests):
 
             # request  line (method + path + query params) 
             line = '{method} {path}'.format(method=req.get_method(), path=req.get_path())
-            query_params = '&'.join(['{}={}'.format(key, val) for key, val in req.get_query_params().iteritems()])
+            query_params = '&'.join(['{}={}'.format(key, val) for key, val in req.get_query_params().items()])
             if query_params:
                 line += '?' + query_params
             line += ' HTTP/1.1'
@@ -48,7 +48,7 @@ def encode_multipart(boundary, http_requests):
             lines.append(line)
 
         # request specific headers
-        for hdr, hdr_val in req.get_headers().iteritems():
+        for hdr, hdr_val in req.get_headers().items():
             lines.append('{}: {}'.format(hdr, hdr_val))
 
         lines.append('')
@@ -109,7 +109,7 @@ class ODataHttpResponse(object):
             """Fake socket to simulate received http response content"""
 
             def __init__(self, response_str):
-                self._file = StringIO(response_str)
+                self._file = BytesIO(response_str.encode('utf-8'))
 
             def makefile(self, *args, **kwargs):
                 """Fake file that provides string content"""
@@ -134,7 +134,7 @@ class ODataHttpResponse(object):
         # approach can bring issues with encoding
         # https://github.com/requests/requests/blob/master/requests/models.py#L868
         if self.content:
-            return json.loads(self.content)
+            return json.loads(self.content.decode('utf-8'))
         return None
 
 
@@ -293,7 +293,7 @@ class ODataHttpRequest(object):
         self._logger.debug('  url: %s', response.url)
         self._logger.debug('  headers: %s', response.headers)
         self._logger.debug('  status code: %d', response.status_code)
-        self._logger.debug('  body: %s', response.content)
+        self._logger.debug('  body: %s', response.content.decode('utf-8'))
 
         return self._handler(response)
 
@@ -384,7 +384,7 @@ class EntityCreateRequest(ODataHttpRequest):
     def get_body(self):
         # pylint: disable=no-self-use
         body = {}
-        for key, val in self._values.iteritems():
+        for key, val in self._values.items():
             body[key] = val
         return json.dumps(body)
 
@@ -400,7 +400,7 @@ class EntityCreateRequest(ODataHttpRequest):
 
         self._logger.info(kwargs)
 
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             try:
                 self._entity_type.proprty(key)
             except KeyError:
@@ -442,7 +442,7 @@ class EntityModifyRequest(ODataHttpRequest):
     def get_body(self):
         # pylint: disable=no-self-use
         body = {}
-        for key, val in self._values.iteritems():
+        for key, val in self._values.items():
             body[key] = val
         return json.dumps(body)
 
@@ -457,7 +457,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
         self._logger.info(kwargs)
 
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             try:
                 self._entity_type.proprty(key)
             except KeyError:
@@ -556,7 +556,7 @@ class QueryRequest(ODataHttpRequest):
         if self._select is not None:
             qparams['$select'] = self._select
 
-        for key, val in self._customs.iteritems():
+        for key, val in self._customs.items():
             qparams[key] = val
 
         if self._expand is not None:
@@ -1006,7 +1006,7 @@ class EntityContainer(object):
         try:
             return self._entity_sets[name]
         except KeyError:
-            raise AttributeError('EntitySet {0} not defined in {1}.'.format(name, ','.join(self._entity_sets.keys())))
+            raise AttributeError('EntitySet {0} not defined in {1}.'.format(name, ','.join(list(self._entity_sets.keys()))))
 
 
 class FunctionContainer(object):
@@ -1026,7 +1026,7 @@ class FunctionContainer(object):
     def __getattr__(self, name):
 
         if name not in self._functions:
-            raise AttributeError('Function {0} not defined in {1}.'.format(name, ','.join(self._functions.keys())))
+            raise AttributeError('Function {0} not defined in {1}.'.format(name, ','.join(list(self._functions.keys()))))
 
         fimport = self._service.schema.function_import(name)
 
@@ -1236,7 +1236,7 @@ class MultipartRequest(ODataHttpRequest):
         logging.getLogger(LOGGER_NAME).debug('Generic multipart http response request handler called')
 
         # get list of all parts (headers + body)
-        decoded = decode_multipart(response.content, response.headers['Content-Type'])
+        decoded = decode_multipart(response.content.decode('utf-8'), response.headers['Content-Type'])
 
         return request.handler(request, decoded)
 

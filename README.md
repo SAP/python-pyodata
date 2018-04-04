@@ -4,7 +4,7 @@ OData client Python module
 
 ## Requirements
 
-- Python 2.7
+- Python 3.6
 
 ## Usage
 
@@ -16,7 +16,7 @@ import pyodata
 
 SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
 
-# Create instance of OData client 
+# Create instance of OData client
 client = pyodata.Client(SERVICE_URL, requests.Session())
 ```
 

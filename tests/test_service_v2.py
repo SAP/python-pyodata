@@ -161,13 +161,13 @@ def test_entity_key_complex(service):
         "{0}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')".format(service.url),
         headers={'Content-type': 'application/json'},
         json={'d': {
-            'Sensor': 'sensor1', 
+            'Sensor': 'sensor1',
             'Date': "/Date(1514138400000)/"
         }},
         status=200)
 
     entity_key = {
-        'Sensor': 'sensor1', 
+        'Sensor': 'sensor1',
         'Date': datetime.datetime(2017, 12, 24, 18, 0)
     }
     key_properties = set(entity_key.keys())
@@ -612,30 +612,30 @@ def test_batch_request(service):
 
     # pylint: disable=redefined-outer-name
 
-    response_body = ('--batch_r1\n'
-                     'Content-Type: application/http\n'
-                     'Content-Transfer-Encoding: binary\n'
-                     '\n'
-                     'HTTP/1.1 200 OK\n'
-                     'Content-Type: application/json\n'
-                     '\n'
-                     '{"d": {"ID": 23, "NameFirst": "Rob", "NameLast": "Ickes", "Address": { "ID": 456, "Street": "Baker Street", "City": "London"} }}'
-                     '\n'
-                     '--batch_r1\n'
-                     'Content-Type: multipart/mixed; boundary=changeset_1\n'
-                     '\n'
-                     '--changeset_1\n'
-                     'Content-Type: application/http\n'
-                     'Content-Transfer-Encoding: binary\n'
-                     '\n'
-                     'HTTP/1.1 204 Updated\n'
-                     'Content-Type: application/json\n'
-                     '\n'
-                     "{'d': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': 34}}"
-                     '\n'
-                     '--changeset_1--\n'
-                     '\n'
-                     '--batch_r1--')
+    response_body = (b'--batch_r1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 200 OK\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b'{"d": {"ID": 23, "NameFirst": "Rob", "NameLast": "Ickes", "Address": { "ID": 456, "Street": "Baker Street", "City": "London"} }}'
+                     b'\n'
+                     b'--batch_r1\n'
+                     b'Content-Type: multipart/mixed; boundary=changeset_1\n'
+                     b'\n'
+                     b'--changeset_1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 204 Updated\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b"{b'd': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': 34}}"
+                     b'\n'
+                     b'--changeset_1--\n'
+                     b'\n'
+                     b'--batch_r1--')
 
     responses.add(
         responses.POST,
@@ -802,11 +802,11 @@ def test_get_entity_set_query_filter_and(service):
 
     with pytest.raises(ExpressionError) as e_info:
         GetEntitySetFilter.and_()
-    assert e_info.value.message == 'The $filter operator \'and\' needs at least two operands'
+    assert e_info.value.args[0] == 'The $filter operator \'and\' needs at least two operands'
 
     with pytest.raises(ExpressionError) as e_info:
         GetEntitySetFilter.and_('foo')
-    assert e_info.value.message == 'The $filter operator \'and\' needs at least two operands'
+    assert e_info.value.args[0] == 'The $filter operator \'and\' needs at least two operands'
 
 
 def test_get_entity_set_query_filter_or(service):
@@ -822,11 +822,11 @@ def test_get_entity_set_query_filter_or(service):
 
     with pytest.raises(ExpressionError) as e_info:
         GetEntitySetFilter.or_()
-    assert e_info.value.message == 'The $filter operator \'or\' needs at least two operands'
+    assert e_info.value.args[0] == 'The $filter operator \'or\' needs at least two operands'
 
     with pytest.raises(ExpressionError) as e_info:
         GetEntitySetFilter.or_('foo')
-    assert e_info.value.message == 'The $filter operator \'or\' needs at least two operands'
+    assert e_info.value.args[0] == 'The $filter operator \'or\' needs at least two operands'
 
 
 def test_get_entity_set_query_filter_property_error(service):
@@ -838,4 +838,4 @@ def test_get_entity_set_query_filter_property_error(service):
 
     with pytest.raises(KeyError) as e_info:
         assert not request.Foo == 'bar'
-    assert e_info.value.message == 'Foo'
+    assert e_info.value.args[0] == 'Foo'

@@ -8,7 +8,7 @@ Date:   2017-08-21
 
 import collections
 import itertools
-import StringIO
+import io
 import logging
 import enum
 import re
@@ -22,7 +22,7 @@ IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 def modlog():
-    return logging.getLogger(LOGGER_NAME) 
+    return logging.getLogger(LOGGER_NAME)
 
 
 class Identifier(object):
@@ -520,22 +520,22 @@ class Schema(object):
             self.association_sets = dict()
 
         def list_entity_types(self):
-            return self.entity_types.values()
+            return list(self.entity_types.values())
 
         def list_complex_types(self):
-            return self.complex_types.values()
+            return list(self.complex_types.values())
 
         def list_entity_sets(self):
-            return self.entity_sets.values()
+            return list(self.entity_sets.values())
 
         def list_function_imports(self):
-            return self.function_imports.values()
+            return list(self.function_imports.values())
 
         def list_associations(self):
-            return self.associations.values()
+            return list(self.associations.values())
 
         def list_association_sets(self):
-            return self.association_sets.values()
+            return list(self.association_sets.values())
 
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
@@ -565,7 +565,7 @@ class Schema(object):
 
     @property
     def namespaces(self):
-        return self._decls.keys()
+        return list(self._decls.keys())
 
     def typ(self, type_name, namespace=None):
         """Returns either EntityType or ComplexType that matches the name.
@@ -588,7 +588,7 @@ class Schema(object):
                 raise KeyError('EntityType {} does not exist in Schema Namespace {}'
                                .format(type_name, namespace))
 
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.entity_types[type_name]
             except KeyError:
@@ -604,7 +604,7 @@ class Schema(object):
                 raise KeyError('ComplexType {} does not exist in Schema Namespace {}'
                                .format(type_name, namespace))
 
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.complex_types[type_name]
             except KeyError:
@@ -639,11 +639,11 @@ class Schema(object):
 
     @property
     def entity_types(self):
-        return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in self._decls.values()))]
+        return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in list(self._decls.values())))]
 
     @property
     def complex_types(self):
-        return [complex_type for complex_type in itertools.chain(*(decl.list_complex_types() for decl in self._decls.values()))]
+        return [complex_type for complex_type in itertools.chain(*(decl.list_complex_types() for decl in list(self._decls.values())))]
 
     def entity_set(self, set_name, namespace=None):
         if namespace is not None:
@@ -653,7 +653,7 @@ class Schema(object):
                 raise KeyError('EntitySet {} does not exist in Schema Namespace {}'
                                .format(set_name, namespace))
 
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.entity_sets[set_name]
             except KeyError:
@@ -663,7 +663,7 @@ class Schema(object):
 
     @property
     def entity_sets(self):
-        return [entity_set for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in self._decls.values()))]
+        return [entity_set for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in list(self._decls.values())))]
 
     def function_import(self, function_import, namespace=None):
         if namespace is not None:
@@ -673,7 +673,7 @@ class Schema(object):
                 raise KeyError('FunctionImport {} does not exist in Schema Namespace {}'
                                .format(function_import, namespace))
 
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.function_imports[function_import]
             except KeyError:
@@ -683,7 +683,7 @@ class Schema(object):
 
     @property
     def function_imports(self):
-        return [func_import for func_import in itertools.chain(*(decl.list_function_imports() for decl in self._decls.values()))]
+        return [func_import for func_import in itertools.chain(*(decl.list_function_imports() for decl in list(self._decls.values())))]
 
     def association(self, association_name, namespace=None):
         if namespace is not None:
@@ -692,7 +692,7 @@ class Schema(object):
             except KeyError:
                 raise KeyError('Association {} does not exist in namespace {}'.format(association_name,
                                                                                       namespace))
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.associations[association_name]
             except KeyError:
@@ -701,17 +701,17 @@ class Schema(object):
     @property
     def associations(self):
         return [association for association in itertools.chain(*(decl.list_associations()
-                                                                 for decl in self._decls.values()))]
+                                                                 for decl in list(self._decls.values())))]
 
     def association_set_by_association(self, association_name, namespace=None):
         if namespace is not None:
-            for association_set in self._decls[namespace].association_sets.values():
+            for association_set in list(self._decls[namespace].association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
             raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association_name,
                                                                                                             namespace))
-        for decl in self._decls.values():
-            for association_set in decl.association_sets.values():
+        for decl in list(self._decls.values()):
+            for association_set in list(decl.association_sets.values()):
                 if association_set.association_type == association_name:
                     return association_set
         raise KeyError('Association set with association type {} does not exist'.format(association_name))
@@ -724,7 +724,7 @@ class Schema(object):
             except KeyError:
                 raise KeyError('Association set {} does not exist in namespace {}'.format(set_name,
                                                                                           namespace))
-        for decl in self._decls.values():
+        for decl in list(self._decls.values()):
             try:
                 return decl.association_sets[set_name]
             except KeyError:
@@ -733,7 +733,7 @@ class Schema(object):
     @property
     def association_sets(self):
         return [association_set for association_set in itertools.chain(*(decl.list_association_sets()
-                                                                         for decl in self._decls.values()))]
+                                                                         for decl in list(self._decls.values())))]
 
     def check_role_property_names(self, role, entity_type_name, namespace):
         for proprty in role.property_names:
@@ -882,7 +882,7 @@ class Schema(object):
                                             .format(assoc_set.association_type_name,
                                                     assoc_set.association_type_namespace))
 
-                for key, value in assoc_set.end_roles.items():
+                for key, value in list(assoc_set.end_roles.items()):
                     # Check if entity set exists in current scheme
                     try:
                         schema.entity_set(key, namespace)
@@ -954,7 +954,7 @@ class StructType(Typ):
         return self._properties[property_name]
 
     def proprties(self):
-        return self._properties.values()
+        return list(self._properties.values())
 
     @classmethod
     def from_etree(cls, type_node):
@@ -978,7 +978,7 @@ class StructType(Typ):
         # We have to update the property when
         # all properites are loaded because
         # there might be links between them.
-        for ctp in stype._properties.values():
+        for ctp in list(stype._properties.values()):
             ctp.struct_type = stype
 
         return stype
@@ -1022,7 +1022,7 @@ class EntityType(StructType):
     @property
     def nav_proprties(self):
         """Gets the navigation properties defined for this entity type"""
-        return self._nav_properties.values()
+        return list(self._nav_properties.values())
 
     def nav_proprty(self, property_name):
         return self._nav_properties[property_name]
@@ -1951,7 +1951,7 @@ class FunctionImport(Identifier):
 
     @property
     def parameters(self):
-        return self._parameters.values()
+        return list(self._parameters.values())
 
     def get_parameter(self, parameter):
         return self._parameters[parameter]
@@ -2065,8 +2065,12 @@ class Edmx(object):
     @staticmethod
     def parse(metadata_xml):
         """ Build model from the XML metadata"""
-
-        mdf = StringIO.StringIO(metadata_xml)
+        if type(metadata_xml) == str:
+            mdf = io.StringIO(metadata_xml)
+        elif type(metadata_xml) == bytes:
+            mdf = io.BytesIO(metadata_xml)
+        else:
+            raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(metadata_xml)))
         # the first child element has name 'Edmx'
         edmx = etree.parse(mdf)
         edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema',
