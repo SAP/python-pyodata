@@ -1,0 +1,31 @@
+dist: trusty
+language: python
+python:
+  - "3.6"
+
+# command to install dependencies
+install:
+  - pip install .
+  - pip install -r requirements.txt
+  - pip install pylint
+
+# command to run tests
+script:
+  - pylint pyodata
+  - py.test
+
+deploy:
+    provider: pypi
+    user: test
+    password: test
+    server: http://pypi.brq.only.sap
+    on:
+      branch: master
+
+notifications:
+    email:
+        recipients:
+            - jakub.filak@sap.com
+            - michal.nezerka@sap.com
+    on_success: always
+    on_failure: always

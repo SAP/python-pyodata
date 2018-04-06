@@ -12,13 +12,32 @@
 # either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+from os.path import dirname, join
 import os
+import re
 from setuptools import setup, find_packages
+import subprocess
 
+version_re = re.compile('^Version: (.+)$', re.M)
 source_location = os.path.abspath(os.path.dirname(__file__))
+
 def get_version():
-    with open(os.path.join(source_location, "VERSION")) as version:
-        return version.readline().strip()
+    d = dirname(__file__)
+
+    # Get the version using "git describe".
+    cmd = 'git describe --tags --always'.split()
+    try:
+        version = subprocess.check_output(cmd).decode().strip()
+    except subprocess.CalledProcessError:
+        print('Unable to get version number from git tags, asuming inside package')
+        # no git - we are inside pip package
+        with open(join(d, 'PKG-INFO')) as f:
+            version = version_re.search(f.read()).group(1)
+
+    # PEP 386 compatibility
+    if '-' in version:
+        version = '.post'.join(version.split('-')[:2])
+    return version
 
 setup(
     name="pyodata",
