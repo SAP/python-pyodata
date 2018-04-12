@@ -7,26 +7,28 @@ Date:   2017-08-21
 # pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines
 
 import collections
-import itertools
-import io
-import logging
-import enum
-import re
 import datetime
-from pyodata.exceptions import PyODataException, PyODataModelError
+import enum
+import io
+import itertools
+import logging
+import re
+
 from lxml import etree
+
+from pyodata.exceptions import PyODataException, PyODataModelError
 
 LOGGER_NAME = 'pyodata.model'
 
 IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
+
 def modlog():
     return logging.getLogger(LOGGER_NAME)
 
 
 class Identifier(object):
-
     def __init__(self, name):
         super(Identifier, self).__init__()
 
@@ -44,7 +46,6 @@ class Identifier(object):
 
     @staticmethod
     def parse(value):
-
         parts = value.split('.')
 
         if len(parts) == 1:
@@ -80,7 +81,8 @@ class Types(object):
             Types.register_type(Typ('Edm.Decimal', '0.0M'))
             Types.register_type(Typ('Edm.Double', '0.0d'))
             Types.register_type(Typ('Edm.Single', '0.0f'))
-            Types.register_type(Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
+            Types.register_type(
+                Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
             Types.register_type(Typ('Edm.Int16', '0', EdmIntTypTraits()))
             Types.register_type(Typ('Edm.Int32', '0', EdmIntTypTraits()))
             Types.register_type(Typ('Edm.Int64', '0L', EdmIntTypTraits()))
@@ -119,7 +121,7 @@ class Types(object):
         # detect if name represents collection
         is_collection = name.lower().startswith('collection(') and name.endswith(')')
         if is_collection:
-            name = name[11:-1]   # strip collection() decorator
+            name = name[11:-1]  # strip collection() decorator
             search_name = 'Collection({})'.format(name)
 
         return Types.Types[search_name]
@@ -130,7 +132,7 @@ class Types(object):
         # detect if name represents collection
         is_collection = type_name.lower().startswith('collection(') and type_name.endswith(')')
         if is_collection:
-            type_name = type_name[11:-1]   # strip collection() decorator
+            type_name = type_name[11:-1]  # strip collection() decorator
 
         parts = type_name.split('.')
 
@@ -196,6 +198,7 @@ class EdmStructTypeSerializer(object):
 
         return result
 
+
 class TypTraits(object):
     """Encapsulated differences between types"""
 
@@ -213,6 +216,7 @@ class TypTraits(object):
     def from_literal(self, value):
         return value
 
+
 class EdmPrefixedTypTraits(TypTraits):
     """Is good for all types where values have form: prefix'value'"""
 
@@ -223,13 +227,11 @@ class EdmPrefixedTypTraits(TypTraits):
     def to_literal(self, value):
         return '{}\'{}\''.format(self._prefix, value)
 
-    def from_json(self, value):
-        return super(EdmPrefixedTypTraits, self).from_json(value)
-
     def from_literal(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
         if not matches:
-            raise PyODataModelError("Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
+            raise PyODataModelError(
+                "Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
         return matches.group(1)
 
 
@@ -260,7 +262,8 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         """
 
         if not isinstance(value, datetime.datetime):
-            raise PyODataModelError('Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
+            raise PyODataModelError(
+                'Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
 
         return super(EdmDateTimeTypTraits, self).to_literal(value.isoformat())
 
@@ -271,7 +274,8 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         matches = re.match(r"^/Date\((.*)\)/$", value)
         if not matches:
-            raise PyODataModelError("Malformed value {0} for primitive Edm type. Expected format is /Date(value)/".format(value))
+            raise PyODataModelError(
+                "Malformed value {0} for primitive Edm type. Expected format is /Date(value)/".format(value))
         value = matches.group(1)
 
         try:
@@ -332,6 +336,7 @@ class EdmBooleanTypTraits(TypTraits):
     def from_literal(self, value):
         return value == 'true'
 
+
 class EdmIntTypTraits(TypTraits):
     """All Edm Integer traits"""
 
@@ -345,6 +350,7 @@ class EdmIntTypTraits(TypTraits):
 
     def from_literal(self, value):
         return int(value)
+
 
 class EdmStructTypTraits(TypTraits):
     """Edm structural types (EntityType, ComplexType) traits"""
@@ -366,7 +372,6 @@ class EdmStructTypTraits(TypTraits):
 
 
 class Typ(Identifier):
-
     Types = None
 
     Kinds = enum.Enum('Kinds', 'Primitive Complex')
@@ -433,7 +438,6 @@ class Collection(Typ):
 
 
 class VariableDeclaration(Identifier):
-
     MAXIMUM_LENGTH = -1
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale):
@@ -472,12 +476,10 @@ class VariableDeclaration(Identifier):
     @typ.setter
     def typ(self, value):
         if self._typ is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'
-                               .format(self._typ, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._typ, self, value))
 
         if value.name != self._type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'
-                               .format(value, self))
+            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._typ = value
 
@@ -504,9 +506,7 @@ class VariableDeclaration(Identifier):
 
 
 class Schema(object):
-
     class Declaration(object):
-
         def __init__(self, namespace):
             super(Schema.Declaration, self).__init__()
 
@@ -585,8 +585,7 @@ class Schema(object):
             try:
                 return self._decls[namespace].entity_types[type_name]
             except KeyError:
-                raise KeyError('EntityType {} does not exist in Schema Namespace {}'
-                               .format(type_name, namespace))
+                raise KeyError('EntityType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -601,8 +600,7 @@ class Schema(object):
             try:
                 return self._decls[namespace].complex_types[type_name]
             except KeyError:
-                raise KeyError('ComplexType {} does not exist in Schema Namespace {}'
-                               .format(type_name, namespace))
+                raise KeyError('ComplexType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -635,23 +633,30 @@ class Schema(object):
         except KeyError:
             pass
 
-        raise PyODataModelError('Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[1]))
+        raise PyODataModelError(
+            'Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[
+                1]))
 
     @property
     def entity_types(self):
-        return [entity_type for entity_type in itertools.chain(*(decl.list_entity_types() for decl in list(self._decls.values())))]
+        return [
+            entity_type
+            for entity_type in itertools.chain(*(decl.list_entity_types() for decl in list(self._decls.values())))
+        ]
 
     @property
     def complex_types(self):
-        return [complex_type for complex_type in itertools.chain(*(decl.list_complex_types() for decl in list(self._decls.values())))]
+        return [
+            complex_type
+            for complex_type in itertools.chain(*(decl.list_complex_types() for decl in list(self._decls.values())))
+        ]
 
     def entity_set(self, set_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].entity_sets[set_name]
             except KeyError:
-                raise KeyError('EntitySet {} does not exist in Schema Namespace {}'
-                               .format(set_name, namespace))
+                raise KeyError('EntitySet {} does not exist in Schema Namespace {}'.format(set_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -663,7 +668,10 @@ class Schema(object):
 
     @property
     def entity_sets(self):
-        return [entity_set for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in list(self._decls.values())))]
+        return [
+            entity_set
+            for entity_set in itertools.chain(*(decl.list_entity_sets() for decl in list(self._decls.values())))
+        ]
 
     def function_import(self, function_import, namespace=None):
         if namespace is not None:
@@ -683,15 +691,17 @@ class Schema(object):
 
     @property
     def function_imports(self):
-        return [func_import for func_import in itertools.chain(*(decl.list_function_imports() for decl in list(self._decls.values())))]
+        return [
+            func_import
+            for func_import in itertools.chain(*(decl.list_function_imports() for decl in list(self._decls.values())))
+        ]
 
     def association(self, association_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].associations[association_name]
             except KeyError:
-                raise KeyError('Association {} does not exist in namespace {}'.format(association_name,
-                                                                                      namespace))
+                raise KeyError('Association {} does not exist in namespace {}'.format(association_name, namespace))
         for decl in list(self._decls.values()):
             try:
                 return decl.associations[association_name]
@@ -700,30 +710,30 @@ class Schema(object):
 
     @property
     def associations(self):
-        return [association for association in itertools.chain(*(decl.list_associations()
-                                                                 for decl in list(self._decls.values())))]
+        return [
+            association
+            for association in itertools.chain(*(decl.list_associations() for decl in list(self._decls.values())))
+        ]
 
     def association_set_by_association(self, association_name, namespace=None):
         if namespace is not None:
             for association_set in list(self._decls[namespace].association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
-            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(association_name,
-                                                                                                            namespace))
+            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(
+                association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
                 if association_set.association_type == association_name:
                     return association_set
         raise KeyError('Association set with association type {} does not exist'.format(association_name))
 
-
     def association_set(self, set_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].association_sets[set_name]
             except KeyError:
-                raise KeyError('Association set {} does not exist in namespace {}'.format(set_name,
-                                                                                          namespace))
+                raise KeyError('Association set {} does not exist in namespace {}'.format(set_name, namespace))
         for decl in list(self._decls.values()):
             try:
                 return decl.association_sets[set_name]
@@ -732,8 +742,11 @@ class Schema(object):
 
     @property
     def association_sets(self):
-        return [association_set for association_set in itertools.chain(*(decl.list_association_sets()
-                                                                         for decl in list(self._decls.values())))]
+        return [
+            association_set
+            for association_set in itertools.chain(*(decl.list_association_sets()
+                                                     for decl in list(self._decls.values())))
+        ]
 
     def check_role_property_names(self, role, entity_type_name, namespace):
         for proprty in role.property_names:
@@ -745,9 +758,7 @@ class Schema(object):
             try:
                 entity_type.proprty(proprty)
             except KeyError:
-                raise PyODataModelError('Property {} does not exist in {}'
-                                   .format(proprty, entity_type.name))
-
+                raise PyODataModelError('Property {} does not exist in {}'.format(proprty, entity_type.name))
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
@@ -764,13 +775,11 @@ class Schema(object):
             decl = Schema.Declaration(namespace)
             schema._decls[namespace] = decl
 
-            for complex_type in schema_node.xpath('edm:ComplexType',
-                                                  namespaces=NAMESPACES):
+            for complex_type in schema_node.xpath('edm:ComplexType', namespaces=NAMESPACES):
                 ctype = ComplexType.from_etree(complex_type)
                 decl.add_complex_type(ctype)
 
-            for entity_type in schema_node.xpath('edm:EntityType',
-                                                 namespaces=NAMESPACES):
+            for entity_type in schema_node.xpath('edm:EntityType', namespaces=NAMESPACES):
                 etype = EntityType.from_etree(entity_type)
                 decl.add_entity_type(etype)
 
@@ -791,8 +800,7 @@ class Schema(object):
             namespace = schema_node.get('Namespace')
             decl = schema._decls[namespace]
 
-            for association in schema_node.xpath('edm:Association',
-                                                 namespaces=NAMESPACES):
+            for association in schema_node.xpath('edm:Association', namespaces=NAMESPACES):
                 assoc = Association.from_etree(association)
                 for end_role in assoc.end_roles:
                     try:
@@ -800,15 +808,13 @@ class Schema(object):
                         if end_role.entity_type_info.namespace is None:
                             end_role.entity_type_info.namespace = namespace
 
-                        etype = schema.entity_type(
-                            end_role.entity_type_info.name,
-                            end_role.entity_type_info.namespace)
+                        etype = schema.entity_type(end_role.entity_type_info.name, end_role.entity_type_info.namespace)
 
                         end_role.entity_type = etype
                     except KeyError:
-                        raise PyODataModelError('EntityType {} does not exist in Schema Namespace {}'
-                                                .format(end_role.entity_type_info.name,
-                                                        end_role.entity_type_info.namespace))
+                        raise PyODataModelError(
+                            'EntityType {} does not exist in Schema Namespace {}'
+                            .format(end_role.entity_type_info.name, end_role.entity_type_info.namespace))
 
                 if assoc.referential_constraint is not None:
                     role_names = [end_role.role for end_role in assoc.end_roles]
@@ -816,8 +822,8 @@ class Schema(object):
 
                     # Check if the role was defined in the current association
                     if principal_role.name not in role_names:
-                        raise RuntimeError('Role {} was not defined in association {}'.format(principal_role.name,
-                                                                                              assoc.name))
+                        raise RuntimeError(
+                            'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
 
                     # Check if principal role properties exist
                     role_name = principal_role.name
@@ -828,8 +834,8 @@ class Schema(object):
 
                     # Check if the role was defined in the current association
                     if dependent_role.name not in role_names:
-                        raise RuntimeError('Role {} was not defined in association {}'.format(dependent_role.name,
-                                                                                              assoc.name))
+                        raise RuntimeError(
+                            'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
 
                     # Check if dependent role properties exist
                     role_name = dependent_role.name
@@ -853,15 +859,12 @@ class Schema(object):
             namespace = schema_node.get('Namespace')
             decl = schema._decls[namespace]
 
-            for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet',
-                                                namespaces=NAMESPACES):
+            for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet', namespaces=NAMESPACES):
                 eset = EntitySet.from_etree(entity_set)
-                eset.entity_type = schema.entity_type(eset.entity_type_info[1],
-                                                      namespace=eset.entity_type_info[0])
+                eset.entity_type = schema.entity_type(eset.entity_type_info[1], namespace=eset.entity_type_info[0])
                 decl.entity_sets[eset.name] = eset
 
-            for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport',
-                                                     namespaces=NAMESPACES):
+            for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport', namespaces=NAMESPACES):
                 efn = FunctionImport.from_etree(function_import)
 
                 # complete type information for return type and parameters
@@ -870,17 +873,16 @@ class Schema(object):
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
 
-            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet',
-                                                     namespaces=NAMESPACES):
+            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet', namespaces=NAMESPACES):
                 assoc_set = AssociationSet.from_etree(association_set)
 
                 try:
                     assoc_set.association_type = schema.association(assoc_set.association_type_name,
                                                                     assoc_set.association_type_namespace)
                 except KeyError:
-                    raise PyODataModelError('Association {} does not exist in namespace {}'
-                                            .format(assoc_set.association_type_name,
-                                                    assoc_set.association_type_namespace))
+                    raise PyODataModelError(
+                        'Association {} does not exist in namespace {}'
+                        .format(assoc_set.association_type_name, assoc_set.association_type_namespace))
 
                 for key, value in list(assoc_set.end_roles.items()):
                     # Check if entity set exists in current scheme
@@ -898,12 +900,10 @@ class Schema(object):
 
         # Finally, process Annotation nodes when all Scheme nodes are completely processed.
         for schema_node in schema_nodes:
-            for annotation_group in schema_node.xpath('edm:Annotations',
-                                                      namespaces=ANNOTATION_NAMESPACES):
+            for annotation_group in schema_node.xpath('edm:Annotations', namespaces=ANNOTATION_NAMESPACES):
                 for annotation in ExternalAnnontation.from_etree(annotation_group):
                     if not annotation.element_namespace != schema.namespaces:
-                        modlog().warn('{0} not in the namespaces {1}'
-                                      .format(annotation, ','.join(schema.namespaces)))
+                        modlog().warning('{0} not in the namespaces {1}'.format(annotation, ','.join(schema.namespaces)))
                         continue
 
                     if annotation.kind == Annotation.Kinds.ValueHelper:
@@ -919,12 +919,14 @@ class Schema(object):
                             vh_type = schema.typ(
                                 annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
                         except KeyError:
-                            raise RuntimeError('Target Type {0} of {1} does not exist'.format(annotation.proprty_entity_type_name, annotation))
+                            raise RuntimeError('Target Type {0} of {1} does not exist'.format(
+                                annotation.proprty_entity_type_name, annotation))
 
                         try:
                             target_proprty = vh_type.proprty(annotation.proprty_name)
                         except KeyError:
-                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(annotation.proprty_name, vh_type, annotation))
+                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(
+                                annotation.proprty_name, vh_type, annotation))
 
                         annotation.proprty = target_proprty
                         target_proprty.value_helper = annotation
@@ -933,7 +935,6 @@ class Schema(object):
 
 
 class StructType(Typ):
-
     def __init__(self, name, label, is_value_list):
         super(StructType, self).__init__(name, None, EdmStructTypTraits(self), Typ.Kinds.Complex)
 
@@ -960,18 +961,15 @@ class StructType(Typ):
     def from_etree(cls, type_node):
         name = type_node.get('Name')
         label = sap_attribute_get_string(type_node, 'label')
-        is_value_list = sap_attribute_get_bool(type_node,
-                                               'value-list', False)
+        is_value_list = sap_attribute_get_bool(type_node, 'value-list', False)
 
         stype = cls(name, label, is_value_list)
 
-        for proprty in type_node.xpath('edm:Property',
-                                       namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:Property', namespaces=NAMESPACES):
             stp = StructTypeProperty.from_etree(proprty)
 
             if stp.name in stype._properties:
-                raise KeyError('{0} already has property {1}'
-                               .format(stype, stp.name))
+                raise KeyError('{0} already has property {1}'.format(stype, stp.name))
 
             stype._properties[stp.name] = stp
 
@@ -1008,7 +1006,6 @@ class ComplexType(StructType):
 
 
 class EntityType(StructType):
-
     def __init__(self, name, label, is_value_list):
         super(EntityType, self).__init__(name, label, is_value_list)
 
@@ -1032,17 +1029,14 @@ class EntityType(StructType):
 
         etype = super(EntityType, cls).from_etree(type_node)
 
-        for proprty in type_node.xpath('edm:Key/edm:PropertyRef',
-                                       namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=NAMESPACES):
             etype._key.append(etype.proprty(proprty.get('Name')))
 
-        for proprty in type_node.xpath('edm:NavigationProperty',
-                                       namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:NavigationProperty', namespaces=NAMESPACES):
             navp = NavigationTypeProperty.from_etree(proprty)
 
             if navp.name in etype._nav_properties:
-                raise KeyError('{0} already has navigation property {1}'
-                               .format(etype, navp.name))
+                raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
 
             etype._nav_properties[navp.name] = navp
 
@@ -1050,10 +1044,8 @@ class EntityType(StructType):
 
 
 class EntitySet(Identifier):
-
-    def __init__(self, name, entity_type_info, addressable, creatable,
-                 updatable, deletable, searchable, countable, pageable,
-                 topable, req_filter):
+    def __init__(self, name, entity_type_info, addressable, creatable, updatable, deletable, searchable, countable,
+                 pageable, topable, req_filter):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
@@ -1079,12 +1071,10 @@ class EntitySet(Identifier):
     @entity_type.setter
     def entity_type(self, value):
         if self._entity_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'
-                               .format(self._entity_type, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
 
         if value.name != self.entity_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'
-                               .format(value, self))
+            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._entity_type = value
 
@@ -1130,28 +1120,18 @@ class EntitySet(Identifier):
         et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
         # TODO: create a class SAP attributes
-        addressable = sap_attribute_get_bool(entity_set_node,
-                                             'addressable', True)
-        creatable = sap_attribute_get_bool(entity_set_node,
-                                           'creatable', True)
-        updatable = sap_attribute_get_bool(entity_set_node,
-                                           'updatable', True)
-        deletable = sap_attribute_get_bool(entity_set_node,
-                                           'deletable', True)
-        searchable = sap_attribute_get_bool(entity_set_node,
-                                            'searchable', False)
-        countable = sap_attribute_get_bool(entity_set_node,
-                                           'countable', True)
-        pageable = sap_attribute_get_bool(entity_set_node,
-                                          'pageable', True)
-        topable = sap_attribute_get_bool(entity_set_node,
-                                         'topable', pageable)
-        req_filter = sap_attribute_get_bool(entity_set_node,
-                                            'requires-filter', False)
+        addressable = sap_attribute_get_bool(entity_set_node, 'addressable', True)
+        creatable = sap_attribute_get_bool(entity_set_node, 'creatable', True)
+        updatable = sap_attribute_get_bool(entity_set_node, 'updatable', True)
+        deletable = sap_attribute_get_bool(entity_set_node, 'deletable', True)
+        searchable = sap_attribute_get_bool(entity_set_node, 'searchable', False)
+        countable = sap_attribute_get_bool(entity_set_node, 'countable', True)
+        pageable = sap_attribute_get_bool(entity_set_node, 'pageable', True)
+        topable = sap_attribute_get_bool(entity_set_node, 'topable', pageable)
+        req_filter = sap_attribute_get_bool(entity_set_node, 'requires-filter', False)
 
-        return EntitySet(name, et_info, addressable, creatable,
-                         updatable, deletable, searchable, countable,
-                         pageable, topable, req_filter)
+        return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
+                         topable, req_filter)
 
 
 class StructTypeProperty(VariableDeclaration):
@@ -1163,12 +1143,11 @@ class StructTypeProperty(VariableDeclaration):
         * enumeration type (in version 4)
         * collection of one of previous
     """
+
     # pylint: disable=too-many-locals
-    def __init__(self, name, type_info, nullable, max_length, precision, scale,
-                 uncode, label, creatable, updatable, sortable, filterable,
-                 filter_restr, text, visible, display_format, value_list):
-        super(StructTypeProperty, self).__init__(name, type_info, nullable,
-                                                 max_length, precision, scale)
+    def __init__(self, name, type_info, nullable, max_length, precision, scale, uncode, label, creatable, updatable,
+                 sortable, filterable, filter_restr, text, visible, display_format, value_list):
+        super(StructTypeProperty, self).__init__(name, type_info, nullable, max_length, precision, scale)
 
         self._value_helper = None
         self._struct_type = None
@@ -1195,8 +1174,7 @@ class StructTypeProperty(VariableDeclaration):
     def struct_type(self, value):
 
         if self._struct_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'
-                               .format(self._struct_type, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._struct_type, self, value))
 
         self._struct_type = value
 
@@ -1273,8 +1251,7 @@ class StructTypeProperty(VariableDeclaration):
     def value_helper(self, value):
         # Value Help property must not be changed
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace value helper {0} of {1} by {2}'
-                               .format(self._value_helper, self, value))
+            raise RuntimeError('Cannot replace value helper {0} of {1} by {2}'.format(self._value_helper, self, value))
 
         self._value_helper = value
 
@@ -1289,28 +1266,17 @@ class StructTypeProperty(VariableDeclaration):
             entity_type_property_node.get('Precision'),
             entity_type_property_node.get('Scale'),
             # TODO: create a class SAP attributes
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'unicode', True),
-            sap_attribute_get_string(entity_type_property_node,
-                                     'label'),
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'creatable', True),
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'updatable', True),
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'sortable', True),
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'filterable', True),
-            sap_attribute_get_string(entity_type_property_node,
-                                     'filter-restriction'),
-            sap_attribute_get_string(entity_type_property_node,
-                                     'text'),
-            sap_attribute_get_bool(entity_type_property_node,
-                                   'visible', True),
-            sap_attribute_get_string(entity_type_property_node,
-                                     'display-format'),
-            sap_attribute_get_string(entity_type_property_node,
-                                     'value-list'),)
+            sap_attribute_get_bool(entity_type_property_node, 'unicode', True),
+            sap_attribute_get_string(entity_type_property_node, 'label'),
+            sap_attribute_get_bool(entity_type_property_node, 'creatable', True),
+            sap_attribute_get_bool(entity_type_property_node, 'updatable', True),
+            sap_attribute_get_bool(entity_type_property_node, 'sortable', True),
+            sap_attribute_get_bool(entity_type_property_node, 'filterable', True),
+            sap_attribute_get_string(entity_type_property_node, 'filter-restriction'),
+            sap_attribute_get_string(entity_type_property_node, 'text'),
+            sap_attribute_get_bool(entity_type_property_node, 'visible', True),
+            sap_attribute_get_string(entity_type_property_node, 'display-format'),
+            sap_attribute_get_string(entity_type_property_node, 'value-list'), )
 
 
 class NavigationTypeProperty(VariableDeclaration):
@@ -1331,6 +1297,7 @@ class NavigationTypeProperty(VariableDeclaration):
        a collection (of Order). Similarly, if a navigation property, CustomerNavProp, exists on the Order
        entity type, its data type would be Customer since the multiplicity of the remote end is one (1).
     """
+
     def __init__(self, name, from_role_name, to_role_name, association_info):
         super(NavigationTypeProperty, self).__init__(name, None, False, None, None, None)
 
@@ -1352,12 +1319,10 @@ class NavigationTypeProperty(VariableDeclaration):
     def association(self, value):
 
         if self._association is not None:
-            raise PyODataModelError('Cannot replace {0} of {1} to {2}'
-                                    .format(self._association, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._association, self, value))
 
         if value.name != self._association_info.name:
-            raise PyODataModelError('{0} cannot be the type of {1}'
-                                    .format(value, self))
+            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._association = value
 
@@ -1373,14 +1338,10 @@ class NavigationTypeProperty(VariableDeclaration):
     def from_etree(node):
 
         return NavigationTypeProperty(
-            node.get('Name'),
-            node.get('FromRole'),
-            node.get('ToRole'),
-            Identifier.parse(node.get('Relationship')))
+            node.get('Name'), node.get('FromRole'), node.get('ToRole'), Identifier.parse(node.get('Relationship')))
 
 
 class EndRole(object):
-
     MULTIPLICITY_ONE = '1'
     MULTIPLICITY_ZERO_OR_ONE = '0..1'
     MULTIPLICITY_ZERO_OR_MORE = '*'
@@ -1410,12 +1371,10 @@ class EndRole(object):
     def entity_type(self, value):
 
         if self._entity_type is not None:
-            raise PyODataModelError('Cannot replace {0} of {1} to {2}'
-                                    .format(self._entity_type, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
 
         if value.name != self._entity_type_info.name:
-            raise PyODataModelError('{0} cannot be the type of {1}'
-                                    .format(value, self))
+            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._entity_type = value
 
@@ -1437,7 +1396,6 @@ class EndRole(object):
 
 
 class ReferentialConstraintRole(object):
-
     def __init__(self, name, property_names):
         self._name = name
         self._property_names = property_names
@@ -1460,7 +1418,6 @@ class DependentRole(ReferentialConstraintRole):
 
 
 class ReferentialConstraint(object):
-
     def __init__(self, principal, dependent):
         self._principal = principal
         self._dependent = dependent
@@ -1487,8 +1444,7 @@ class ReferentialConstraint(object):
         for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=NAMESPACES):
             principal_refs.append(property_ref.get('Name'))
         if not principal_refs:
-            raise RuntimeError('In role {} should be at least one principal property defined'
-                               .format(principal_name))
+            raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
 
         dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=NAMESPACES)
         if len(dependent) != 1:
@@ -1505,8 +1461,8 @@ class ReferentialConstraint(object):
             raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
                                .format(principal_name, dependent_name))
 
-        return ReferentialConstraint(PrincipalRole(principal_name, principal_refs),
-                                     DependentRole(dependent_name, dependent_refs))
+        return ReferentialConstraint(
+            PrincipalRole(principal_name, principal_refs), DependentRole(dependent_name, dependent_refs))
 
 
 class Association(object):
@@ -1575,7 +1531,6 @@ class Association(object):
 
 
 class AssociationSet(object):
-
     def __init__(self, name, association_type_name, association_type_namespace, end_roles):
         self._name = name
         self._association_type_name = association_type_name
@@ -1609,8 +1564,7 @@ class AssociationSet(object):
     @association_type.setter
     def association_type(self, value):
         if self._association_type is not None:
-            raise RuntimeError('Cannot replace {} of {} with {}'
-                               .format(self._association_type, self, value))
+            raise RuntimeError('Cannot replace {} of {} with {}'.format(self._association_type, self, value))
         self._association_type = value
 
     @staticmethod
@@ -1632,7 +1586,6 @@ class AssociationSet(object):
 
 
 class Annotation(object):
-
     Kinds = enum.Enum('Kinds', 'ValueHelper')
 
     def __init__(self, kind, target, qualifier=None):
@@ -1667,22 +1620,20 @@ class Annotation(object):
         if term == SAP_ANNOTATION_VALUE_LIST:
             return ValueHelper.from_etree(target, annotation_node)
 
-        modlog().warn('Unsupported Annotation({0})'.format(term))
+        modlog().warning('Unsupported Annotation({0})'.format(term))
         return None
 
 
 class ExternalAnnontation(object):
-
     @staticmethod
     def from_etree(annotations_node):
         target = annotations_node.get('Target')
 
         if annotations_node.get('Qualifier'):
-            modlog().warn('Ignoring qualified Annotations of {}'.format(target))
+            modlog().warning('Ignoring qualified Annotations of {}'.format(target))
             return
 
-        for annotation in annotations_node.xpath('edm:Annotation',
-                                                 namespaces=ANNOTATION_NAMESPACES):
+        for annotation in annotations_node.xpath('edm:Annotation', namespaces=ANNOTATION_NAMESPACES):
             annot = Annotation.from_etree(target, annotation)
             if annot is None:
                 continue
@@ -1690,7 +1641,6 @@ class ExternalAnnontation(object):
 
 
 class ValueHelper(Annotation):
-
     def __init__(self, target, collection_path, label, search_supported):
 
         # pylint: disable=unused-argument
@@ -1724,13 +1674,10 @@ class ValueHelper(Annotation):
     @proprty.setter
     def proprty(self, value):
         if self._proprty is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'
-                               .format(self._proprty, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
 
-        if (value.struct_type.name != self.proprty_entity_type_name or
-                value.name != self.proprty_name):
-            raise RuntimeError('{0} cannot be an annotation of {1}'
-                               .format(self, value))
+        if (value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name):
+            raise RuntimeError('{0} cannot be an annotation of {1}'.format(self, value))
 
         self._proprty = value
 
@@ -1740,7 +1687,8 @@ class ValueHelper(Annotation):
                 try:
                     param.local_property = etype.proprty(param.local_property_name)
                 except KeyError:
-                    raise RuntimeError('{0} of {1} points to an non existing LocalDataProperty {2} of {3}'.format(param, self, param.local_property_name, etype))
+                    raise RuntimeError('{0} of {1} points to an non existing LocalDataProperty {2} of {3}'.format(
+                        param, self, param.local_property_name, etype))
 
     @property
     def collection_path(self):
@@ -1753,12 +1701,10 @@ class ValueHelper(Annotation):
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'
-                               .format(self._entity_set, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._entity_set, self, value))
 
         if value.name != self.collection_path:
-            raise RuntimeError('{0} cannot be assigned to {1}'
-                               .format(self, value))
+            raise RuntimeError('{0} cannot be assigned to {1}'.format(self, value))
 
         self._entity_set = value
 
@@ -1768,7 +1714,8 @@ class ValueHelper(Annotation):
                 try:
                     param.list_property = etype.proprty(param.list_property_name)
                 except KeyError:
-                    raise RuntimeError('{0} of {1} points to an non existing ValueListProperty {2} of {3}'.format(param, self, param.list_property_name, etype))
+                    raise RuntimeError('{0} of {1} points to an non existing ValueListProperty {2} of {3}'.format(
+                        param, self, param.list_property_name, etype))
 
     @property
     def label(self):
@@ -1798,8 +1745,7 @@ class ValueHelper(Annotation):
         collection_path = None
         search_supported = False
         params_node = None
-        for prop_value in annotation_node.xpath('edm:Record/edm:PropertyValue',
-                                                namespaces=ANNOTATION_NAMESPACES):
+        for prop_value in annotation_node.xpath('edm:Record/edm:PropertyValue', namespaces=ANNOTATION_NAMESPACES):
             rprop = prop_value.get('Property')
             if rprop == 'Label':
                 label = prop_value.get('String')
@@ -1810,12 +1756,10 @@ class ValueHelper(Annotation):
             elif rprop == 'Parameters':
                 params_node = prop_value
 
-        value_helper = ValueHelper(target, collection_path, label,
-                                   search_supported)
+        value_helper = ValueHelper(target, collection_path, label, search_supported)
 
         if params_node is not None:
-            for prm in params_node.xpath('edm:Collection/edm:Record',
-                                         namespaces=ANNOTATION_NAMESPACES):
+            for prm in params_node.xpath('edm:Collection/edm:Record', namespaces=ANNOTATION_NAMESPACES):
                 param = ValueHelperParameter.from_etree(prm)
                 param.value_helper = value_helper
                 value_helper._parameters.append(param)
@@ -1824,7 +1768,6 @@ class ValueHelper(Annotation):
 
 
 class ValueHelperParameter(object):
-
     Direction = enum.Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
 
     def __init__(self, direction, local_property_name, list_property_name):
@@ -1840,14 +1783,10 @@ class ValueHelperParameter(object):
         self._list_property_name = list_property_name
 
     def __str__(self):
-        if self._direction in [ValueHelperParameter.Direction.DisplayOnly,
-                               ValueHelperParameter.Direction.FilterOnly]:
-            return "{0}({1})".format(self.__class__.__name__,
-                                     self._list_property_name)
+        if self._direction in [ValueHelperParameter.Direction.DisplayOnly, ValueHelperParameter.Direction.FilterOnly]:
+            return "{0}({1})".format(self.__class__.__name__, self._list_property_name)
 
-        return "{0}({1}={2})".format(self.__class__.__name__,
-                                     self._local_property_name,
-                                     self._list_property_name)
+        return "{0}({1}={2})".format(self.__class__.__name__, self._local_property_name, self._list_property_name)
 
     @property
     def value_helper(self):
@@ -1856,8 +1795,7 @@ class ValueHelperParameter(object):
     @value_helper.setter
     def value_helper(self, value):
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'
-                               .format(self._value_helper, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._value_helper, self, value))
 
         self._value_helper = value
 
@@ -1876,8 +1814,7 @@ class ValueHelperParameter(object):
     @local_property.setter
     def local_property(self, value):
         if self._local_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'
-                               .format(self._local_property, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._local_property, self, value))
 
         self._local_property = value
 
@@ -1892,8 +1829,7 @@ class ValueHelperParameter(object):
     @list_property.setter
     def list_property(self, value):
         if self._list_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'
-                               .format(self._list_property, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._list_property, self, value))
 
         self._list_property = value
 
@@ -1903,8 +1839,7 @@ class ValueHelperParameter(object):
         direction = SAP_VALUE_HELPER_DIRECTIONS[typ]
         local_prop_name = None
         list_prop_name = None
-        for pval in value_help_parameter_node.xpath('edm:PropertyValue',
-                                                    namespaces=ANNOTATION_NAMESPACES):
+        for pval in value_help_parameter_node.xpath('edm:PropertyValue', namespaces=ANNOTATION_NAMESPACES):
             pv_name = pval.get('Property')
             if pv_name == 'LocalDataProperty':
                 local_prop_name = pval.get('PropertyPath')
@@ -1915,7 +1850,6 @@ class ValueHelperParameter(object):
 
 
 class FunctionImport(Identifier):
-
     def __init__(self, name, return_type_info, entity_set, parameters, http_method='GET'):
         super(FunctionImport, self).__init__(name)
 
@@ -1936,12 +1870,10 @@ class FunctionImport(Identifier):
     @return_type.setter
     def return_type(self, value):
         if self._return_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'
-                               .format(self._return_type, self, value))
+            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._return_type, self, value))
 
         if value.name != self.return_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'
-                               .format(value, self))
+            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._return_type = value
 
@@ -1968,8 +1900,7 @@ class FunctionImport(Identifier):
         rt_info = Types.parse_type_name(function_import_node.get('ReturnType'))
 
         parameters = dict()
-        for param in function_import_node.xpath('edm:Parameter',
-                                                namespaces=NAMESPACES):
+        for param in function_import_node.xpath('edm:Parameter', namespaces=NAMESPACES):
             param_name = param.get('Name')
             param_type_info = Types.parse_type_name(param.get('Type'))
             param_nullable = param.get('Nullable')
@@ -1978,21 +1909,17 @@ class FunctionImport(Identifier):
             param_scale = param.get('Scale')
             param_mode = param.get('Mode')
 
-            parameters[param_name] = FunctionImportParameter(param_name, param_type_info,
-                                                             param_nullable, param_max_length,
-                                                             param_precision, param_scale,
-                                                             param_mode)
+            parameters[param_name] = FunctionImportParameter(param_name, param_type_info, param_nullable,
+                                                             param_max_length, param_precision, param_scale, param_mode)
 
         return FunctionImport(name, rt_info, entity_set, parameters, http_method)
 
 
 class FunctionImportParameter(VariableDeclaration):
-
     Modes = enum.Enum('Modes', 'In Out InOut')
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale, mode):
-        super(FunctionImportParameter,
-              self).__init__(name, type_info, nullable, max_length, precision, scale)
+        super(FunctionImportParameter, self).__init__(name, type_info, nullable, max_length, precision, scale)
 
         self._mode = mode
 
@@ -2035,21 +1962,14 @@ NAMESPACES = {
     'edm': 'http://schemas.microsoft.com/ado/2008/09/edm'
 }
 
-ANNOTATION_NAMESPACES = {
-    'edm': 'http://docs.oasis-open.org/odata/ns/edm'
-}
+ANNOTATION_NAMESPACES = {'edm': 'http://docs.oasis-open.org/odata/ns/edm'}
 
 SAP_VALUE_HELPER_DIRECTIONS = {
-    'com.sap.vocabularies.Common.v1.ValueListParameterIn':
-    ValueHelperParameter.Direction.In,
-    'com.sap.vocabularies.Common.v1.ValueListParameterInOut':
-    ValueHelperParameter.Direction.InOut,
-    'com.sap.vocabularies.Common.v1.ValueListParameterOut':
-    ValueHelperParameter.Direction.Out,
-    'com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly':
-    ValueHelperParameter.Direction.DisplayOnly,
-    'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly':
-    ValueHelperParameter.Direction.FilterOnly
+    'com.sap.vocabularies.Common.v1.ValueListParameterIn': ValueHelperParameter.Direction.In,
+    'com.sap.vocabularies.Common.v1.ValueListParameterInOut': ValueHelperParameter.Direction.InOut,
+    'com.sap.vocabularies.Common.v1.ValueListParameterOut': ValueHelperParameter.Direction.Out,
+    'com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly': ValueHelperParameter.Direction.DisplayOnly,
+    'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly
 }
 
 SAP_ANNOTATION_VALUE_LIST = 'com.sap.vocabularies.Common.v1.ValueList'
@@ -2065,16 +1985,15 @@ class Edmx(object):
     @staticmethod
     def parse(metadata_xml):
         """ Build model from the XML metadata"""
-        if type(metadata_xml) == str:
+        if isinstance(metadata_xml, str):
             mdf = io.StringIO(metadata_xml)
-        elif type(metadata_xml) == bytes:
+        elif isinstance(metadata_xml, bytes):
             mdf = io.BytesIO(metadata_xml)
         else:
             raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(metadata_xml)))
         # the first child element has name 'Edmx'
         edmx = etree.parse(mdf)
-        edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema',
-                                 namespaces=NAMESPACES)
+        edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=NAMESPACES)
         schema = Schema.from_etree(edm_schemas)
         return schema
 
