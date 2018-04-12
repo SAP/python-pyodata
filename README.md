@@ -1,5 +1,7 @@
 # PyOData - Enterprise ready Python OData client
 
+[![Build Status](https://travis-ci.mo.sap.corp/FXUBRQ-QE/PyOData.svg?token=G9EFWqYiXfkJ45eRAiew&branch=master)](https://travis-ci.mo.sap.corp/FXUBRQ-QE/PyOData)
+
 OData client Python module
 
 ## Requirements
