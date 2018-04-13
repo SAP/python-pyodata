@@ -23,6 +23,7 @@ deploy:
       branch: master
 
 notifications:
+    slack: sap-labs-brno:Afd3b6JnD4O9aTC5y4wj5GWm
     email:
         recipients:
             - jakub.filak@sap.com
