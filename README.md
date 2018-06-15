@@ -30,6 +30,14 @@ employee1 = client.entity_sets.Employees.get_entity(1).execute()
 print employee1.FirstName
 ```
 
+### Get one entity identified by its key value which is not scalar
+
+```python
+# Get number of orderd units in the order identified by ProductID 42 and OrderID 10248.
+order = client.entity_sets.Order_Details.get_entity(OrderID=10248, ProductID=42).execute()
+print(order.Quantity)
+```
+
 ### Get all entities of an entity set
 
 ```python
@@ -101,6 +109,14 @@ batch.add_request(changeset)
 response = batch.execute()
 
 print(response[0].EmployeeID, response[0].LastName)
+```
+
+### Calling a function import
+
+```python
+products = client.functions.GetProductsByRating.parameter('rating', 16).execute()
+for prod in products:
+    print(prod)
 ```
 
 # Contributing
