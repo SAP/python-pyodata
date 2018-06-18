@@ -411,30 +411,57 @@ class EntityCreateRequest(ODataHttpRequest):
         # pylint: disable=no-self-use
         return 'POST'
 
-    def get_body(self):
-        # pylint: disable=no-self-use
+    def _get_body(self):
+        """Recursively builds a dictionary of values where some of the values
+           might be another entities.
+        """
+
         body = {}
         for key, val in self._values.items():
-            body[key] = val
-        return json.dumps(body)
+            # The value is either an entity or a scalar
+            if isinstance(val, EntityProxy):
+                body[key] = val._get_body()  # pylint: disable=protected-access
+            else:
+                body[key] = val
+
+        return body
+
+    def get_body(self):
+        return json.dumps(self._get_body())
 
     def get_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
+    @staticmethod
+    def _build_values(entity_type, entity):
+        """Recursively converts a dictionary of values where some of the values
+           might be another entities (navigation properties) into the internal
+           representation.
+        """
+
+        values = {}
+        for key, val in entity.items():
+            try:
+                entity_type.proprty(key)
+            except KeyError:
+                try:
+                    nav_prop = entity_type.nav_proprty(key)
+                    val = EntityCreateRequest._build_values(nav_prop.typ, val)
+                except KeyError:
+                    raise PyODataException('Property {} is not declared in {} entity type'.format(
+                        key, entity_type.name))
+
+            values[key] = val
+
+        return values
+
     def set(self, **kwargs):
         """Set properties on the new entity."""
-        # TODO: consider use of attset for setting properties
 
         self._logger.info(kwargs)
 
-        for key, val in kwargs.items():
-            try:
-                self._entity_type.proprty(key)
-            except KeyError:
-                raise PyODataException(
-                    'Property {} is not declared in {} entity type'.format(key, self._entity_type.name))
-
-            self._values[key] = val
+        # TODO: consider use of attset for setting properties
+        self._values = EntityCreateRequest._build_values(self._entity_type, kwargs)
 
         return self
 

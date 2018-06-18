@@ -83,6 +83,34 @@ def test_create_entity_code_400(service):
 
 
 @responses.activate
+def test_create_entity_nested(service):
+    """Basic test on creating entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/Cars".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Name': 'Hadraplan',
+        }},
+        status=201)
+
+    responses.add(
+        responses.GET,
+        "{0}/Cars('Hadraplan')/IDPic/$value/".format(service.url),
+        headers={'Content-type': 'application/jpeg'},
+        body='DEADBEEF',
+        status=200)
+
+    entity = {'Name': 'Hadraplan', 'IDPic' : {'Content': 'DEADBEEF'}}
+    result = service.entity_sets.Cars.create_entity().set(**entity).execute()
+
+    assert result.Name == 'Hadraplan'
+    assert result.nav('IDPic').get_value().execute().content == b'DEADBEEF'
+
+@responses.activate
 def test_get_entity_property(service):
     """Basic test on getting single property of selected entity"""
 
