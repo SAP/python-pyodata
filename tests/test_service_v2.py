@@ -439,6 +439,108 @@ def test_navigation_1on1(service):
 
 
 @responses.activate
+def test_navigation_1on1_get_value_without_proxy(service):
+    """Check getting $value via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Cars('Hadraplan')/IDPic/$value/".format(service.url),
+        headers={'Content-type': 'application/jpeg'},
+        body='DEADBEAF',
+        status=200)
+
+    request = service.entity_sets.Cars.get_entity('Hadraplan').nav('IDPic').get_value()
+    assert isinstance(request, pyodata.v2.service.ODataHttpRequest)
+
+    stream = request.execute()
+    assert stream.content == b'DEADBEAF'
+
+
+@responses.activate
+def test_entity_get_value_1on1_with_proxy(service):
+    """Check getting $value"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Cars('Hadraplan')/IDPic".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'CarName': 'Hadraplan',
+            'Content': 'DEADBEAF',
+            }
+        },
+        status=200)
+
+    responses.add(
+        responses.GET,
+        "{0}/Cars('Hadraplan')/IDPic/$value/".format(service.url),
+        headers={'Content-type': 'application/jpeg'},
+        body='DEADBEAF',
+        status=200)
+
+    request = service.entity_sets.Cars.get_entity('Hadraplan').nav('IDPic').execute().get_value()
+    assert isinstance(request, pyodata.v2.service.ODataHttpRequest)
+
+    stream = request.execute()
+    assert stream.content == b'DEADBEAF'
+
+
+@responses.activate
+def test_entity_get_value_without_proxy(service):
+    """Check getting $value without proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/CarIDPics('Hadraplan')/$value/".format(service.url),
+        headers={'Content-type': 'application/jpeg'},
+        body='DEADBEAF',
+        status=200)
+
+    request = service.entity_sets.CarIDPics.get_entity('Hadraplan').get_value()
+    assert isinstance(request, pyodata.v2.service.ODataHttpRequest)
+
+    stream = request.execute()
+    assert stream.content == b'DEADBEAF'
+
+
+@responses.activate
+def test_entity_get_value_with_proxy(service):
+    """Check getting $value with proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/CarIDPics('Hadraplan')".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'CarName': 'Hadraplan',
+            'Content': 'DEADBEAF',
+            }
+        },
+        status=200)
+
+    responses.add(
+        responses.GET,
+        "{0}/CarIDPics('Hadraplan')/$value/".format(service.url),
+        headers={'Content-type': 'application/jpeg'},
+        body='DEADBEAF',
+        status=200)
+
+    request = service.entity_sets.CarIDPics.get_entity('Hadraplan').execute().get_value()
+    assert isinstance(request, pyodata.v2.service.ODataHttpRequest)
+
+    stream = request.execute()
+    assert stream.content == b'DEADBEAF'
+
+
+@responses.activate
 def test_navigation_create_entity(service):
     """Check creating entity via a navigation property"""
 

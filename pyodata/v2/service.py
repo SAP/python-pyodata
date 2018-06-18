@@ -6,11 +6,12 @@
 
 # pylint: disable=too-many-lines
 
-import json
+import os
 import logging
+from functools import partial
+import json
 import random
 from email.parser import Parser
-from functools import partial
 from http.client import HTTPResponse
 from io import BytesIO
 
@@ -344,6 +345,26 @@ class EntityGetRequest(ODataHttpRequest):
             qparams['$expand'] = self._expand
 
         return qparams
+
+    def get_value(self, connection=None):
+        """Returns Value of Media EntityTypes also known as the $value URL suffix."""
+
+        if connection is None:
+            connection = self._connection
+
+        def stream_handler(response):
+            """Returns $value from HTTP Response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('HTTP GET for $value failed with status code {2}'
+                                .format(response.status_code), response)
+
+            return response
+
+        return ODataHttpRequest(
+            os.path.join(self._url, self.get_path(), '$value'),
+            connection,
+            stream_handler)
 
 
 class NavEntityGetRequest(EntityGetRequest):
@@ -747,6 +768,23 @@ class EntityProxy(object):
             '{0}/{1}'.format(path, name),
             partial(proprty_get_handler, path, self._entity_type.proprty(name)),
             connection=connection)
+
+    def get_value(self, connection=None):
+        "Returns $value of Stream entities"
+
+        def value_get_handler(key, response):
+            """Gets property value from HTTP Response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('HTTP GET for $value of Entity {0} failed with status code {1}'
+                                .format(key, response.status_code), response)
+
+            return response
+
+        path = self.get_url()
+        return self._service.http_get_odata('{0}/$value'.format(path),
+                                            partial(value_get_handler, path),
+                                            connection=connection)
 
     @property
     def entity_set(self):
