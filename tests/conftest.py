@@ -63,6 +63,14 @@ def metadata():
             <Property Name="Name" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <Property Name="CodeName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"  sap:filter-restriction="single-value"/>
             <Property Name="Price" Type="Edm.Decimal" Nullable="false" Precision="7" Scale="3" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <NavigationProperty Name="IDPic" Relationship="EXAMPLE_SRV.toCarIDPic" FromRole="FromRole_toCarIDPic" ToRole="ToRole_toCarIDPic"/>
+           </EntityType>
+           <EntityType Name="CarIDPic" m:HasStream="true" sap:content-versiom="1" sap:label="Car ID">
+            <Key>
+             <PropertyRef Name="CarName"/>
+            </Key>
+            <Property Name="CarName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+            <Property Name="Content" Type="Edm.Binary" Nullable="false" sap:label="Picture" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
            </EntityType>
            <ComplexType Name="ComplexNumber">
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
@@ -91,6 +99,18 @@ def metadata():
              </Dependent>
             </ReferentialConstraint>
            </Association>
+           <Association Name="toCarIDPic" sap:content-version="1">
+            <End Type="EXAMPLE_SRV.Car" Multiplicity="1" Role="FromRole_toCarIDPic" />
+            <End Type="EXAMPLE_SRV.CarIDPic" Multiplicity="1" Role="ToRole_toCarIDPic" />
+            <ReferentialConstraint>
+             <Principal Role="FromRole_toCarIDPic">
+              <PropertyRef Name="Name" />
+             </Principal>
+             <Dependent Role="ToRole_toCarIDPic">
+              <PropertyRef Name="CarName" />
+             </Dependent>
+            </ReferentialConstraint>
+           </Association>
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
@@ -98,12 +118,17 @@ def metadata():
             <EntitySet Name="CitiesWithFilter" EntityType="EXAMPLE_SRV.City" sap:requires-filter="true"/>
             <EntitySet Name="CitiesNotAddressable" EntityType="EXAMPLE_SRV.City" sap:addressable="false"/>
             <EntitySet Name="Cars" EntityType="EXAMPLE_SRV.Car" sap:countable="false" sap:pageable="false" sap:topable="true"/>
+            <EntitySet Name="CarIDPics" EntityType="EXAMPLE_SRV.CarIDPic" sap:countable="false" sap:pageable="false" sap:topable="false"/>
             <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET" sap:action-for="EXAMPLE_SRV.MasterEntity">
              <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5" />
             </FunctionImport>
             <AssociationSet Name="toDataEntitySet" Association="EXAMPLE_SRV.toDataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
                 <End EntitySet="MasterEntities" Role="FromRole_toDataEntity" />
                 <End EntitySet="DataValueHelp" Role="ToRole_toDataEntity" />
+            </AssociationSet>
+            <AssociationSet Name="toCarIDPicSet" Association="EXAMPLE_SRV.toCarIDPic" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+              <End EntitySet="Cars" Role="FromRole_toCarIDPic" />
+              <End EntitySet="CarIDPics" Role="ToRole_toCarIDPic" />
             </AssociationSet>
            </EntityContainer>
            <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.MasterEntity/Data">

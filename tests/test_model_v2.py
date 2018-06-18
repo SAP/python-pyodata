@@ -23,7 +23,8 @@ def test_edmx(schema):
         'AnnotationTest',
         'City',
         'TemperatureMeasurement',
-        'Car'
+        'Car',
+        'CarIDPic'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -35,7 +36,8 @@ def test_edmx(schema):
         'CitiesNotAddressable',
         'CitiesWithFilter',
         'TemperatureMeasurements',
-        'Cars'
+        'Cars',
+        'CarIDPics'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -152,7 +154,9 @@ def test_schema_entity_sets(schema):
 def test_edmx_associations(schema):
     """Test parsing of associations and association sets"""
 
-    assert set((association.name for association in schema.associations)) == {'toDataEntity', 'AssociationEmployeeAddress'}
+    assert set((association.name for association in schema.associations)) == {'toCarIDPic',
+                                                                              'toDataEntity',
+                                                                              'AssociationEmployeeAddress'}
 
     association = schema.association('toDataEntity')
     assert str(association) == 'Association(toDataEntity)'
@@ -173,7 +177,9 @@ def test_edmx_associations(schema):
     assert dependent_role.name == 'ToRole_toDataEntity'
     assert dependent_role.property_names == ['Name']
 
-    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet', 'AssociationEmployeeAddress_AssocSet'}
+    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet',
+                                                                                          'AssociationEmployeeAddress_AssocSet',
+                                                                                          'toCarIDPicSet'}
     association_set = schema.association_set('toDataEntitySet')
     assert str(association_set) == 'AssociationSet(toDataEntitySet)'
     assert association_set.association_type.name == 'toDataEntity'
