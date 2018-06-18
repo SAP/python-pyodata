@@ -6,7 +6,6 @@
 
 # pylint: disable=too-many-lines
 
-import os
 import logging
 from functools import partial
 import json
@@ -21,6 +20,12 @@ import pyodata
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError
 
 LOGGER_NAME = 'pyodata.service'
+
+
+def urljoin(*path):
+    """Joins the passed string parts into a one string url"""
+
+    return '/'.join((part.strip('/') for part in path))
 
 
 def encode_multipart(boundary, http_requests):
@@ -268,7 +273,7 @@ class ODataHttpRequest(object):
 
            Fetches HTTP response and returns processed result"""
 
-        url = self._url.rstrip('/') + '/' + self.get_path()
+        url = urljoin(self._url, self.get_path())
         body = self.get_body()
 
         headers = {} if self._headers is None else self._headers
@@ -362,7 +367,7 @@ class EntityGetRequest(ODataHttpRequest):
             return response
 
         return ODataHttpRequest(
-            os.path.join(self._url, self.get_path(), '$value'),
+            urljoin(self._url, self.get_path(), '/$value'),
             connection,
             stream_handler)
 
@@ -790,9 +795,9 @@ class EntityProxy(object):
             data = response.json()['d']
             return proprty.typ.traits.from_json(data[proprty.name])
 
-        path = self.get_url()
+        path = urljoin(self.get_path(), name)
         return self._service.http_get_odata(
-            '{0}/{1}'.format(path, name),
+            path,
             partial(proprty_get_handler, path, self._entity_type.proprty(name)),
             connection=connection)
 
@@ -808,9 +813,9 @@ class EntityProxy(object):
 
             return response
 
-        path = self.get_url()
-        return self._service.http_get_odata('{0}/$value'.format(path),
-                                            partial(value_get_handler, path),
+        path = urljoin(self.get_path(), '/$value')
+        return self._service.http_get_odata(path,
+                                            partial(value_get_handler, self.entity_key),
                                             connection=connection)
 
     @property
@@ -829,7 +834,10 @@ class EntityProxy(object):
     def url(self):
         """URL of the real entity"""
 
-        return self._service.url.rstrip('/') + '/' + self._entity_set._name + self._entity_key.to_key_string()  # pylint: disable=protected-access
+        service_url = self._service.url.rstrip('/')
+        entity_path = self.get_path()
+
+        return urljoin(service_url, entity_path)
 
     def equals(self, other):
         """Returns true if the self and the other contains the same data"""
@@ -847,10 +855,10 @@ class NavEntityProxy(EntityProxy):
         self._parent_entity = parent_entity
         self._prop_name = prop_name
 
-    def get_url(self):
+    def get_path(self):
         """Returns URL of the entity"""
 
-        return '{}/{}'.format(self._parent_entity.get_url(), self._prop_name)
+        return urljoin(self._parent_entity.get_path(), self._prop_name)
 
 
 class GetEntitySetFilter(object):
@@ -1198,7 +1206,7 @@ class Service(object):
         if conn is None:
             conn = self._connection
 
-        return conn.get('{0}/{1}'.format(self._url, path))
+        return conn.get(urljoin(self._url, path))
 
     def http_get_odata(self, path, handler, connection=None):
         """HTTP GET request proxy for the passed path in the service"""
@@ -1208,7 +1216,10 @@ class Service(object):
             conn = self._connection
 
         return ODataHttpRequest(
-            '{0}/{1}'.format(self._url, path), conn, handler, headers={'Accept': 'application/json'})
+            urljoin(self._url, path),
+            conn,
+            handler,
+            headers={'Accept': 'application/json'})
 
     def create_batch(self, batch_id=None):
         """Create instance of OData batch request"""
