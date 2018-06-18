@@ -271,7 +271,10 @@ class ODataHttpRequest(object):
         body = self.get_body()
 
         headers = {} if self._headers is None else self._headers
-        headers.update(self.get_headers())
+
+        extra_headers = self.get_headers()
+        if extra_headers is not None:
+            headers.update(extra_headers)
 
         self._logger.debug('Send (execute) %s request to %s', self.get_method(), url)
         self._logger.debug('  query params: %s', self.get_query_params())
