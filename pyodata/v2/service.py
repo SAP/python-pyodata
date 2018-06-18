@@ -346,6 +346,18 @@ class EntityGetRequest(ODataHttpRequest):
         return qparams
 
 
+class NavEntityGetRequest(EntityGetRequest):
+    """Used for GET operations of a single entity accessed via a Navigation property"""
+
+    def __init__(self, handler, master_key, entity_set_proxy, nav_property):
+        super(NavEntityGetRequest, self).__init__(handler, master_key, entity_set_proxy)
+
+        self._nav_property = nav_property
+
+    def get_path(self):
+        return "{}/{}".format(super(NavEntityGetRequest, self).get_path(), self._nav_property)
+
+
 class EntityCreateRequest(ODataHttpRequest):
     """Used for creating entities (POST operations of a single entity)
 
@@ -710,6 +722,11 @@ class EntityProxy(object):
                               self._service.schema.entity_set(navigation_entity_set), nav_property,
                               self._entity_set.name + self._entity_key.to_key_string())
 
+    def get_url(self):
+        """Returns URL of the entity"""
+
+        return '{0}{1}'.format(self._entity_set._name, self._entity_key.to_key_string())   # pylint: disable=protected-access
+
     def get_proprty(self, name, connection=None):
         """Returns value of the property"""
 
@@ -725,8 +742,7 @@ class EntityProxy(object):
             data = response.json()['d']
             return proprty.typ.traits.from_json(data[proprty.name])
 
-        path = '{0}({1})'.format(self._entity_set._name, self._entity_key.to_key_string())  # pylint: disable=protected-access
-
+        path = self.get_url()
         return self._service.http_get_odata(
             '{0}/{1}'.format(path, name),
             partial(proprty_get_handler, path, self._entity_type.proprty(name)),
@@ -754,6 +770,22 @@ class EntityProxy(object):
         """Returns true if the self and the other contains the same data"""
         # pylint: disable=W0212
         return self._cache == other._cache
+
+
+class NavEntityProxy(EntityProxy):
+    """Special case of an Entity access via 1 to 1 Navigation property"""
+
+    def __init__(self, parent_entity, prop_name, entity_type, entity):
+        # pylint: disable=protected-access
+        super(NavEntityProxy, self).__init__(parent_entity._service, parent_entity._entity_set, entity_type, entity)
+
+        self._parent_entity = parent_entity
+        self._prop_name = prop_name
+
+    def get_url(self):
+        """Returns URL of the entity"""
+
+        return '{}/{}'.format(self._parent_entity.get_url(), self._prop_name)
 
 
 class GetEntitySetFilter(object):
@@ -856,18 +888,56 @@ class EntitySetProxy(object):
                 nav_property, self._entity_set.entity_type))
 
         # Get entity set of navigation property
+        association_info = navigation_property.association_info
         association_set = self._service.schema.association_set_by_association(
-            navigation_property.association_info.name, navigation_property.association_info.namespace)
+            association_info.name,
+            association_info.namespace)
+
         navigation_entity_set = None
         for entity_set in association_set.end_roles:
             if association_set.end_roles[entity_set] == navigation_property.to_role.role:
-                navigation_entity_set = entity_set
+                navigation_entity_set = self._service.schema.entity_set(entity_set, association_info.namespace)
+
         if not navigation_entity_set:
             raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
 
-        return EntitySetProxy(self._service,
-                              self._service.schema.entity_set(navigation_entity_set), nav_property,
-                              self._entity_set.name + key.to_key_string())
+        roles = navigation_property.association.end_roles
+        if all((role.multiplicity != pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+            return self._get_nav_entity(key, nav_property, navigation_entity_set)
+
+        return EntitySetProxy(
+            self._service,
+            navigation_entity_set,
+            nav_property,
+            self._entity_set.name + key.to_key_string())
+
+    def _get_nav_entity(self, master_key, nav_property, navigation_entity_set):
+        """Get entity based on provided key of the master and Navigation property name"""
+
+        def get_entity_handler(parent, nav_property, navigation_entity_set, response):
+            """Gets entity from HTTP response"""
+
+            if response.status_code != requests.codes.ok:
+                raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
+                                .format(self._name, response.status_code), response)
+
+            entity = response.json()['d']
+
+            return NavEntityProxy(parent, nav_property, navigation_entity_set.entity_type, entity)
+
+        self._logger.info(
+            'Getting the nav property %s of the entity %s for the key %s',
+            nav_property,
+            self._entity_set.entity_type.name,
+            master_key)
+
+        parent = EntityProxy(self._service, self, self._entity_set.entity_type, entity_key=master_key)
+
+        return NavEntityGetRequest(
+            partial(get_entity_handler, parent, nav_property, navigation_entity_set),
+            master_key,
+            self,
+            nav_property)
 
     def get_entity(self, key=None, **args):
         """Get entity based on provided key properties"""

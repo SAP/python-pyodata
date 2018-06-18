@@ -409,6 +409,36 @@ def test_navigation(service):
 
 
 @responses.activate
+def test_navigation_1on1(service):
+    """Check getting entity via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Cars('Hadraplan')/IDPic".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'CarName': 'Hadraplan',
+            'Content': 'DEADBEAF',
+            }
+        },
+        status=200)
+
+    request = service.entity_sets.Cars.get_entity('Hadraplan').nav('IDPic')
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    idpic_proxy = request.execute()
+    assert isinstance(idpic_proxy, pyodata.v2.service.NavEntityProxy)
+
+    assert idpic_proxy.entity_set._name == 'Cars'
+    assert idpic_proxy._entity_type.name == 'CarIDPic'
+
+    assert idpic_proxy.CarName == 'Hadraplan'
+    assert idpic_proxy.Content == 'DEADBEAF'
+
+
+@responses.activate
 def test_navigation_create_entity(service):
     """Check creating entity via a navigation property"""
 
