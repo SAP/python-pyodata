@@ -1689,7 +1689,7 @@ class ValueHelper(Annotation):
         if self._proprty is not None:
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
 
-        if (value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name):
+        if value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name:
             raise RuntimeError('{0} cannot be an annotation of {1}'.format(self, value))
 
         self._proprty = value
