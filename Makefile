@@ -1,0 +1,26 @@
+PYTHON_MODULE=pyodata
+
+PYTHON_BIN=python3
+
+PYTEST_MODULE=pytest
+PYTEST_PARAMS=
+
+PYLINT_BIN=pylint-3
+PYLINT_RC_FILE=.pylintrc
+PYLINT_PARAMS=--output-format=parseable --reports=no
+
+FLAKE8_BIN=flake8-3
+FLAKE8_CONFIG_FILE=.flake8
+FLAKE8_PARAMS=
+
+.PHONY=check
+lint:
+	$(PYLINT_BIN) --rcfile=$(PYLINT_RC_FILE) $(PYLINT_PARAMS) $(PYTHON_MODULE)
+	$(FLAKE8_BIN) --config=$(FLAKE8_CONFIG_FILE) $(FLAKE8_PARAMS) $(PYTHON_MODULE)
+
+.PHONY=test
+test:
+	$(PYTHON_BIN) -m $(PYTEST_MODULE) $(PYTEST_PARAMS)
+
+.PHONY=check
+check: lint test

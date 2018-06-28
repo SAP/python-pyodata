@@ -144,7 +144,7 @@ Your username is `yourname` and you're submitting a basic bugfix or feature.
 * `git clone git@github.com:yourname/PyOData`
 * `git checkout -b foo_the_bars` to create new local branch named foo_the_bars
 * Hack, hack, hack
-* Run `python -m pytest`
+* Run `python -m pytest` or `make check`
 * `git status`
 * `git add`
 * `git commit -s -m "Foo the bars"`
@@ -155,3 +155,18 @@ Your username is `yourname` and you're submitting a basic bugfix or feature.
   new bugfix).
 * Hit 'submit'! And please be patient - the maintainers will get to you when
   they can.
+
+## Tips & tricks
+
+If you want to avoid creating pull requests that fail on lint errors but you
+always forgot to run `make check`, create the pre-commit file in the director
+.git/hooks with the following content:
+
+```bash
+#!/bin/sh
+
+make check
+```
+
+Do not forget to run `chmod +x .git/hooks/pre-commit` to make the hook script
+executable.
