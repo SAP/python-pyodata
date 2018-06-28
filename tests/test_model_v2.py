@@ -47,6 +47,9 @@ def test_edmx(schema):
     assert not master_entity.is_value_list
     assert sorted([p.name for p in master_entity.proprties()]) == ['Data', 'DataName', 'DataType', 'Key']
 
+    master_entity_set = schema.entity_set('MasterEntities')
+    assert master_entity_set.label == 'Master entities'
+
     data_entity = schema.entity_type('DataEntity')
     assert str(data_entity) == 'EntityType(DataEntity)'
     assert data_entity.name == 'DataEntity'

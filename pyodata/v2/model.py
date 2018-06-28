@@ -1046,7 +1046,7 @@ class EntityType(StructType):
 
 class EntitySet(Identifier):
     def __init__(self, name, entity_type_info, addressable, creatable, updatable, deletable, searchable, countable,
-                 pageable, topable, req_filter):
+                 pageable, topable, req_filter, label):
         super(EntitySet, self).__init__(name)
 
         self._entity_type_info = entity_type_info
@@ -1060,6 +1060,7 @@ class EntitySet(Identifier):
         self._pageable = pageable
         self._topable = topable
         self._req_filter = req_filter
+        self._label = label
 
     @property
     def entity_type_info(self):
@@ -1115,6 +1116,10 @@ class EntitySet(Identifier):
     def requires_filter(self):
         return self._req_filter
 
+    @property
+    def label(self):
+        return self._label
+
     @staticmethod
     def from_etree(entity_set_node):
         name = entity_set_node.get('Name')
@@ -1130,9 +1135,10 @@ class EntitySet(Identifier):
         pageable = sap_attribute_get_bool(entity_set_node, 'pageable', True)
         topable = sap_attribute_get_bool(entity_set_node, 'topable', pageable)
         req_filter = sap_attribute_get_bool(entity_set_node, 'requires-filter', False)
+        label = sap_attribute_get_string(entity_set_node, 'label')
 
         return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
-                         topable, req_filter)
+                         topable, req_filter, label)
 
 
 class StructTypeProperty(VariableDeclaration):
