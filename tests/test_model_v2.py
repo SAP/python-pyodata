@@ -263,7 +263,7 @@ def test_edmx_complex_types(schema):
 
 
 def test_edmx_complex_type_prop_vh(schema):
-    """Check that value helpers work also for ComplexType properties"""
+    """Check that value helpers work also for ComplexType properties and aliases"""
 
     building = schema.complex_type('Building')
     city_prop = building.proprty('City')

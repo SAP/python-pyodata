@@ -1617,7 +1617,7 @@ class Annotation(object):
     @staticmethod
     def from_etree(target, annotation_node):
         term = annotation_node.get('Term')
-        if term == SAP_ANNOTATION_VALUE_LIST:
+        if term in SAP_ANNOTATION_VALUE_LIST:
             return ValueHelper.from_etree(target, annotation_node)
 
         modlog().warning('Unsupported Annotation({0})'.format(term))
@@ -1962,7 +1962,12 @@ NAMESPACES = {
     'edm': 'http://schemas.microsoft.com/ado/2008/09/edm'
 }
 
-ANNOTATION_NAMESPACES = {'edm': 'http://docs.oasis-open.org/odata/ns/edm'}
+
+ANNOTATION_NAMESPACES = {
+    'edm': 'http://docs.oasis-open.org/odata/ns/edm',
+    'edmx': 'http://docs.oasis-open.org/odata/ns/edmx'
+}
+
 
 SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterIn': ValueHelperParameter.Direction.In,
@@ -1972,7 +1977,8 @@ SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly
 }
 
-SAP_ANNOTATION_VALUE_LIST = 'com.sap.vocabularies.Common.v1.ValueList'
+
+SAP_ANNOTATION_VALUE_LIST = ['com.sap.vocabularies.Common.v1.ValueList']
 
 
 class Edmx(object):
@@ -1993,9 +1999,44 @@ class Edmx(object):
             raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(metadata_xml)))
         # the first child element has name 'Edmx'
         edmx = etree.parse(mdf)
+
+        # aliases - http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html
+        Edmx.update_global_variables_with_alias(Edmx.get_aliases(edmx))
+
         edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=NAMESPACES)
         schema = Schema.from_etree(edm_schemas)
         return schema
+
+    @staticmethod
+    def get_aliases(edmx):
+        """Get all aliases"""
+
+        aliases = collections.defaultdict(set)
+        edm_root = edmx.xpath('/edmx:Edmx', namespaces=NAMESPACES)
+        if edm_root:
+            edm_ref_includes = edm_root[0].xpath('edmx:Reference/edmx:Include', namespaces=ANNOTATION_NAMESPACES)
+            for ref_incl in edm_ref_includes:
+                namespace = ref_incl.get('Namespace')
+                alias = ref_incl.get('Alias')
+                if namespace is not None and alias is not None:
+                    aliases[namespace].add(alias)
+
+        return aliases
+
+    @staticmethod
+    def update_global_variables_with_alias(aliases):
+        """Update global variables with aliases"""
+
+        global SAP_ANNOTATION_VALUE_LIST  # pylint: disable=global-statement
+        namespace, suffix = SAP_ANNOTATION_VALUE_LIST[0].rsplit('.', 1)
+        SAP_ANNOTATION_VALUE_LIST.extend([alias + '.' + suffix for alias in aliases[namespace]])
+
+        global SAP_VALUE_HELPER_DIRECTIONS  # pylint: disable=global-statement
+        helper_direction_keys = list(SAP_VALUE_HELPER_DIRECTIONS.keys())
+        for direction_key in helper_direction_keys:
+            namespace, suffix = direction_key.rsplit('.', 1)
+            for alias in aliases[namespace]:
+                SAP_VALUE_HELPER_DIRECTIONS[alias + '.' + suffix] = SAP_VALUE_HELPER_DIRECTIONS[direction_key]
 
 
 def schema_from_xml(metadata_xml):

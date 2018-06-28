@@ -160,18 +160,18 @@ def metadata():
             </Annotation>
            </Annotations>
            <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.Building/City">
-            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+            <Annotation Term="Common.ValueList">
              <Record>
               <PropertyValue Property="Label" String="Name"/>
               <PropertyValue Property="CollectionPath" String="Cities"/>
               <PropertyValue Property="SearchSupported" Bool="true"/>
               <PropertyValue Property="Parameters">
                <Collection>
-                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterInOut">
+                <Record Type="Common.ValueListParameterInOut">
                  <PropertyValue Property="LocalDataProperty" PropertyPath="City"/>
                  <PropertyValue Property="ValueListProperty" String="Name"/>
                 </Record>
-                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
+                <Record Type="Common.ValueListParameterDisplayOnly">
                  <PropertyValue Property="ValueListProperty" String="Country"/>
                 </Record>
                </Collection>
