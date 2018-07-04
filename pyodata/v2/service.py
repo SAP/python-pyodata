@@ -299,7 +299,11 @@ class ODataHttpRequest:
         self._logger.debug('  url: %s', response.url)
         self._logger.debug('  headers: %s', response.headers)
         self._logger.debug('  status code: %d', response.status_code)
-        self._logger.debug('  body: %s', response.content.decode('utf-8'))
+
+        try:
+            self._logger.debug('  body: %s', response.content.decode('utf-8'))
+        except UnicodeDecodeError:
+            self._logger.debug('  body: <cannot be decoded>')
 
         return self._handler(response)
 
