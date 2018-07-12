@@ -104,6 +104,8 @@ def test_edmx(schema):
 
     car_entity = schema.entity_type('Car')
     assert car_entity.proprty('CodeName').filter_restriction == 'single-value'
+    assert car_entity.proprty('CodeName').required_in_filter
+    assert not car_entity.proprty('Price').required_in_filter
 
     price_prop = car_entity.proprty('Price')
     assert price_prop.precision == 7

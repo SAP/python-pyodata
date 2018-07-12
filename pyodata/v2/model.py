@@ -1146,7 +1146,7 @@ class StructTypeProperty(VariableDeclaration):
 
     # pylint: disable=too-many-locals
     def __init__(self, name, type_info, nullable, max_length, precision, scale, uncode, label, creatable, updatable,
-                 sortable, filterable, filter_restr, text, visible, display_format, value_list):
+                 sortable, filterable, filter_restr, req_in_filter, text, visible, display_format, value_list):
         super(StructTypeProperty, self).__init__(name, type_info, nullable, max_length, precision, scale)
 
         self._value_helper = None
@@ -1158,6 +1158,7 @@ class StructTypeProperty(VariableDeclaration):
         self._sortable = sortable
         self._filterable = filterable
         self._filter_restr = filter_restr
+        self._req_in_filter = req_in_filter
         self._text_proprty_name = text
         self._visible = visible
         self._display_format = display_format
@@ -1224,6 +1225,10 @@ class StructTypeProperty(VariableDeclaration):
         return self._filter_restr
 
     @property
+    def required_in_filter(self):
+        return self._req_in_filter
+
+    @property
     def visible(self):
         return self._visible
 
@@ -1273,6 +1278,7 @@ class StructTypeProperty(VariableDeclaration):
             sap_attribute_get_bool(entity_type_property_node, 'sortable', True),
             sap_attribute_get_bool(entity_type_property_node, 'filterable', True),
             sap_attribute_get_string(entity_type_property_node, 'filter-restriction'),
+            sap_attribute_get_bool(entity_type_property_node, 'required-in-filter', False),
             sap_attribute_get_string(entity_type_property_node, 'text'),
             sap_attribute_get_bool(entity_type_property_node, 'visible', True),
             sap_attribute_get_string(entity_type_property_node, 'display-format'),

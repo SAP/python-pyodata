@@ -61,7 +61,7 @@ def metadata():
               <PropertyRef Name="Name"/>
             </Key>
             <Property Name="Name" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
-            <Property Name="CodeName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"  sap:filter-restriction="single-value"/>
+            <Property Name="CodeName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true" sap:filter-restriction="single-value" sap:required-in-filter="true"/>
             <Property Name="Price" Type="Edm.Decimal" Nullable="false" Precision="7" Scale="3" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <NavigationProperty Name="IDPic" Relationship="EXAMPLE_SRV.toCarIDPic" FromRole="FromRole_toCarIDPic" ToRole="ToRole_toCarIDPic"/>
            </EntityType>
