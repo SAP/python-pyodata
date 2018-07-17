@@ -97,7 +97,7 @@ def decode_multipart(data, content_type):
     return decoded
 
 
-class ODataHttpResponse(object):
+class ODataHttpResponse:
     """Representation of http response"""
 
     def __init__(self, headers, status_code, content=None):
@@ -112,7 +112,7 @@ class ODataHttpResponse(object):
             Based on: https://stackoverflow.com/questions/24728088/python-parse-http-response-string
         """
 
-        class FakeSocket(object):
+        class FakeSocket:
             """Fake socket to simulate received http response content"""
 
             def __init__(self, response_str):
@@ -145,7 +145,7 @@ class ODataHttpResponse(object):
         return None
 
 
-class EntityKey(object):
+class EntityKey:
     """An immutable entity-key, made up of either a single value (single)
        or multiple key-value pairs (complex).
 
@@ -225,7 +225,7 @@ class EntityKey(object):
         return self.to_key_string()
 
 
-class ODataHttpRequest(object):
+class ODataHttpRequest:
     """Deferred HTTP Request"""
 
     def __init__(self, url, connection, handler, headers=None):
@@ -655,7 +655,7 @@ class FunctionRequest(QueryRequest):
         }
 
 
-class EntityProxy(object):
+class EntityProxy:
     """An immutable OData entity instance, consisting of an identity (an
        entity-set and a unique entity-key within that set), properties (typed,
        named values), and links (references to other entities).
@@ -871,7 +871,7 @@ class NavEntityProxy(EntityProxy):
         return urljoin(self._parent_entity.get_path(), self._prop_name)
 
 
-class GetEntitySetFilter(object):
+class GetEntitySetFilter:
     """Create filters for humans"""
 
     def __init__(self, proprty):
@@ -924,7 +924,7 @@ class GetEntitySetRequest(QueryRequest):
         return GetEntitySetFilter(proprty)
 
 
-class EntitySetProxy(object):
+class EntitySetProxy:
     """EntitySet Proxy"""
 
     def __init__(self, service, entity_set, alias=None, parent_last_segment=None):
@@ -1107,7 +1107,7 @@ class EntitySetProxy(object):
 
 
 # pylint: disable=too-few-public-methods
-class EntityContainer(object):
+class EntityContainer:
     """Set of EntitSet proxies"""
 
     def __init__(self, service):
@@ -1126,7 +1126,7 @@ class EntityContainer(object):
                 'EntitySet {0} not defined in {1}.'.format(name, ','.join(list(self._entity_sets.keys()))))
 
 
-class FunctionContainer(object):
+class FunctionContainer:
     """Set of Function proxies
 
        Call a server-side functions (also known as a service operation).
@@ -1169,7 +1169,7 @@ class FunctionContainer(object):
                                partial(function_import_handler, fimport), fimport)
 
 
-class Service(object):
+class Service:
     """OData service"""
 
     def __init__(self, url, schema, connection):

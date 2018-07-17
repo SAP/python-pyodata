@@ -28,7 +28,7 @@ def modlog():
     return logging.getLogger(LOGGER_NAME)
 
 
-class Identifier(object):
+class Identifier:
     def __init__(self, name):
         super(Identifier, self).__init__()
 
@@ -54,7 +54,7 @@ class Identifier(object):
         return IdentifierInfo(parts[0], parts[1])
 
 
-class Types(object):
+class Types:
     """Repository of all available OData types
 
        Since each type has instance of appropriate type, this
@@ -145,7 +145,7 @@ class Types(object):
         return TypeInfo(parts[0], parts[1], is_collection)
 
 
-class EdmStructTypeSerializer(object):
+class EdmStructTypeSerializer:
     """Basic implementation of (de)serialization for Edm complex types
 
        All properties existing in related Edm type are taken
@@ -199,7 +199,7 @@ class EdmStructTypeSerializer(object):
         return result
 
 
-class TypTraits(object):
+class TypTraits:
     """Encapsulated differences between types"""
 
     def __repr__(self):
@@ -505,8 +505,8 @@ class VariableDeclaration(Identifier):
                                     .format(self._scale, self._precision))
 
 
-class Schema(object):
-    class Declaration(object):
+class Schema:
+    class Declaration:
         def __init__(self, namespace):
             super(Schema.Declaration, self).__init__()
 
@@ -1347,7 +1347,7 @@ class NavigationTypeProperty(VariableDeclaration):
             node.get('Name'), node.get('FromRole'), node.get('ToRole'), Identifier.parse(node.get('Relationship')))
 
 
-class EndRole(object):
+class EndRole:
     MULTIPLICITY_ONE = '1'
     MULTIPLICITY_ZERO_OR_ONE = '0..1'
     MULTIPLICITY_ZERO_OR_MORE = '*'
@@ -1401,7 +1401,7 @@ class EndRole(object):
         return EndRole(entity_type_info, multiplicity, role)
 
 
-class ReferentialConstraintRole(object):
+class ReferentialConstraintRole:
     def __init__(self, name, property_names):
         self._name = name
         self._property_names = property_names
@@ -1423,7 +1423,7 @@ class DependentRole(ReferentialConstraintRole):
     pass
 
 
-class ReferentialConstraint(object):
+class ReferentialConstraint:
     def __init__(self, principal, dependent):
         self._principal = principal
         self._dependent = dependent
@@ -1471,7 +1471,7 @@ class ReferentialConstraint(object):
             PrincipalRole(principal_name, principal_refs), DependentRole(dependent_name, dependent_refs))
 
 
-class Association(object):
+class Association:
     """Defines a relationship between two entity types.
 
        An association must specify the entity types that are involved in
@@ -1536,7 +1536,7 @@ class Association(object):
         return association
 
 
-class AssociationSet(object):
+class AssociationSet:
     def __init__(self, name, association_type_name, association_type_namespace, end_roles):
         self._name = name
         self._association_type_name = association_type_name
@@ -1591,7 +1591,7 @@ class AssociationSet(object):
         return AssociationSet(name, association_type_name, scheme_namespace, end_roles)
 
 
-class Annotation(object):
+class Annotation:
     Kinds = enum.Enum('Kinds', 'ValueHelper')
 
     def __init__(self, kind, target, qualifier=None):
@@ -1630,7 +1630,7 @@ class Annotation(object):
         return None
 
 
-class ExternalAnnontation(object):
+class ExternalAnnontation:
     @staticmethod
     def from_etree(annotations_node):
         target = annotations_node.get('Target')
@@ -1773,7 +1773,7 @@ class ValueHelper(Annotation):
         return value_helper
 
 
-class ValueHelperParameter(object):
+class ValueHelperParameter:
     Direction = enum.Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
 
     def __init__(self, direction, local_property_name, list_property_name):
@@ -1987,7 +1987,7 @@ SAP_VALUE_HELPER_DIRECTIONS = {
 SAP_ANNOTATION_VALUE_LIST = ['com.sap.vocabularies.Common.v1.ValueList']
 
 
-class Edmx(object):
+class Edmx:
 
     # pylint: disable=useless-super-delegation
 

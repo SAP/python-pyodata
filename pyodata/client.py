@@ -7,7 +7,7 @@ import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError
 
 
-class Client(object):
+class Client:
     """OData service client"""
 
     # pylint: disable=too-few-public-methods
