@@ -255,11 +255,13 @@ class ODataHttpRequest:
         # pylint: disable=no-self-use
         return 'GET'
 
+    # pylint: disable=useless-return
     def get_body(self):
         """Get HTTP body or None if not applicable"""
         # pylint: disable=no-self-use
         return None
 
+    # pylint: disable=useless-return
     def get_headers(self):
         """Get dict of HTTP headers"""
         # pylint: disable=no-self-use
@@ -274,10 +276,12 @@ class ODataHttpRequest:
            Fetches HTTP response and returns processed result"""
 
         url = urljoin(self._url, self.get_path())
+        # pylint: disable=assignment-from-none
         body = self.get_body()
 
         headers = {} if self._headers is None else self._headers
 
+        # pylint: disable=assignment-from-none
         extra_headers = self.get_headers()
         if extra_headers is not None:
             headers.update(extra_headers)
