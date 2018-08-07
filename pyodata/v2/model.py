@@ -100,13 +100,17 @@ class Types:
             Types._build_types()
 
         # register type only if it doesn't exist
+        # pylint: disable=unsupported-membership-test
         if typ.name not in Types.Types:
+            # pylint: disable=unsupported-assignment-operation
             Types.Types[typ.name] = typ
 
         # automatically create and register collection variant if not exists
         collection_name = 'Collection({})'.format(typ.name)
+        # pylint: disable=unsupported-membership-test
         if collection_name not in Types.Types:
             collection_typ = Collection(typ.name, typ)
+            # pylint: disable=unsupported-assignment-operation
             Types.Types[collection_name] = collection_typ
 
     @staticmethod
