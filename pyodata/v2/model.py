@@ -128,6 +128,7 @@ class Types:
             name = name[11:-1]  # strip collection() decorator
             search_name = 'Collection({})'.format(name)
 
+        # pylint: disable=unsubscriptable-object
         return Types.Types[search_name]
 
     @staticmethod
