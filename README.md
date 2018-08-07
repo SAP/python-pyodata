@@ -119,6 +119,32 @@ for prod in products:
     print(prod)
 ```
 
+## Error handling
+
+PyOData returns HttpError when the response code does not match the expected
+code.
+
+In the case you know the implementation of back-end part and you want to show
+accurate errors reported by your service, you can replace HttpError by your
+sub-class HttpError by assigning your type into the class member VendorType of
+the class HttpError.
+
+```python
+from pyodata.exceptions import HttpError
+
+
+class MyHttpError(HttpError):
+
+    def __init__(self, message, response):
+        super(MyHttpError, self).__init__('Better message', response)
+
+
+HttpError.VendorType = MyHttpError
+```
+
+The class ```pyodata.vendors.SAP.BusinessGatewayError``` is an example of such
+an HTTP error handling.
+
 # Contributing
 
 Before contributing, please, make yourself familiar with git. You can [try git
