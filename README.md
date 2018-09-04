@@ -145,6 +145,30 @@ HttpError.VendorType = MyHttpError
 The class ```pyodata.vendors.SAP.BusinessGatewayError``` is an example of such
 an HTTP error handling.
 
+## Metadata tests
+
+By default, the client makes sure that references to properties, entities and
+entity sets are pointing to existing elements.
+
+The most often problem that we had to deal with was an invalid ValueList annotion
+pointing to a non-existing property.
+
+
+### Property has this label
+
+```python
+
+assert client.schema.entity_type('Customer').proprty('CustomerID').label == 'Identifier'
+```
+
+### Property has a value helper
+
+```python
+
+assert client.schema.entity_type('Customer').proprty('City').value_helper is not None
+```
+
+
 # Contributing
 
 Before contributing, please, make yourself familiar with git. You can [try git
