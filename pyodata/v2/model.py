@@ -1,5 +1,5 @@
 """
-Simple stupid representation of Metadata of OData V2
+Simple representation of Metadata of OData V2
 
 Author: Jakub Filak <jakub.filak@sap.com>
 Date:   2017-08-21
