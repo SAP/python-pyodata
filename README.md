@@ -72,6 +72,45 @@ for smith in smith_employees_request.execute():
     print(smith.EmployeeID)
 ```
 
+### Creating entity
+
+You need to use the method set which accepts key value parameters:
+
+```python
+employee_data = {
+    'FirstName': 'Mark',
+    'LastName': 'Goody',
+    'Address': {
+        'HouseNumber': 42,
+        'Street': 'Paradise',
+        'City': 'Heaven'
+    }
+}
+
+create_request = client.entity_sets.Employees.create_entity()
+create_request.set(**employee_data)
+
+new_employee_entity = create_request.execute()
+```
+
+or you can do it explicitly:
+
+```python
+create_request = client.entity_sets.Employees.create_entity()
+create_request.set(
+    FirstName='Mark',
+    LastName='Goody',
+    Address={
+        'HouseNumber': 42,
+        'Street': 'Paradise',
+        'City': 'Heaven'
+    }
+)
+
+new_employee_entity = request.execute()
+```
+
+
 ### Batch requests
 
 Example of batch request that contains 3 simple entity queries
