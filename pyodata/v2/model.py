@@ -997,7 +997,6 @@ class StructType(Typ):
         return Typ.Kinds.Complex
 
     @property
-    # pylint: disable=useless-return
     def null_value(self):
         return None
 

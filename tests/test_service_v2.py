@@ -279,7 +279,7 @@ def test_function_import_primitive(service):
 
     responses.add(
         responses.GET,
-        "{0}/sum?A=2&B=4'".format(service.url),
+        "{0}/sum?A=2&B=4".format(service.url),
         headers={'Content-type': 'application/json'},
         json={'d': 6},
         status=200)
