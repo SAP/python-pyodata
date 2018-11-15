@@ -181,7 +181,7 @@ class MyHttpError(HttpError):
 HttpError.VendorType = MyHttpError
 ```
 
-The class ```pyodata.vendors.SAP.BusinessGatewayError``` is an example of such
+The class ```pyodata.vendor.SAP.BusinessGatewayError``` is an example of such
 an HTTP error handling.
 
 ## Metadata tests
