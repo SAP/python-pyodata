@@ -135,6 +135,29 @@ def test_create_entity_header_x_requested_with(service):
 
 
 @responses.activate
+def test_create_entity_nested_list(service):
+    """Test for creating entity with nested list"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/Cars".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Name': 'Hadraplan',
+            'IDPic': [{
+                'CarName': 'Hadraplan-Plus'
+            }]
+        }},
+        status=201)
+
+    entity = {'Name': 'Hadraplan', 'IDPic' : [{'CarName': 'Hadraplan-Plus'}]}
+    result = service.entity_sets.Cars.create_entity().set(**entity).execute()
+
+    assert responses.calls[0].request.body == '{"Name": "Hadraplan", "IDPic": [{"CarName": "Hadraplan-Plus"}]}'
+
+@responses.activate
 def test_get_entity_property(service):
     """Basic test on getting single property of selected entity"""
 

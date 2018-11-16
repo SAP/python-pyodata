@@ -450,6 +450,9 @@ class EntityCreateRequest(ODataHttpRequest):
            representation.
         """
 
+        if isinstance(entity, list):
+            return [EntityCreateRequest._build_values(entity_type, item) for item in entity]
+
         values = {}
         for key, val in entity.items():
             try:
