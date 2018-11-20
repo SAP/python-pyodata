@@ -110,6 +110,30 @@ def test_create_entity_nested(service):
     assert result.Name == 'Hadraplan'
     assert result.nav('IDPic').get_value().execute().content == b'DEADBEEF'
 
+
+@responses.activate
+def test_create_entity_header_x_requested_with(service):
+    """Test for header with item X-Requested-With in create entity request"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/Cars".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Name': 'Hadraplan',
+        }},
+        status=201)
+
+    entity = {'Name': 'Hadraplan'}
+    result = service.entity_sets.Cars.create_entity().set(**entity).execute()
+
+    assert result.Name == 'Hadraplan'
+    assert 'X-Requested-With' in responses.calls[0].request.headers
+    assert responses.calls[0].request.headers['X-Requested-With'] == 'X'
+
+
 @responses.activate
 def test_get_entity_property(service):
     """Basic test on getting single property of selected entity"""

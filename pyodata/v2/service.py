@@ -441,7 +441,7 @@ class EntityCreateRequest(ODataHttpRequest):
         return json.dumps(self._get_body())
 
     def get_headers(self):
-        return {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With' : 'X'}
 
     @staticmethod
     def _build_values(entity_type, entity):
