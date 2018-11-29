@@ -21,13 +21,35 @@ def test_invalid_odata_version():
 
 
 @responses.activate
-def test_create_service(metadata):
-    """Check client creation for valid use case"""
+def test_create_service_application_xml(metadata):
+    """Check client creation for valid use case with MIME type 'application/xml'"""
 
     responses.add(
         responses.GET,
         "{0}/$metadata".format(SERVICE_URL),
-        headers={'Content-type': 'text/xml'},
+        content_type='application/xml',
+        body=metadata,
+        status=200)
+
+    client = pyodata.Client(SERVICE_URL, requests)
+
+    assert isinstance(client, pyodata.v2.service.Service)
+
+    # onw more test for '/' terminated url
+
+    client = pyodata.Client(SERVICE_URL + '/', requests)
+
+    assert isinstance(client, pyodata.v2.service.Service)
+
+
+@responses.activate
+def test_create_service_text_xml(metadata):
+    """Check client creation for valid use case with MIME type 'text/xml'"""
+
+    responses.add(
+        responses.GET,
+        "{0}/$metadata".format(SERVICE_URL),
+        content_type='text/xml',
         body=metadata,
         status=200)
 
@@ -49,10 +71,26 @@ def test_metadata_not_reachable():
     responses.add(
         responses.GET,
         "{0}/$metadata".format(SERVICE_URL),
-        headers={'Content-type': 'text/xml'},
+        content_type='text/html',
         status=404)
 
     with pytest.raises(HttpError) as e_info:
         pyodata.Client(SERVICE_URL, requests)
 
     assert str(e_info.value).startswith('Metadata request failed')
+
+
+@responses.activate
+def test_metadata_saml_not_authorized():
+    """Check handling of not SAML / OAuth unauthorized response"""
+
+    responses.add(
+        responses.GET,
+        "{0}/$metadata".format(SERVICE_URL),
+        content_type='text/html; charset=utf-8',
+        status=200)
+
+    with pytest.raises(HttpError) as e_info:
+        pyodata.Client(SERVICE_URL, requests)
+
+    assert str(e_info.value).startswith('Metadata request did not return XML, MIME type:')

@@ -28,9 +28,19 @@ class Client:
             logger.info('Fetching metadata')
             resp = connection.get(url + '$metadata')
 
+            logger.debug('Retrieved the response:\n%s\n%s',
+                         '\n'.join((f'H: {key}: {value}' for key, value in resp.headers.items())),
+                         resp.content)
+
             if resp.status_code != 200:
                 raise HttpError(
                     'Metadata request failed, status code: {}, body:\n{}'.format(resp.status_code, resp.content), resp)
+
+            mime_type = resp.headers['content-type']
+            if mime_type not in ['application/xml', 'text/xml']:
+                raise HttpError(
+                    'Metadata request did not return XML, MIME type: {}, body:\n{}'.format(mime_type, resp.content),
+                    resp)
 
             # create model instance from received metadata
             logger.info('Creating OData Schema (version: %d)', odata_version)
