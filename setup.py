@@ -59,7 +59,7 @@ setup(
         "setuptools>=38.2.4",
         "setuptools-scm>=1.15.6",
         "funcsigs>=1.0.2",
-        "requests==2.13.0",
+        "requests==2.20.0",
         "responses>=0.8.1",
         "pytest>=2.7.0",
     ],
