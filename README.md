@@ -103,3 +103,13 @@ Your username is `yourname` and you're submitting a basic bugfix or feature.
   new bugfix).
 * Hit 'submit'! And please be patient - the maintainers will get to you when
   they can.
+
+# License
+
+Copyright (c) 2019 SAP SE or an SAP affiliate company.
+
+All rights reserved.  This file is licensed under
+
+    the Apache Software License, v. 2
+
+except as noted otherwise in [the LICENSE file](LICENSE)
