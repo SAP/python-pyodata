@@ -47,6 +47,10 @@ There have been no limitations discovered yet.
 
 This projects is issue-free. Should you have any doubts, please, consult [our issue tracker](https://github.com/SAP/python-pyodata/issues).
 
+## How to obtain support
+
+We provide unclaimable support via [GitHub issues](https://github.com/SAP/python-pyodata/issues)
+
 ## Usage
 
 ### Get the service
