@@ -14,6 +14,26 @@ details.
 - [funcsigs >= 1.0.2](https://pypi.org/project/funcsigs/)
 - [lxml >= 3.7.3](https://pypi.org/project/lxml/)
 
+## Download and Installation
+
+You can obtain the latest version for this repository as [ZIP archive](https://github.com/SAP/python-pyodata/archive/master/pyodata.zip).
+
+You can also use [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) to clone and pull the repository.
+
+```bash
+git clone https://github.com/SAP/python-pyodata.git
+```
+
+To make the pyodata Python module available in your projects, you need to
+install the sub-directory __pyodata__ into [the Module Search Path](https://docs.python.org/3/tutorial/modules.html#the-module-search-path).
+
+You can make use of [pip](https://packaging.python.org/tutorials/installing-packages/#installing-from-vcs)
+to install the pyodata module automatically:
+
+```bash
+pip install -e git+https://github.com/SAP/python-pyodata.git
+```
+
 ## Usage
 
 ### Get the service
