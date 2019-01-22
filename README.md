@@ -39,6 +39,10 @@ pip install -e git+https://github.com/SAP/python-pyodata.git
 You can start building your OData projects straight away after installing the
 Python module without any additional configuration steps needed.
 
+## Limitations
+
+There have been no limitations discovered yet.
+
 ## Usage
 
 ### Get the service
