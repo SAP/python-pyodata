@@ -43,6 +43,10 @@ Python module without any additional configuration steps needed.
 
 There have been no limitations discovered yet.
 
+## Known Issues
+
+This projects is issue-free. Should you have any doubts, please, consult [our issue tracker](https://github.com/SAP/python-pyodata/issues).
+
 ## Usage
 
 ### Get the service
