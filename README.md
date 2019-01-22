@@ -8,7 +8,11 @@ details.
 
 ## Requirements
 
-- Python 3.6
+- [Python >= 3.6](https://www.python.org/downloads/release/python-368/)
+- [requests == 2.20.0](https://pypi.org/project/requests/2.20.0/)
+- [enum34 >= 1.0.4](https://pypi.org/project/enum34/)
+- [funcsigs >= 1.0.2](https://pypi.org/project/funcsigs/)
+- [lxml >= 3.7.3](https://pypi.org/project/lxml/)
 
 ## Usage
 
