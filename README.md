@@ -52,7 +52,7 @@ client = pyodata.Client(SERVICE_URL, requests.Session())
 
 Find more sophisticated examples in the [USAGE](USAGE.md) section.
 
-# Contributing
+## Contributing
 
 Before contributing, please, make yourself familiar with git. You can [try git
 online](https://try.github.io/). Things would be easier for all of us if you do
@@ -68,7 +68,7 @@ negative decisions - i.e. why you decided to not do particular things. Please
 bare in mind that other developers might not understand what the original
 problem was.
 
-## Full example
+### Full example
 
 Here's an example workflow for a project `PyOData` hosted on Github
 Your username is `yourname` and you're submitting a basic bugfix or feature.
@@ -89,7 +89,7 @@ Your username is `yourname` and you're submitting a basic bugfix or feature.
 * Hit 'submit'! And please be patient - the maintainers will get to you when
   they can.
 
-# License
+## License
 
 Copyright (c) 2019 SAP SE or an SAP affiliate company.
 
