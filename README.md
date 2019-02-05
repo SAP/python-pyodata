@@ -1,6 +1,6 @@
 # python-pyodata
 
-Enterprise-ready Python OData client which provides comfortable Python agnostic
+Python OData client which provides comfortable Python agnostic
 way for communication with OData services.
 
 The goal of this Python module is to hide all OData protocol implementation
