@@ -34,7 +34,7 @@ There are no known issues at this time.
 
 ## How to obtain support
 
-We provide unclaimable support via [GitHub issues](https://github.com/SAP/python-pyodata/issues)
+We accept bug reports, feature requests, questions and comments via [GitHub issues](https://github.com/SAP/python-pyodata/issues)
 
 ## Usage
 
