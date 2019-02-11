@@ -1,4 +1,4 @@
-# python-pyodata
+# Python OData Client - pyodata
 
 Python OData client which provides comfortable Python agnostic
 way for communication with OData services.
