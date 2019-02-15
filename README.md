@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/SAP/python-pyodata.svg?branch=master)](https://travis-ci.org/SAP/python-pyodata)
+
 # Python OData Client - pyodata
 
 Python OData client which provides comfortable Python agnostic
