@@ -18,35 +18,24 @@ import re
 from setuptools import setup, find_packages
 import subprocess
 
-version_re = re.compile('^Version: (.+)$', re.M)
 source_location = os.path.abspath(os.path.dirname(__file__))
 
-def get_version():
-    d = dirname(__file__)
 
-    # Get the version using "git describe".
-    cmd = 'git describe --tags --always'.split()
-    try:
-        version = subprocess.check_output(cmd).decode().strip()
-    except subprocess.CalledProcessError:
-        print('Unable to get version number from git tags, asuming inside package')
-        # no git - we are inside pip package
-        with open(join(d, 'PKG-INFO')) as f:
-            version = version_re.search(f.read()).group(1)
-
-    # PEP 386 compatibility
-    if '-' in version:
-        version = '.post'.join(version.split('-')[:2])
-    return version
+NAME = 'python-pyodata'
+HERE = os.path.abspath(os.path.dirname(__file__))
+def _read(name):
+    with open(os.path.join(HERE, name), 'r', encoding='utf-8') as f:
+        return f.read()
 
 setup(
     name="pyodata",
-    version=get_version(),
+    version=_read('VERSION').strip(),
     license="Apache License Version 2.0",
     url="https://github.wdf.sap.corp/I335255/PyOData",
     author="Jakub Filak, Michal Nezerka, Patrik Petrik, Lubos Mjachky",
     author_email="jakub.filak@sap.com, michal.nezerka@sap.com, patrik.petrik@sap.com, lubos.mjachky@sap.com",
     description="Enterprise ready Python OData client",
+    long_description=_read('README.md'),
     packages=find_packages(exclude=("tests")),
     zip_safe=False,
     install_requires=[
@@ -64,7 +53,7 @@ setup(
         "pytest>=2.7.0",
     ],
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
