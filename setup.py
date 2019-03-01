@@ -40,7 +40,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "enum34>=1.0.4",
-        "lxml==3.7.3",
+        "lxml>=3.7.3",
     ],
     extras_require={
     },
