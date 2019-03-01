@@ -14,12 +14,12 @@ details.
 
 ## Download and Installation
 
-You can make use of [pip](https://packaging.python.org/tutorials/installing-packages/#installing-from-vcs)
-to install the pyodata module automatically:
+Install and update using pip:
 
 ```bash
-pip install -e git+https://github.com/SAP/python-pyodata.git
+pip install -U pyodata
 ```
+
 
 ## Configuration
 
