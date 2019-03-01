@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/SAP/python-pyodata.svg?branch=master)](https://travis-ci.org/SAP/python-pyodata)
+[![PyPI version](https://badge.fury.io/py/pyodata.svg)](https://badge.fury.io/py/pyodata)
 
 # Python OData Client - pyodata
 
