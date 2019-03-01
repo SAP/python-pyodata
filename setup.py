@@ -31,7 +31,7 @@ setup(
     name="pyodata",
     version=_read('VERSION').strip(),
     license="Apache License Version 2.0",
-    url="https://github.wdf.sap.corp/I335255/PyOData",
+    url="https://github.com/SAP/python-pyodata",
     author="Jakub Filak, Michal Nezerka, Patrik Petrik, Lubos Mjachky",
     author_email="jakub.filak@sap.com, michal.nezerka@sap.com, patrik.petrik@sap.com, lubos.mjachky@sap.com",
     description="Enterprise ready Python OData client",
