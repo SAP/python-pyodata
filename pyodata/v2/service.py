@@ -1134,6 +1134,12 @@ class EntityContainer:
             raise AttributeError(
                 'EntitySet {0} not defined in {1}.'.format(name, ','.join(list(self._entity_sets.keys()))))
 
+    @property
+    def names(self):
+        """Names of entity sets"""
+
+        return list(self._entity_sets.keys())
+
 
 class FunctionContainer:
     """Set of Function proxies
@@ -1211,6 +1217,12 @@ class Service:
         """EntitySet proxy"""
 
         return self._entity_container
+
+    @property
+    def entity_names(self):
+        """Names of entity sets"""
+
+        return self._entity_container.names
 
     @property
     def functions(self):
