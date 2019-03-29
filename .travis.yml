@@ -1,3 +1,4 @@
+
 dist: trusty
 language: python
 python:
@@ -8,11 +9,13 @@ install:
   - pip install .
   - pip install -r requirements.txt
   - pip install pylint
+  - pip install bandit
 
 # command to run tests
 script:
   - pylint pyodata
   - py.test
+  - bandit -r -lll .
 
 notifications:
     email:
