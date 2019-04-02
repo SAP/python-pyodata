@@ -17,7 +17,7 @@ client = pyodata.Client(SERVICE_URL, requests.Session())
 ```python
 # Get employee identified by 1 and print employee first name
 employee1 = client.entity_sets.Employees.get_entity(1).execute()
-print employee1.FirstName
+print(employee1.FirstName)
 ```
 
 ### Get one entity identified by its key value which is not scalar
@@ -33,7 +33,7 @@ print(order.Quantity)
 ```python
 
 # Print unique identification (Id) and last name of all cemployees
-employees = client.entity_sets.Employees.get_entities().select('EmployeeID,LasttName').execute()
+employees = client.entity_sets.Employees.get_entities().select('EmployeeID,LastName').execute()
 for employee in employees:
     print(employee.EmployeeID, employee.LastName)
 ```
@@ -60,6 +60,22 @@ smith_employees_request = smith_employees_request.filter(GetEntitySetFilter.and_
                                                          smith_employees_request.LastName == 'Smith'))
 for smith in smith_employees_request.execute():
     print(smith.EmployeeID)
+```
+
+### Get a count of entities
+
+```python
+# Print a count of all employees
+count = client.entity_sets.Employees.get_entities().count().execute()
+print(count)
+```
+
+### Get a count of entities via navigation property
+
+```python
+# Print a count of all orders associated with Employee 1
+count = client.entity_sets.Employees.get_entity(1).nav('Orders').get_entities().count().execute()
+print(count)
 ```
 
 ### Creating entity

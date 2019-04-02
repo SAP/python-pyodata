@@ -659,7 +659,9 @@ class Schema:
     def entity_set(self, set_name, namespace=None):
         if namespace is not None:
             try:
-                return self._decls[namespace].entity_sets[set_name]
+                entity_sets = self._decls[namespace].entity_sets
+                if entity_sets:
+                    return entity_sets[set_name]
             except KeyError:
                 raise KeyError('EntitySet {} does not exist in Schema Namespace {}'.format(set_name, namespace))
 
@@ -722,14 +724,16 @@ class Schema:
 
     def association_set_by_association(self, association_name, namespace=None):
         if namespace is not None:
-            for association_set in list(self._decls[namespace].association_sets.values()):
+            association_sets = list(self._decls[namespace].association_sets.values())
+            for association_set in association_sets:
                 if association_set.association_type.name == association_name:
                     return association_set
-            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(
-                association_name, namespace))
+            if association_sets:
+                raise KeyError('Association set with association type {} does not exist in namespace {}'.format(
+                    association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
-                if association_set.association_type == association_name:
+                if association_set.association_type_name == association_name:
                     return association_set
         raise KeyError('Association set with association type {} does not exist'.format(association_name))
 

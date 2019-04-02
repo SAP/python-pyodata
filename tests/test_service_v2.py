@@ -1046,3 +1046,81 @@ def test_get_entity_set_query_filter_property_error(service):
     with pytest.raises(KeyError) as e_info:
         assert not request.Foo == 'bar'
     assert e_info.value.args[0] == 'Foo'
+
+
+@responses.activate
+def test_count(service):
+    """Check getting $count"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count".format(service.url),
+        json=23,
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 23
+
+
+@responses.activate
+def test_count_with_skip(service):
+    """Check getting $count with $skip"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$skip=12".format(service.url),
+        json=11,
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().skip(12).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 11
+
+
+@responses.activate
+def test_navigation_count(service):
+    """Check getting $count via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses/$count".format(service.url),
+        json=458,
+        status=200)
+
+    addresses = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+    request = addresses.count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 458
+
+
+@responses.activate
+def test_navigation_count_with_filter(service):
+    """Check getting $count via navigation property with $filter"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses/$count?$filter=City eq 'London'".format(service.url),
+        json=3,
+        status=200)
+
+    addresses = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+    request = addresses.filter(addresses.City == 'London').count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
