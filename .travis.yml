@@ -1,4 +1,5 @@
-dist: trusty
+dist: xenial
+sudo: required
 language: python
 python:
   - "3.6"
