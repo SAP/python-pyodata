@@ -1,7 +1,9 @@
-dist: trusty
+dist: xenial
+sudo: required
 language: python
 python:
   - "3.6"
+  - "3.7"
 
 # command to install dependencies
 install:
