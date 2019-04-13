@@ -543,6 +543,7 @@ class QueryRequest(ODataHttpRequest):
         super(QueryRequest, self).__init__(url, connection, handler)
 
         self._logger = logging.getLogger(LOGGER_NAME)
+        self._count = None
         self._top = None
         self._skip = None
         self._order_by = None
@@ -557,6 +558,11 @@ class QueryRequest(ODataHttpRequest):
         """Adds a custom name-value pair."""
         # returns QueryRequest
         self._customs[name] = value
+        return self
+
+    def count(self):
+        """Sets a flag to return the number of items."""
+        self._count = True
         return self
 
     def expand(self, expand):
@@ -596,9 +602,15 @@ class QueryRequest(ODataHttpRequest):
         return self
 
     def get_path(self):
+        if self._count:
+            return urljoin(self._last_segment, '/$count')
+
         return self._last_segment
 
     def get_headers(self):
+        if self._count:
+            return {}
+
         return {
             'Accept': 'application/json',
         }
@@ -1064,7 +1076,12 @@ class EntitySetProxy:
                 raise HttpError('HTTP GET for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
-            entities = response.json()['d']['results']
+            content = response.json()
+
+            if isinstance(content, int):
+                return content
+
+            entities = content['d']['results']
 
             result = []
             for props in entities:
