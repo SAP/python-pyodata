@@ -729,7 +729,7 @@ class Schema:
                 association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
-                if association_set.association_type == association_name:
+                if association_set.association_type.name == association_name:
                     return association_set
         raise KeyError('Association set with association type {} does not exist'.format(association_name))
 
