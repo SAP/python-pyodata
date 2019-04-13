@@ -196,6 +196,14 @@ def test_edmx_associations(schema):
     assert association_set.association_type.name == 'toDataEntity'
     assert association_set.end_roles == {'DataValueHelp': 'ToRole_toDataEntity', 'MasterEntities': 'FromRole_toDataEntity'}
 
+    # with namespace
+    association_set = schema.association_set_by_association('CustomerOrders', namespace='EXAMPLE_SRV_SETS')
+    assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
+
+    # without namespace
+    association_set = schema.association_set_by_association('CustomerOrders')
+    assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
+
 
 def test_edmx_navigation_properties(schema):
     """Test parsing of navigation properties"""
