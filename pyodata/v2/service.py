@@ -321,7 +321,7 @@ class EntityGetRequest(ODataHttpRequest):
         self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._entity_set_proxy.last_segment)
 
     def nav(self, nav_property):
-        """Navigates to given navigation property and returns the EntritySetProxy"""
+        """Navigates to given navigation property and returns the EntitySetProxy"""
         return self._entity_set_proxy.nav(nav_property, self._entity_key)
 
     def select(self, select):
@@ -761,7 +761,7 @@ class EntityProxy:
                                      .format(self._entity_type.name, attr, str(ex)))
 
     def nav(self, nav_property):
-        """Navigates to given navigation property and returns the EntritySetProxy"""
+        """Navigates to given navigation property and returns the EntitySetProxy"""
 
         # for now duplicated with simillar method in entity set proxy class
         try:
@@ -971,7 +971,7 @@ class EntitySetProxy:
         return self._parent_last_segment + entity_set_name
 
     def nav(self, nav_property, key):
-        """Navigates to given navigation property and returns the EntritySetProxy"""
+        """Navigates to given navigation property and returns the EntitySetProxy"""
 
         try:
             navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
