@@ -24,7 +24,9 @@ def test_edmx(schema):
         'City',
         'TemperatureMeasurement',
         'Car',
-        'CarIDPic'
+        'CarIDPic',
+        'Customer',
+        'Order'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -37,7 +39,9 @@ def test_edmx(schema):
         'CitiesWithFilter',
         'TemperatureMeasurements',
         'Cars',
-        'CarIDPics'
+        'CarIDPics',
+        'Customers',
+        'Orders'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -161,6 +165,7 @@ def test_edmx_associations(schema):
 
     assert set((association.name for association in schema.associations)) == {'toCarIDPic',
                                                                               'toDataEntity',
+                                                                              'CustomerOrders',
                                                                               'AssociationEmployeeAddress'}
 
     association = schema.association('toDataEntity')
@@ -184,6 +189,7 @@ def test_edmx_associations(schema):
 
     assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet',
                                                                                           'AssociationEmployeeAddress_AssocSet',
+                                                                                          'CustomerOrder_AssocSet',
                                                                                           'toCarIDPicSet'}
     association_set = schema.association_set('toDataEntitySet')
     assert str(association_set) == 'AssociationSet(toDataEntitySet)'
