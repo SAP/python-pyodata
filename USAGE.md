@@ -182,6 +182,25 @@ entity sets are pointing to existing elements.
 The most often problem that we had to deal with was an invalid ValueList annotion
 pointing to a non-existing property.
 
+To enable verification of service definition, the client instance of the class
+`Service` publishes the property `schema` which returns an instance of the
+class `Schema` from the module [pyodata.v2.model](pyodata/v2/model.py) and it
+contains parsed `$metadata`.
+
+### List of the defined EntitySets
+
+If you need to iterate over all EntitySets:
+
+```python
+for es in service.schema.entity_sets:
+     print(es.name)
+```
+
+or if you just need the list of EntitySet names:
+
+```python
+entity_set_names = [es.name for es in service.schema.entity_sets]
+```
 
 ### Property has this label
 
