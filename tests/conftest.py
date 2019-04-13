@@ -72,6 +72,23 @@ def metadata():
             <Property Name="CarName" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Data" sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             <Property Name="Content" Type="Edm.Binary" Nullable="false" sap:label="Picture" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
            </EntityType>
+
+           <EntityType Name="Customer">
+            <Key>
+             <PropertyRef Name="Name"/>
+            </Key>
+            <Property Name="Name" Type="Edm.String" Nullable="false" />
+            <NavigationProperty Name="Orders" Relationship="EXAMPLE_SRV.CustomerOrders" FromRole="CustomerRole" ToRole="OrdersRole"/>
+           </EntityType>
+
+           <EntityType Name="Order">
+            <Key>
+             <PropertyRef Name="Number"/>
+            </Key>
+            <Property Name="Number" Type="Edm.String" Nullable="false" />
+            <Property Name="Owner" Type="Edm.String" Nullable="false" />
+           </EntityType>
+
            <ComplexType Name="ComplexNumber">
             <Property Name="Real" Type="Edm.Double" Nullable="false"/>
             <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
@@ -111,6 +128,20 @@ def metadata():
              </Dependent>
             </ReferentialConstraint>
            </Association>
+
+           <Association Name="CustomerOrders">
+            <End Role="CustomerRole" Type="EXAMPLE_SRV.Customer" Multiplicity="1"/>
+            <End Role="OrdersRole" Type="EXAMPLE_SRV.Order" Multiplicity="*"/>
+            <ReferentialConstraint>
+             <Principal Role="CustomerRole">
+              <PropertyRef Name="Name"/>
+             </Principal>
+             <Dependent Role="OrdersRole">
+              <PropertyRef Name="Owner"/>
+             </Dependent>
+            </ReferentialConstraint>
+           </Association>
+
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:label="Master entities" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
@@ -237,6 +268,10 @@ def metadata():
 
                 <EntitySet Name="Addresses" EntityType="Address"/>
 
+                <EntitySet Name="Customers" EntityType="EXAMPLE_SRV.Customer"/>
+
+                <EntitySet Name="Orders" EntityType="EXAMPLE_SRV.Order"/>
+
                 <FunctionImport Name="get_max" ReturnType="TemperatureMeasurement" EntitySet="TemperatureMeasurements" m:HttpMethod="GET" />
 
                 <FunctionImport Name="get_best_measurements" ReturnType="Collection(EXAMPLE_SRV.TemperatureMeasurement)" EntitySet="EXAMPLE_SRV.TemperatureMeasurements" m:HttpMethod="GET" />
@@ -254,6 +289,11 @@ def metadata():
                 <AssociationSet Name="AssociationEmployeeAddress_AssocSet" Association="EXAMPLE_SRV_SETS.AssociationEmployeeAddress" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
                     <End Role="EmployeeRole" EntitySet="Employees"/>
                     <End Role="AddressRole" EntitySet="Addresses"/>
+                </AssociationSet>
+
+                <AssociationSet Name="CustomerOrder_AssocSet" Association="EXAMPLE_SRV.CustomerOrders">
+                    <End Role="CustomerRole" EntitySet="Customers"/>
+                    <End Role="OrdersRole" EntitySet="Orders"/>
                 </AssociationSet>
 
             </EntityContainer>

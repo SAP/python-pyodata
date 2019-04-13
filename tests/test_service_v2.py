@@ -534,6 +534,35 @@ def test_navigation_1on1_get_value_without_proxy(service):
 
 
 @responses.activate
+def test_navigation_when_nes_in_another_ns(service):
+    """Check whether it is possible to navigate when AssociationSet is defined
+       in a different namespace.
+   """
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Customers('Mammon')/Orders".format(service.url),
+        json={'d': {'results' : [{
+            'Number': '456',
+            'Owner': 'Mammon',
+        }]}},
+        status=200)
+
+    request = service.entity_sets.Customers.get_entity('Mammon').nav('Orders').get_entities()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    orders = request.execute()
+
+    assert len(orders) == 1
+
+    assert orders[0].Number == '456'
+    assert orders[0].Owner == 'Mammon'
+
+
+@responses.activate
 def test_entity_get_value_1on1_with_proxy(service):
     """Check getting $value"""
 
