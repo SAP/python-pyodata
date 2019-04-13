@@ -204,6 +204,21 @@ def test_edmx_associations(schema):
     association_set = schema.association_set_by_association('CustomerOrders')
     assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
 
+    # error handling: without namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.association_set_by_association('FooBar')
+    assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in any Schema Namespace'
+
+    # error handling: with unknown namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.association_set_by_association('FooBar', namespace='BLAH')
+    assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
+
+    # error handling: with namespace
+    with pytest.raises(KeyError) as typ_ex_info:
+        assert schema.association_set_by_association('FooBar', namespace='EXAMPLE_SRV')
+    assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in Schema Namespace EXAMPLE_SRV'
+
 
 def test_edmx_navigation_properties(schema):
     """Test parsing of navigation properties"""

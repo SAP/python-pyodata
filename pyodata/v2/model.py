@@ -560,10 +560,18 @@ class Schema:
             collection_type_name = 'Collection({})'.format(ctype.name)
             self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
 
+    class Declarations(dict):
+
+        def __getitem__(self, key):
+            try:
+                return super(Schema.Declarations, self).__getitem__(key)
+            except KeyError:
+                raise KeyError('There is no Schema Namespace {}'.format(key))
+
     def __init__(self):
         super(Schema, self).__init__()
 
-        self._decls = dict()
+        self._decls = Schema.Declarations()
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, ','.join(self.namespaces))
@@ -725,13 +733,14 @@ class Schema:
             for association_set in list(self._decls[namespace].association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
-            raise KeyError('Association set with association type {} does not exist in namespace {}'.format(
+            raise KeyError('Association Set for Association {} does not exist in Schema Namespace {}'.format(
                 association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
-        raise KeyError('Association set with association type {} does not exist'.format(association_name))
+        raise KeyError('Association Set for Association {} does not exist in any Schema Namespace'.format(
+            association_name))
 
     def association_set(self, set_name, namespace=None):
         if namespace is not None:
