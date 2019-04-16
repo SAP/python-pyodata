@@ -51,7 +51,7 @@ class Identifier:
         if len(parts) == 1:
             return IdentifierInfo(None, value)
 
-        return IdentifierInfo(parts[0], parts[1])
+        return IdentifierInfo('.'.join(parts[:-1]), parts[-1])
 
 
 class Types:
@@ -139,15 +139,12 @@ class Types:
         if is_collection:
             type_name = type_name[11:-1]  # strip collection() decorator
 
-        parts = type_name.split('.')
+        identifier = Identifier.parse(type_name)
 
-        if len(parts) == 1:
+        if identifier.namespace == 'Edm':
             return TypeInfo(None, type_name, is_collection)
 
-        if len(parts) > 1 and parts[0] == 'Edm':
-            return TypeInfo(None, type_name, is_collection)
-
-        return TypeInfo(parts[0], parts[1], is_collection)
+        return TypeInfo(identifier.namespace, identifier.name, is_collection)
 
 
 class EdmStructTypeSerializer:
@@ -1651,7 +1648,7 @@ class AssociationSet:
     def from_etree(association_set_node):
         end_roles = []
         name = association_set_node.get('Name')
-        scheme_namespace, association_type_name = association_set_node.get('Association').split('.', 1)
+        association = Identifier.parse(association_set_node.get('Association'))
 
         end_roles_list = association_set_node.xpath('edm:End', namespaces=NAMESPACES)
         if len(end_roles) > 2:
@@ -1660,7 +1657,7 @@ class AssociationSet:
         for end_role in end_roles_list:
             end_roles.append(AssociationSetEndRole.from_etree(end_role))
 
-        return AssociationSet(name, association_type_name, scheme_namespace, end_roles)
+        return AssociationSet(name, association.name, association.namespace, end_roles)
 
 
 class Annotation:

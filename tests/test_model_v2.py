@@ -686,6 +686,70 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
     except RuntimeError as ex:
         assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
 
+def test_namespace_with_periods(metadata_builder_factory):
+    """Make sure Namespace can contain period"""
+
+    builder = metadata_builder_factory()
+    builder.add_schema(
+        'Several.Levels.Of.Names',
+        """
+        <EntityType Name="Dict" sap:content-version="1">
+         <Key><PropertyRef Name="Key"/></Key>
+         <Property Name="Key" Type="Edm.String" Nullable="false"/>
+         <Property Name="Value" Type="Edm.String" Nullable="false"/>
+        </EntityType>
+
+        <EntityType Name="Database" sap:content-version="1">
+         <Key><PropertyRef Name="Data"/></Key>
+         <Property Name="Data" Type="Edm.String" Nullable="false"/>
+         <NavigationProperty Name="Tables" Relationship="Several.Levels.Of.Names.DatabaseTables" ToRole="Table" FromRole="Schema"/>
+        </EntityType>
+
+        <Association Name="DatabaseTables">
+          <End Type="Several.Levels.Of.Names.Dict" Role="Table" Multiplicity="*"/>
+          <End Type="Several.Levels.Of.Names.Database" Role="Schema" Multiplicity="0"/>
+          <ReferentialConstraint>
+            <Principal Role="Schema">
+              <PropertyRef Name="Data"/>
+            </Principal>
+            <Dependent Role="Table">
+              <PropertyRef Name="Key"/>
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+
+        <EntityContainer Name="EXAMPLE_SRV">
+         <EntitySet Name="Schemas" EntityType="Several.Levels.Of.Names.Database"/>
+         <EntitySet Name="Tables" EntityType="Several.Levels.Of.Names.Dict"/>
+         <AssociationSet Name="SchemaTablesSet" Association="Several.Levels.Of.Names.DatabaseTables">
+           <End Role="Table" EntitySet="Tables"/>
+           <End Role="Schema" EntitySet="Schemas"/>
+         </AssociationSet>
+        </EntityContainer>
+        """
+    )
+
+    schema = Edmx.parse(builder.serialize())
+
+    db_entity = schema.entity_type('Database')
+
+    nav_prop = db_entity.nav_proprty('Tables')
+
+    assert str(nav_prop) == 'NavigationTypeProperty(Tables)'
+
+    assert str(nav_prop.to_role) == 'EndRole(Table)'
+    assert str(nav_prop.to_role.entity_type) == 'EntityType(Dict)'
+
+    association_info = nav_prop.association_info
+
+    association_set = schema.association_set_by_association(association_info.name, association_info.namespace)
+
+    assert association_set is not None
+
+    end_role = association_set.end_by_role(nav_prop.to_role.role)
+
+    assert end_role is not None
+
 
 def test_edmx_entity_sets(schema):
     """Test EntitySet"""
