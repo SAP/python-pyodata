@@ -6,5 +6,10 @@
   * e592063 - model: fix searching for Assoc. Set without NS - Jakub Filak 
   * 36cb45f - service: do not search for Ass. Sets in own namespace - Jakub Filak 
   * a280798 - service: add implementation of count - FedorSelitsky 
-  * c626660 - code: fix coding style violation - FedorSelitsky 
 
+# 1.1.2
+
+  * e69fee6 - client: correctly detect MIME of $metadata - Jakub Filak
+  * 9c23ff8 - dependencies: Update setup.py - minimal lxml instead of pinned. - Petr Hanak
+
+# 1.1.1 - First PIP package release 
