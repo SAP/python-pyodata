@@ -12,6 +12,32 @@ SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
 client = pyodata.Client(SERVICE_URL, requests.Session())
 ```
 
+### Get the service proxy client for an OData service requiring authentication
+
+Let's assume you need to work with a service at
+the URL `https://odata.example.com/Secret.svc` and User ID is 'MyUser' with
+the password 'MyPassword'.
+
+PyOData expects that the used HTTP library will take care about this task.
+
+In this example we configure
+[Session](https://2.python-requests.org/en/master/user/advanced/#session-objects) of
+[python-requests](https://2.python-requests.org/en/master/) to handle
+user authentication.
+
+```python
+import requests
+import pyodata
+
+SERVICE_URL = 'https://odata.example.com/Secret.svc'
+
+session = requests.Session()
+session.auth = ('MyUser', 'MyPassword')
+
+# Create instance of OData client
+client = pyodata.Client(SERVICE_URL, session)
+```
+
 ### Get one entity identified by its key value
 
 ```python
