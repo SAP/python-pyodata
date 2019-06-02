@@ -38,6 +38,26 @@ session.auth = ('MyUser', 'MyPassword')
 client = pyodata.Client(SERVICE_URL, session)
 ```
 
+To verify server's certificate, use
+
+```  python
+session.verify = '/path/to/certfile'
+```
+
+If client side certificates are required, specify a local path containing the certificate and private key,
+
+```python
+session.cert = '/path/client.cert'
+```
+
+or, as a tuple of both files' paths
+
+```python
+session.cert = ('/path/client.cert', '/path/client.key')
+```
+
+For more information on client side SSL cerificationcas, please refer to this [gist](https://gist.github.com/mtigas/952344).
+
 ### Get one entity identified by its key value
 
 ```python
@@ -248,13 +268,13 @@ entity_set_names = [es.name for es in service.schema.entity_sets]
 
 ```python
 
-assert client.schema.entity_type('Customer').proprty('CustomerID').label == 'Identifier'
+assert client.schema.entity_type('Customer').property('CustomerID').label == 'Identifier'
 ```
 
 ### Property has a value helper
 
 ```python
 
-assert client.schema.entity_type('Customer').proprty('City').value_helper is not None
+assert client.schema.entity_type('Customer').property('City').value_helper is not None
 ```
 
