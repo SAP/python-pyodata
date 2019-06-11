@@ -128,7 +128,6 @@ def metadata():
              </Dependent>
             </ReferentialConstraint>
            </Association>
-
            <Association Name="CustomerOrders">
             <End Role="CustomerRole" Type="EXAMPLE_SRV.Customer" Multiplicity="1"/>
             <End Role="OrdersRole" Type="EXAMPLE_SRV.Order" Multiplicity="*"/>
@@ -141,7 +140,10 @@ def metadata():
              </Dependent>
             </ReferentialConstraint>
            </Association>
-
+           <Association Name="toSelfMaster" sap:content-version="1">
+            <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="1" Role="FromRole_toSelfMaster" />
+            <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="0..1" Role="ToRole_toSelfMaster" />
+           </Association>
            <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
             <EntitySet Name="MasterEntities" EntityType="EXAMPLE_SRV.MasterEntity" sap:label="Master entities" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
             <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:searchable="true" sap:content-version="1"/>
@@ -160,6 +162,10 @@ def metadata():
             <AssociationSet Name="toCarIDPicSet" Association="EXAMPLE_SRV.toCarIDPic" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
               <End EntitySet="Cars" Role="FromRole_toCarIDPic" />
               <End EntitySet="CarIDPics" Role="ToRole_toCarIDPic" />
+            </AssociationSet>
+            <AssociationSet Name="toSelfMasterSet" Association="EXAMPLE_SRV.toSelfMaster" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+              <End EntitySet="MasterEntities" Role="FromRole_toSelfMaster" />
+              <End EntitySet="MasterEntities" Role="ToRole_toSelfMaster" />
             </AssociationSet>
            </EntityContainer>
            <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.MasterEntity/Data">
