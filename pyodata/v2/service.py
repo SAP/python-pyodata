@@ -789,9 +789,9 @@ class EntityProxy:
             association_info.namespace)
 
         navigation_entity_set = None
-        for entity_set in association_set.end_roles:
-            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
-                navigation_entity_set = self._service.schema.entity_set(entity_set, association_info.namespace)
+        for end in association_set.end_roles:
+            if association_set.end_by_entity_set(end.entity_set_name).role == navigation_property.to_role.role:
+                navigation_entity_set = self._service.schema.entity_set(end.entity_set_name, association_info.namespace)
 
         if not navigation_entity_set:
             raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
@@ -997,12 +997,12 @@ class EntitySetProxy:
             association_info.name)
 
         navigation_entity_set = None
-        for entity_set in association_set.end_roles:
-            if association_set.end_roles[entity_set] == navigation_property.to_role.role:
-                navigation_entity_set = self._service.schema.entity_set(entity_set)
+        for end in association_set.end_roles:
+            if association_set.end_by_entity_set(end.entity_set_name).role == navigation_property.to_role.role:
+                navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
 
         if not navigation_entity_set:
-            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+            raise PyODataException('No association set for role {} {}'.format(navigation_property.to_role, association_set.end_roles))
 
         roles = navigation_property.association.end_roles
         if all((role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):

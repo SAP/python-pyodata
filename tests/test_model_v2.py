@@ -3,8 +3,8 @@
 
 from datetime import datetime
 import pytest
-import pyodata.v2.model
-from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer
+from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer,\
+    Association, AssociationSet, EndRole, AssociationSetEndRole
 from pyodata.exceptions import PyODataException, PyODataModelError
 
 
@@ -163,10 +163,13 @@ def test_schema_entity_sets(schema):
 def test_edmx_associations(schema):
     """Test parsing of associations and association sets"""
 
-    assert set((association.name for association in schema.associations)) == {'toCarIDPic',
-                                                                              'toDataEntity',
-                                                                              'CustomerOrders',
-                                                                              'AssociationEmployeeAddress'}
+    assert set((association.name for association in schema.associations)) == {
+        'toCarIDPic',
+        'toDataEntity',
+        'CustomerOrders',
+        'AssociationEmployeeAddress',
+        'toSelfMaster'
+    }
 
     association = schema.association('toDataEntity')
     assert str(association) == 'Association(toDataEntity)'
@@ -187,14 +190,31 @@ def test_edmx_associations(schema):
     assert dependent_role.name == 'ToRole_toDataEntity'
     assert dependent_role.property_names == ['Name']
 
-    assert set((association_set.name for association_set in schema.association_sets)) == {'toDataEntitySet',
-                                                                                          'AssociationEmployeeAddress_AssocSet',
-                                                                                          'CustomerOrder_AssocSet',
-                                                                                          'toCarIDPicSet'}
+    assert set((association_set.name for association_set in schema.association_sets)) == {
+        'toDataEntitySet',
+        'AssociationEmployeeAddress_AssocSet',
+        'CustomerOrder_AssocSet',
+        'toCarIDPicSet',
+        'toSelfMasterSet'
+    }
+
     association_set = schema.association_set('toDataEntitySet')
     assert str(association_set) == 'AssociationSet(toDataEntitySet)'
     assert association_set.association_type.name == 'toDataEntity'
-    assert association_set.end_roles == {'DataValueHelp': 'ToRole_toDataEntity', 'MasterEntities': 'FromRole_toDataEntity'}
+
+    # check associated references to entity sets
+    association_set = schema.association_set('toDataEntitySet')
+    entity_sets = {end.entity_set.name for end in association_set.end_roles}
+    assert entity_sets == {'MasterEntities', 'DataValueHelp'}
+
+    end_roles = {(end.entity_set_name, end.role) for end in association_set.end_roles}
+    assert end_roles == {('DataValueHelp', 'ToRole_toDataEntity'), ('MasterEntities', 'FromRole_toDataEntity')}
+
+    # same entity sets in different ends
+    association_set = schema.association_set('toSelfMasterSet')
+    assert str(association_set) == 'AssociationSet(toSelfMasterSet)'
+    end_roles = {(end.entity_set_name, end.role) for end in association_set.end_roles}
+    assert end_roles == {('MasterEntities', 'ToRole_toSelfMaster'), ('MasterEntities', 'FromRole_toSelfMaster')}
 
     # with namespace
     association_set = schema.association_set_by_association('CustomerOrders', namespace='EXAMPLE_SRV_SETS')
@@ -686,10 +706,10 @@ def test_edmx_entity_sets(schema):
 def test_edmx_association_end_by_role():
     """Test the method end_by_role of the class Association"""
 
-    end_from = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ONE, 'From')
-    end_to = pyodata.v2.model.EndRole(None, pyodata.v2.model.EndRole.MULTIPLICITY_ZERO_OR_ONE, 'To')
+    end_from = EndRole(None, EndRole.MULTIPLICITY_ONE, 'From')
+    end_to = EndRole(None, EndRole.MULTIPLICITY_ZERO_OR_ONE, 'To')
 
-    association = pyodata.v2.model.Association('FooBar')
+    association = Association('FooBar')
     association.end_roles.append(end_from)
     association.end_roles.append(end_to)
 
@@ -699,3 +719,27 @@ def test_edmx_association_end_by_role():
     with pytest.raises(KeyError) as typ_ex_info:
         association.end_by_role('Blah')
     assert typ_ex_info.value.args[0] == 'Association FooBar has no End with Role Blah'
+
+
+def test_edmx_association_set_end_by_role():
+    """Test the method end_by_role of the class AssociationSet"""
+
+    end_from = AssociationSetEndRole('From', 'EntitySet')
+    end_to = AssociationSetEndRole('To', 'EntitySet')
+
+    association_set = AssociationSet('FooBar', 'Foo', 'EXAMPLE_SRV', [end_from, end_to])
+
+    assert association_set.end_by_role(end_from.role) == end_from
+    assert association_set.end_by_role(end_to.role) == end_to
+
+
+def test_edmx_association_set_end_by_entity_set():
+    """Test the method end_by_entity_set of the class AssociationSet"""
+
+    end_from = AssociationSetEndRole('From', 'EntitySet1')
+    end_to = AssociationSetEndRole('To', 'EntitySet2')
+
+    association_set = AssociationSet('FooBar', 'Foo', 'EXAMPLE_SRV', [end_from, end_to])
+
+    assert association_set.end_by_entity_set(end_from.entity_set_name) == end_from
+    assert association_set.end_by_entity_set(end_to.entity_set_name) == end_to
