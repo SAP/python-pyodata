@@ -36,6 +36,7 @@ setup(
     author_email="jakub.filak@sap.com, michal.nezerka@sap.com, patrik.petrik@sap.com, lubos.mjachky@sap.com",
     description="Enterprise ready Python OData client",
     long_description=_read('README.md'),
+    long_description_content_type="text/markdown",
     packages=find_packages(exclude=("tests")),
     zip_safe=False,
     install_requires=[
