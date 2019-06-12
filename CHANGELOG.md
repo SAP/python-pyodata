@@ -1,5 +1,8 @@
 # Changelog
 
+# 1.2.1
+  * d95e2b2 - model: handle association set ends with same entity sets - Lubos Mjachky
+
 # 1.2.0
 
   * 69a3ce1 - model: reword error messages for assoc. sets - Jakub Filak 
