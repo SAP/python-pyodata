@@ -21,7 +21,6 @@ Install and update using pip:
 pip install -U pyodata
 ```
 
-
 ## Configuration
 
 You can start building your OData projects straight away after installing the
@@ -41,7 +40,9 @@ We accept bug reports, feature requests, questions and comments via [GitHub issu
 
 ## Usage
 
-The only thing you need to do is to import the _pyodata_ Python module.
+The only thing you need to do is to import the _pyodata_ Python module and
+provide an object implementing interface compatible with [Session Object](https://2.python-requests.org/en/master/user/advanced/#session-objects)
+for the library [Requests](https://2.python-requests.org/en/master/).
 
 ```python
 import requests
