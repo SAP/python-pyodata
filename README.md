@@ -54,7 +54,7 @@ SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
 client = pyodata.Client(SERVICE_URL, requests.Session())
 ```
 
-Find more sophisticated examples in the [USAGE](USAGE.md) section.
+Find more sophisticated examples in [The User Guide](docs/usage/README.md).
 
 ## Contributing
 
