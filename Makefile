@@ -16,7 +16,7 @@ FLAKE8_PARAMS=
 all: check
 
 .PHONY=check
-lint:
+lint: doc
 	$(PYLINT_BIN) --rcfile=$(PYLINT_RC_FILE) $(PYLINT_PARAMS) $(PYTHON_MODULE)
 	$(FLAKE8_BIN) --config=$(FLAKE8_CONFIG_FILE) $(FLAKE8_PARAMS) $(PYTHON_MODULE)
 
@@ -26,3 +26,8 @@ test:
 
 .PHONY=check
 check: lint test
+
+.PHONY=doc
+doc:
+	$(MAKE) -C docs html
+	@ echo -e "\nOpen: file://$$(pwd)/docs/_build/html/index.html"
