@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import sys
+from argparse import ArgumentParser
+
+import pyodata
+import requests
+
+
+def _parse_args(argv):
+    parser = ArgumentParser()
+    parser.add_argument('SERVICE_ROOR_URL', type=str)
+    args = parser.parse_args(argv[1:])
+
+    return args
+
+def _main(argv):
+    args = _parse_args(argv)
+
+    HTTP_LIB = requests.Session()
+
+    print('[Fetching $metadata ...]')
+    client = pyodata.Client(args.SERVICE_ROOR_URL, HTTP_LIB)
+
+    print('[Printing out all Entity Sets ...]')
+    for es in client.schema.entity_sets:
+        print(es.name)
+
+    print('[Done!]')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(_main(sys.argv))
