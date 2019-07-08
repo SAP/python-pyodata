@@ -1,5 +1,8 @@
 # Changelog
 
+# 1.2.2
+  * ed1ae8a - model:  fix namespace parsing - Jakub Filak
+
 # 1.2.1
   * d95e2b2 - model: handle association set ends with same entity sets - Lubos Mjachky
 
