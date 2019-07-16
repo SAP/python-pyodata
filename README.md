@@ -81,7 +81,7 @@ Your username is `yourname` and you're submitting a basic bugfix or feature.
 * `git clone git@github.com:yourname/PyOData`
 * `git checkout -b foo_the_bars` to create new local branch named foo_the_bars
 * Hack, hack, hack
-* Run `python -m pytest` or `make check`
+* Run `python3 -m pytest` or `make check`
 * `git status`
 * `git add`
 * `git commit -s -m "Foo the bars"`
