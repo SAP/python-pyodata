@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer,\
     Association, AssociationSet, EndRole, AssociationSetEndRole
-from pyodata.exceptions import PyODataException, PyODataModelError
+from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 
 def test_edmx(schema):
@@ -807,3 +807,74 @@ def test_edmx_association_set_end_by_entity_set():
 
     assert association_set.end_by_entity_set(end_from.entity_set_name) == end_from
     assert association_set.end_by_entity_set(end_to.entity_set_name) == end_to
+
+
+def test_missing_data_service(metadata_builder_factory):
+    """Test correct handling of missing DataService tag in xml"""
+
+    builder = metadata_builder_factory()
+    builder.data_services_is_enabled = False
+    xml = builder.serialize()
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex) == 'Metadata document is missing the element DataServices'
+
+
+def test_missing_schema(metadata_builder_factory):
+    """Test correct handling of missing Schema tag in xml"""
+
+    builder = metadata_builder_factory()
+    builder.schema_is_enabled = False
+    xml = builder.serialize()
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex) == 'Metadata document is missing the element Schema'
+
+
+def test_namespace_whitelist(metadata_builder_factory):
+    """Test correct handling of whitelisted namespaces"""
+
+    builder = metadata_builder_factory()
+    builder.namespaces['edmx'] = 'http://docs.oasis-open.org/odata/ns/edmx'
+    builder.namespaces['edm'] = 'http://docs.oasis-open.org/odata/ns/edm'
+    builder.add_schema('', '')
+    xml = builder.serialize()
+    Edmx.parse(xml)
+
+
+def test_unsupported_edmx_n(metadata_builder_factory):
+    """Test correct handling of non-whitelisted Edmx namespaces"""
+
+    builder = metadata_builder_factory()
+    edmx = 'wedonotsupportthisnamespace.com'
+    builder.namespaces['edmx'] = edmx
+    builder.add_schema('', '')
+    xml = builder.serialize()
+
+    Edmx.parse(xml, {'edmx': edmx})
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
+
+
+def test_unsupported_schema_n(metadata_builder_factory):
+    """Test correct handling of non-whitelisted Schema namespaces"""
+
+    builder = metadata_builder_factory()
+    edm = 'wedonotsupportthisnamespace.com'
+    builder.namespaces['edm'] = edm
+    builder.add_schema('', '')
+    xml = builder.serialize()
+
+    Edmx.parse(xml, {'edm': edm})
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex) == f'Unsupported Schema namespace - {edm}'

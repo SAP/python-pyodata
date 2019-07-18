@@ -16,7 +16,7 @@ import re
 
 from lxml import etree
 
-from pyodata.exceptions import PyODataException, PyODataModelError
+from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 LOGGER_NAME = 'pyodata.model'
 
@@ -2029,12 +2029,24 @@ def sap_attribute_get_bool(node, attr, default):
     raise TypeError('Not a bool attribute: {0} = {1}'.format(attr, value))
 
 
+EDMX_WHITELIST = [
+    'http://schemas.microsoft.com/ado/2007/06/edmx',
+    'http://docs.oasis-open.org/odata/ns/edmx',
+]
+
+
+EDM_WHITELIST = [
+    'http://schemas.microsoft.com/ado/2008/09/edm',
+    'http://docs.oasis-open.org/odata/ns/edm'
+]
+
 NAMESPACES = {
     'd': 'http://schemas.microsoft.com/ado/2007/08/dataservices',
     'm': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata',
     'sap': 'http://www.sap.com/Protocols/SAPData',
-    'edmx': 'http://schemas.microsoft.com/ado/2007/06/edmx',
-    'edm': 'http://schemas.microsoft.com/ado/2008/09/edm'
+    'edmx': None,
+    'edm': None
+
 }
 
 
@@ -2064,7 +2076,7 @@ class Edmx:
         super(Edmx, self).__init__()
 
     @staticmethod
-    def parse(metadata_xml):
+    def parse(metadata_xml, namespaces=None):
         """ Build model from the XML metadata"""
         if isinstance(metadata_xml, str):
             mdf = io.StringIO(metadata_xml)
@@ -2072,13 +2084,48 @@ class Edmx:
             mdf = io.BytesIO(metadata_xml)
         else:
             raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(metadata_xml)))
-        # the first child element has name 'Edmx'
-        edmx = etree.parse(mdf)
+
+        NAMESPACES['edmx'] = None
+        NAMESPACES['edm'] = None
+        del NAMESPACES['edmx']
+        del NAMESPACES['edm']
+
+        if namespaces is not None:
+            NAMESPACES.update(namespaces)
+
+        xml = etree.parse(mdf)
+        edmx = xml.getroot()
+
+        try:
+            dataservices = next((child for child in edmx if etree.QName(child.tag).localname == 'DataServices'))
+        except StopIteration:
+            raise PyODataParserError('Metadata document is missing the element DataServices')
+
+        try:
+            schema = next((child for child in dataservices if etree.QName(child.tag).localname == 'Schema'))
+        except StopIteration:
+            raise PyODataParserError('Metadata document is missing the element Schema')
+
+        if 'edmx' not in NAMESPACES:
+            namespace = etree.QName(edmx.tag).namespace
+
+            if namespace not in EDMX_WHITELIST:
+                raise PyODataParserError(f'Unsupported Edmx namespace - {namespace}')
+
+            NAMESPACES['edmx'] = namespace
+
+        if 'edm' not in NAMESPACES:
+            namespace = etree.QName(schema.tag).namespace
+
+            if namespace not in EDM_WHITELIST:
+                raise PyODataParserError(f'Unsupported Schema namespace - {namespace}')
+
+            NAMESPACES['edm'] = namespace
 
         # aliases - http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html
-        Edmx.update_global_variables_with_alias(Edmx.get_aliases(edmx))
+        Edmx.update_global_variables_with_alias(Edmx.get_aliases(xml))
 
-        edm_schemas = edmx.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=NAMESPACES)
+        edm_schemas = xml.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=NAMESPACES)
         schema = Schema.from_etree(edm_schemas)
         return schema
 
@@ -2114,7 +2161,7 @@ class Edmx:
                 SAP_VALUE_HELPER_DIRECTIONS[alias + '.' + suffix] = SAP_VALUE_HELPER_DIRECTIONS[direction_key]
 
 
-def schema_from_xml(metadata_xml):
+def schema_from_xml(metadata_xml, namespaces=None):
     """Parses XML data and returns Schema representing OData Metadata"""
 
-    return Edmx.parse(metadata_xml)
+    return Edmx.parse(metadata_xml, namespaces=namespaces)

@@ -12,6 +12,10 @@ class PyODataModelError(PyODataException):
     """Raised when model error occurs"""
 
 
+class PyODataParserError(PyODataException):
+    """Raised when parser error occurs"""
+
+
 class ExpressionError(PyODataException):
     """Raise when runtime logical expression error occurs"""
 

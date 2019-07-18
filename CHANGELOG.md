@@ -1,5 +1,8 @@
 # Changelog
 
+# 1.2.3
+  * dca01a28 - model:  add support for whitelisted and custom namespaces - Martin Miksik
+
 # 1.2.2
   * ed1ae8a - model:  fix namespace parsing - Jakub Filak
 
