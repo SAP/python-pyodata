@@ -14,7 +14,7 @@ install:
 # command to run tests
 script:
   - pylint pyodata
-  - make cheack
+  - make check
   - bandit -r -lll .
 
 after_success:
