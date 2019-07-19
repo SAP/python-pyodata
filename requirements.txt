@@ -6,3 +6,4 @@ requests==2.20.0
 responses>=0.8.1
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
+pylint

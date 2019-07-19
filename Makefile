@@ -5,7 +5,7 @@ PYTHON_BIN=python3
 PYTEST_MODULE=pytest
 PYTEST_PARAMS=
 
-PYLINT_BIN=pylint-3
+PYLINT_BIN=pylint
 PYLINT_RC_FILE=.pylintrc
 PYLINT_PARAMS=--output-format=parseable --reports=no
 
