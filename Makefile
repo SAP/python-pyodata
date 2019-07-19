@@ -3,7 +3,7 @@ PYTHON_MODULE=pyodata
 PYTHON_BIN=python3
 
 PYTEST_MODULE=pytest
-PYTEST_PARAMS=--cov-report term --cov=./pyodata/v2
+PYTEST_PARAMS=--cov-report term --cov=pyodata
 
 PYLINT_BIN=pylint
 PYLINT_RC_FILE=.pylintrc
