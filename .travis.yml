@@ -17,6 +17,9 @@ script:
   - make cheack
   - bandit -r -lll .
 
+after_success:
+  - codecov
+
 notifications:
     email:
         recipients:
