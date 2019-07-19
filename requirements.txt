@@ -10,3 +10,4 @@ pylint
 pytest-cov
 codecov
 flake8
+sphinx
