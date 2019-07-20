@@ -1,9 +1,10 @@
 """Tests for OData Model module"""
-# pylint: disable=line-too-long,too-many-locals,too-many-statements
+# pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name
 
 from datetime import datetime
+from unittest.mock import patch
 import pytest
-from pyodata.v2.model import Edmx, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer,\
+from pyodata.v2.model import Edmx, Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
@@ -120,7 +121,8 @@ def test_edmx(schema):
 
     # EntityType from the method typ
     assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
-    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity', namespace='EXAMPLE_SRV')
+    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity',
+                                                                                     namespace='EXAMPLE_SRV')
 
     # ComplexType from the method typ
     assert schema.typ('Building') == schema.complex_type('Building')
@@ -256,7 +258,8 @@ def test_edmx_navigation_properties(schema):
 def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
-    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max', 'sum', 'sum_complex'}
+    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve',
+                                                                                  'get_max', 'sum', 'sum_complex'}
     # pylint: disable=redefined-outer-name
 
     function_import = schema.function_import('retrieve')
@@ -304,7 +307,8 @@ def test_edmx_complex_types(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber', 'Rectangle'}
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber',
+                                                                                 'Rectangle'}
 
     complex_number = schema.complex_type('ComplexNumber')
     assert str(complex_number) == 'ComplexType(ComplexNumber)'
@@ -686,6 +690,7 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
     except RuntimeError as ex:
         assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
 
+
 def test_namespace_with_periods(metadata_builder_factory):
     """Make sure Namespace can contain period"""
 
@@ -754,17 +759,17 @@ def test_namespace_with_periods(metadata_builder_factory):
 def test_edmx_entity_sets(schema):
     """Test EntitySet"""
 
-    assert schema.entity_set('Cities').requires_filter == False
-    assert schema.entity_set('CitiesWithFilter').requires_filter == True
+    assert schema.entity_set('Cities').requires_filter is False
+    assert schema.entity_set('CitiesWithFilter').requires_filter is True
 
-    assert schema.entity_set('Cities').addressable == True
-    assert schema.entity_set('CitiesNotAddressable').addressable == False
+    assert schema.entity_set('Cities').addressable is True
+    assert schema.entity_set('CitiesNotAddressable').addressable is False
 
     cars_set = schema.entity_set('Cars')
-    assert cars_set.pageable == False
-    assert cars_set.countable == False
-    assert cars_set.searchable == False
-    assert cars_set.topable == True
+    assert cars_set.pageable is False
+    assert cars_set.countable is False
+    assert cars_set.searchable is False
+    assert cars_set.topable is True
 
 
 def test_edmx_association_end_by_role():
@@ -835,7 +840,8 @@ def test_missing_schema(metadata_builder_factory):
         assert str(ex) == 'Metadata document is missing the element Schema'
 
 
-def test_namespace_whitelist(metadata_builder_factory):
+@patch.object(Schema, 'from_etree')
+def test_namespace_whitelist(mock_from_etree, metadata_builder_factory):
     """Test correct handling of whitelisted namespaces"""
 
     builder = metadata_builder_factory()
@@ -843,10 +849,14 @@ def test_namespace_whitelist(metadata_builder_factory):
     builder.namespaces['edm'] = 'http://docs.oasis-open.org/odata/ns/edm'
     builder.add_schema('', '')
     xml = builder.serialize()
+
     Edmx.parse(xml)
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()
 
 
-def test_unsupported_edmx_n(metadata_builder_factory):
+@patch.object(Schema, 'from_etree')
+def test_unsupported_edmx_n(mock_from_etree, metadata_builder_factory):
     """Test correct handling of non-whitelisted Edmx namespaces"""
 
     builder = metadata_builder_factory()
@@ -856,14 +866,19 @@ def test_unsupported_edmx_n(metadata_builder_factory):
     xml = builder.serialize()
 
     Edmx.parse(xml, {'edmx': edmx})
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()
 
     try:
         Edmx.parse(xml)
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
 
+    mock_from_etree.assert_called_once()
 
-def test_unsupported_schema_n(metadata_builder_factory):
+
+@patch.object(Schema, 'from_etree')
+def test_unsupported_schema_n(mock_from_etree, metadata_builder_factory):
     """Test correct handling of non-whitelisted Schema namespaces"""
 
     builder = metadata_builder_factory()
@@ -873,8 +888,12 @@ def test_unsupported_schema_n(metadata_builder_factory):
     xml = builder.serialize()
 
     Edmx.parse(xml, {'edm': edm})
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()
 
     try:
         Edmx.parse(xml)
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
+
+    mock_from_etree.assert_called_once()
