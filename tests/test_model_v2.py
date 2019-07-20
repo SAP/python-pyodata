@@ -4,9 +4,10 @@
 from datetime import datetime
 from unittest.mock import patch
 import pytest
-from pyodata.v2.model import Edmx, Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer,\
+from pyodata.v2.model import Edmx, Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
+
 
 def test_edmx(schema):
     """Test Edmx class"""
@@ -120,7 +121,8 @@ def test_edmx(schema):
 
     # EntityType from the method typ
     assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
-    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity', namespace='EXAMPLE_SRV')
+    assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity',
+                                                                                     namespace='EXAMPLE_SRV')
 
     # ComplexType from the method typ
     assert schema.typ('Building') == schema.complex_type('Building')
@@ -256,7 +258,8 @@ def test_edmx_navigation_properties(schema):
 def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
-    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve', 'get_max', 'sum', 'sum_complex'}
+    assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve',
+                                                                                  'get_max', 'sum', 'sum_complex'}
     # pylint: disable=redefined-outer-name
 
     function_import = schema.function_import('retrieve')
@@ -304,7 +307,8 @@ def test_edmx_complex_types(schema):
 
     assert set(schema.namespaces) == {'EXAMPLE_SRV', 'EXAMPLE_SRV_SETS'}
 
-    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber', 'Rectangle'}
+    assert set((complex_type.name for complex_type in schema.complex_types)) == {'Building', 'ComplexNumber',
+                                                                                 'Rectangle'}
 
     complex_number = schema.complex_type('ComplexNumber')
     assert str(complex_number) == 'ComplexType(ComplexNumber)'
@@ -685,6 +689,7 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
+
 
 def test_namespace_with_periods(metadata_builder_factory):
     """Make sure Namespace can contain period"""
