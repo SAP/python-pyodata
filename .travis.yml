@@ -9,14 +9,16 @@ python:
 install:
   - pip install .
   - pip install -r requirements.txt
-  - pip install pylint
   - pip install bandit
 
 # command to run tests
 script:
   - pylint pyodata
-  - py.test
+  - make check
   - bandit -r -lll .
+
+after_success:
+  - codecov
 
 notifications:
     email:
