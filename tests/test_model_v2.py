@@ -897,3 +897,17 @@ def test_unsupported_schema_n(mock_from_etree, metadata_builder_factory):
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
 
     mock_from_etree.assert_called_once()
+
+
+@patch.object(Schema, 'from_etree')
+def test_whitelisted_edm_namespace(mock_from_etree, metadata_builder_factory):
+    """Test correct handling of whitelisted Microsoft's edm namespace"""
+
+    builder = metadata_builder_factory()
+    builder.namespaces['edm'] = 'http://schemas.microsoft.com/ado/2009/11/edm'
+    builder.add_schema('', '')
+    xml = builder.serialize()
+
+    Edmx.parse(xml)
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()

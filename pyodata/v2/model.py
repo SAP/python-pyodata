@@ -2037,6 +2037,7 @@ EDMX_WHITELIST = [
 
 EDM_WHITELIST = [
     'http://schemas.microsoft.com/ado/2008/09/edm',
+    'http://schemas.microsoft.com/ado/2009/11/edm',
     'http://docs.oasis-open.org/odata/ns/edm'
 ]
 
