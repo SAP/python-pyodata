@@ -2161,7 +2161,7 @@ class Edmx:
                 SAP_VALUE_HELPER_DIRECTIONS[alias + '.' + suffix] = SAP_VALUE_HELPER_DIRECTIONS[direction_key]
 
 
-def schema_from_xml(metadata_xml):
+def schema_from_xml(metadata_xml, namespaces):
     """Parses XML data and returns Schema representing OData Metadata"""
 
-    return Edmx.parse(metadata_xml)
+    return Edmx.parse(metadata_xml, namespaces)
