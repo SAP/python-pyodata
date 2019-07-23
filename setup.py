@@ -12,14 +12,11 @@
 # either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-from os.path import dirname, join
 import os
-import re
+import os.path
 from setuptools import setup, find_packages
-import subprocess
 
 source_location = os.path.abspath(os.path.dirname(__file__))
-
 
 NAME = 'python-pyodata'
 HERE = os.path.abspath(os.path.dirname(__file__))
