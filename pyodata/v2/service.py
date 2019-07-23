@@ -367,7 +367,7 @@ class EntityGetRequest(ODataHttpRequest):
             """Returns $value from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
-                raise HttpError('HTTP GET for $value failed with status code {2}'
+                raise HttpError('HTTP GET for $value failed with status code {}'
                                 .format(response.status_code), response)
 
             return response

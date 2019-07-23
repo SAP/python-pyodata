@@ -645,6 +645,26 @@ def test_entity_get_value_with_proxy(service):
 
 
 @responses.activate
+def test_entity_get_value_without_proxy_error(service):
+    """Check getting $value without proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/CarIDPics('Hadraplan')/$value/".format(service.url),
+        headers={'Content-type': 'text/plain'},
+        body='Internal Server Error',
+        status=500)
+
+    with pytest.raises(HttpError) as caught_ex:
+        service.entity_sets.CarIDPics.get_entity('Hadraplan').get_value().execute()
+
+    assert str(caught_ex.value).startswith('HTTP GET for $value failed with status code 500')
+    assert caught_ex.value.response.status_code == 500
+
+
+@responses.activate
 def test_navigation_create_entity(service):
     """Check creating entity via a navigation property"""
 
