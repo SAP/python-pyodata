@@ -2,6 +2,7 @@
 
 # 1.2.3
   * dca01a28 - model:  add support for whitelisted and custom namespaces - Martin Miksik
+  * dd467e6a - model:  add Microsoft's edm namespace to whitelisted namespaces - Martin Miksik
 
 # 1.2.2
   * ed1ae8a - model:  fix namespace parsing - Jakub Filak
