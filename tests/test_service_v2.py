@@ -83,6 +83,32 @@ def test_create_entity_code_400(service):
 
 
 @responses.activate
+def test_create_entity_containing_enum(service):
+    """Basic test on creating entity with enum"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/EnumTests".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'CountryOfOrigin': 'USA',
+        }},
+        status=201)
+
+    result = service.entity_sets.EnumTests.create_entity().set(**{'CountryOfOrigin': 'USA'}).execute()
+
+    USA = service.schema.enum_type('Country').USA
+    assert result.CountryOfOrigin == USA
+
+    traits = service.schema.enum_type('Country').traits
+    literal = traits.to_literal(USA)
+
+    assert literal == "EXAMPLE_SRV.Country\'USA\'"
+    assert traits.from_literal(literal).name == 'USA'
+
+@responses.activate
 def test_create_entity_nested(service):
     """Basic test on creating entity"""
 

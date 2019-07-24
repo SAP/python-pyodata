@@ -1,11 +1,12 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name
 
+import os
 from datetime import datetime
 from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Edmx, Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
-    Association, AssociationSet, EndRole, AssociationSetEndRole
+    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 
@@ -27,7 +28,8 @@ def test_edmx(schema):
         'Car',
         'CarIDPic',
         'Customer',
-        'Order'
+        'Order',
+        'EnumTest'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -42,7 +44,13 @@ def test_edmx(schema):
         'Cars',
         'CarIDPics',
         'Customers',
-        'Orders'
+        'Orders',
+        'EnumTests'
+    }
+
+    assert set((enum_type.name for enum_type in schema.enum_types)) == {
+        'Country',
+        'Language'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -911,3 +919,64 @@ def test_whitelisted_edm_namespace(mock_from_etree, metadata_builder_factory):
     Edmx.parse(xml)
     assert Schema.from_etree is mock_from_etree
     mock_from_etree.assert_called_once()
+
+
+def test_enum_parsing(schema):
+    """Test correct parsing of enum"""
+
+    country = schema.enum_type('Country').USA
+    assert str(country) == "Country'USA'"
+
+    country2 = schema.enum_type('Country')['USA']
+    assert str(country2) == "Country'USA'"
+
+    try:
+        schema.enum_type('Country').Cyprus
+    except PyODataException as ex:
+        assert str(ex) == f'EnumType EnumType(Country) has no member Cyprus'
+
+    c = schema.enum_type('Country')[1]
+    assert str(c) == "Country'China'"
+
+    try:
+        schema.enum_type('Country')[15]
+    except PyODataException as ex:
+        assert str(ex) == f'EnumType EnumType(Country) has no member with value {15}'
+
+    type_info = TypeInfo(namespace=None, name='Country', is_collection=False)
+
+    try:
+        schema.get_type(type_info)
+    except PyODataModelError as ex:
+        assert str(ex) == f'Neither primitive types nor types parsed from service metadata contain requested type {type_info[0]}'
+
+    language = schema.enum_type('Language')
+    assert language.is_flags is True
+
+
+def test_unsupported_enum_underlying_type(metadata_builder_factory):
+    """Test if parser will parse only allowed underlying types"""
+    builder = metadata_builder_factory()
+    builder.add_schema('Test', '<EnumType Name="UnsupportedEnumType" UnderlyingType="Edm.Bool" />')
+    xml = builder.serialize()
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex).startswith(f'Type Edm.Bool is not valid as underlying type for EnumType - must be one of')
+
+
+def test_enum_value_out_of_range(metadata_builder_factory):
+    """Test if parser will check for values ot of range defined by underlying type"""
+    builder = metadata_builder_factory()
+    builder.add_schema('Test', """
+        <EnumType Name="Num" UnderlyingType="Edm.Byte">
+            <Member Name="TooBig" Value="-130" />
+        </EnumType>
+        """)
+    xml = builder.serialize()
+
+    try:
+        Edmx.parse(xml)
+    except PyODataParserError as ex:
+        assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
