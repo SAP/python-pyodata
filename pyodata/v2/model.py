@@ -373,6 +373,24 @@ class EdmStructTypTraits(TypTraits):
         return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
 
+class EnumTypTrait(TypTraits):
+    def __init__(self, enum_type):
+        self._enum_type = enum_type
+
+    def to_literal(self, value):
+        return f'{value.parent.namespace}.{value}'
+
+    def from_json(self, value):
+        return getattr(self._enum_type, value)
+
+    def from_literal(self, value):
+        # remove namespaces
+        enum_value = value.split('.')[-1]
+        # remove enum type
+        name = enum_value.split("'")[1]
+        return getattr(self._enum_type, name)
+
+
 class Typ(Identifier):
     Types = None
 
@@ -516,6 +534,7 @@ class Schema:
 
             self.entity_types = dict()
             self.complex_types = dict()
+            self.enum_types = dict()
             self.entity_sets = dict()
             self.function_imports = dict()
             self.associations = dict()
@@ -526,6 +545,9 @@ class Schema:
 
         def list_complex_types(self):
             return list(self.complex_types.values())
+
+        def list_enum_types(self):
+            return list(self.enum_types.values())
 
         def list_entity_sets(self):
             return list(self.entity_sets.values())
@@ -557,6 +579,10 @@ class Schema:
             collection_type_name = 'Collection({})'.format(ctype.name)
             self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
 
+        def add_enum_type(self, etype):
+            """Add new enum type to the type repository"""
+            self.enum_types[etype.name] = etype
+
     class Declarations(dict):
 
         def __getitem__(self, key):
@@ -578,10 +604,10 @@ class Schema:
         return list(self._decls.keys())
 
     def typ(self, type_name, namespace=None):
-        """Returns either EntityType or ComplexType that matches the name.
+        """Returns either EntityType, ComplexType or EnumType that matches the name.
         """
 
-        for type_space in (self.entity_type, self.complex_type):
+        for type_space in (self.entity_type, self.complex_type, self.enum_type):
             try:
                 return type_space(type_name, namespace=namespace)
             except KeyError:
@@ -620,6 +646,21 @@ class Schema:
 
         raise KeyError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
 
+    def enum_type(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace].enum_types[type_name]
+            except KeyError:
+                raise KeyError(f'EnumType {type_name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl.enum_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'EnumType {type_name} does not exist in any Schema Namespace')
+
     def get_type(self, type_info):
 
         # construct search name based on collection information
@@ -643,6 +684,12 @@ class Schema:
         except KeyError:
             pass
 
+        # then look for type in enum types
+        try:
+            return self.enum_type(search_name, type_info[0])
+        except KeyError:
+            pass
+
         raise PyODataModelError(
             'Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[
                 1]))
@@ -659,6 +706,13 @@ class Schema:
         return [
             complex_type
             for complex_type in itertools.chain(*(decl.list_complex_types() for decl in list(self._decls.values())))
+        ]
+
+    @property
+    def enum_types(self):
+        return [
+            enum_type
+            for enum_type in itertools.chain(*(decl.list_enum_types() for decl in list(self._decls.values())))
         ]
 
     def entity_set(self, set_name, namespace=None):
@@ -780,11 +834,15 @@ class Schema:
         # entity types referenced by entity sets, function imports and
         # annotations.
 
-        # First, process EntityType and ComplexType nodes. They have almost no dependencies on other elements.
+        # First, process EnumType, EntityType and ComplexType nodes. They have almost no dependencies on other elements.
         for schema_node in schema_nodes:
             namespace = schema_node.get('Namespace')
             decl = Schema.Declaration(namespace)
             schema._decls[namespace] = decl
+
+            for enum_type in schema_node.xpath('edm:EnumType', namespaces=NAMESPACES):
+                etype = EnumType.from_etree(enum_type, namespace)
+                decl.add_enum_type(etype)
 
             for complex_type in schema_node.xpath('edm:ComplexType', namespaces=NAMESPACES):
                 ctype = ComplexType.from_etree(complex_type)
@@ -1016,6 +1074,119 @@ class StructType(Typ):
 
 class ComplexType(StructType):
     """Representation of Edm.ComplexType"""
+
+
+class EnumMember:
+    def __init__(self, parent, name, value):
+        self._parent = parent
+        self._name = name
+        self._value = value
+
+    def __str__(self):
+        return f"{self._parent.name}\'{self._name}\'"
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def parent(self):
+        return self._parent
+
+
+class EnumType(Identifier):
+    def __init__(self, name, is_flags, underlying_type, namespace):
+        super(EnumType, self).__init__(name)
+        self._member = list()
+        self._underlying_type = underlying_type
+        self._traits = TypTraits()
+        self._namespace = namespace
+
+        if is_flags == 'True':
+            self._is_flags = True
+        else:
+            self._is_flags = False
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self._name})"
+
+    def __getattr__(self, item):
+        member = next(filter(lambda x: x.name == item, self._member), None)
+        if member is None:
+            raise PyODataException(f'EnumType {self} has no member {item}')
+
+        return member
+
+    def __getitem__(self, item):
+        # If the item is type string then we want to check for members with that name instead
+        if isinstance(item, str):
+            return self.__getattr__(item)
+
+        member = next(filter(lambda x: x.value == int(item), self._member), None)
+        if member is None:
+            raise PyODataException(f'EnumType {self} has no member with value {item}')
+
+        return member
+
+    # pylint: disable=too-many-locals
+    @staticmethod
+    def from_etree(type_node, namespace):
+        ename = type_node.get('Name')
+        is_flags = type_node.get('IsFlags')
+
+        underlying_type = type_node.get('UnderlyingType')
+
+        valid_types = {
+            'Edm.Byte': [0, 2 ** 8 - 1],
+            'Edm.Int16': [-2 ** 15, 2 ** 15 - 1],
+            'Edm.Int32': [-2 ** 31, 2 ** 31 - 1],
+            'Edm.Int64': [-2 ** 63, 2 ** 63 - 1],
+            'Edm.SByte': [-2 ** 7, 2 ** 7 - 1]
+        }
+
+        if underlying_type not in valid_types:
+            raise PyODataParserError(
+                f'Type {underlying_type} is not valid as underlying type for EnumType - must be one of {valid_types}')
+
+        mtype = Types.from_name(underlying_type)
+        etype = EnumType(ename, is_flags, mtype, namespace)
+
+        members = type_node.xpath('edm:Member', namespaces=NAMESPACES)
+
+        next_value = 0
+        for member in members:
+            name = member.get('Name')
+            value = member.get('Value')
+
+            if value is not None:
+                next_value = int(value)
+
+            vtype = valid_types[underlying_type]
+            if not vtype[0] < next_value < vtype[1]:
+                raise PyODataParserError(f'Value {next_value} is out of range for type {underlying_type}')
+
+            emember = EnumMember(etype, name, next_value)
+            etype._member.append(emember)
+
+            next_value += 1
+
+        return etype
+
+    @property
+    def is_flags(self):
+        return self._is_flags
+
+    @property
+    def traits(self):
+        return EnumTypTrait(self)
+
+    @property
+    def namespace(self):
+        return self._namespace
 
 
 class EntityType(StructType):
