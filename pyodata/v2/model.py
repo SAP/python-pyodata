@@ -659,7 +659,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError(f'ComplexType {type_name} does not exist in any Schema Namespace')
+        raise KeyError(f'EnumType {type_name} does not exist in any Schema Namespace')
 
     def get_type(self, type_info):
 

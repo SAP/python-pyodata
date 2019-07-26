@@ -1,7 +1,6 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name
 
-import os
 from datetime import datetime
 from unittest.mock import patch
 import pytest
@@ -952,6 +951,16 @@ def test_enum_parsing(schema):
 
     language = schema.enum_type('Language')
     assert language.is_flags is True
+
+    try:
+        schema.enum_type('ThisEnumDoesNotExist')
+    except KeyError as ex:
+        assert str(ex) == f'\'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace\''
+
+    try:
+        schema.enum_type('Country', 'WrongNamespace').USA
+    except KeyError as ex:
+        assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
 
 
 def test_unsupported_enum_underlying_type(metadata_builder_factory):
