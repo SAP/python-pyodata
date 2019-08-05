@@ -1,11 +1,11 @@
 """Tests for OData Model module"""
-# pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name
+# pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines
 
 from datetime import datetime
 from unittest.mock import patch
 import pytest
-from pyodata.v2.model import Edmx, Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
-    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo
+from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
+    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, Config
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 
@@ -572,11 +572,11 @@ def test_complex_serializer(schema):
     assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
 
 
-def test_annot_v_l_missing_e_s(metadata_builder_factory):
+def test_annot_v_l_missing_e_s(xml_builder_factory):
     """Test correct handling of annotations whose entity set does not exist"""
 
-    builder = metadata_builder_factory()
-    builder.add_schema(
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema(
         'MISSING_ES',
         """
         <EntityType Name="Dict" sap:content-version="1">
@@ -605,17 +605,17 @@ def test_annot_v_l_missing_e_s(metadata_builder_factory):
     )
 
     try:
-        Edmx.parse(builder.serialize())
+        MetadataBuilder(xml_builder.serialize()).build()
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert str(ex) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
 
 
-def test_annot_v_l_missing_e_t(metadata_builder_factory):
+def test_annot_v_l_missing_e_t(xml_builder_factory):
     """Test correct handling of annotations whose target type does not exist"""
 
-    builder = metadata_builder_factory()
-    builder.add_schema(
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema(
         'MISSING_ET',
         """
         <EntityType Name="Database" sap:content-version="1">
@@ -646,17 +646,17 @@ def test_annot_v_l_missing_e_t(metadata_builder_factory):
     )
 
     try:
-        Edmx.parse(builder.serialize())
+        MetadataBuilder(xml_builder.serialize()).build()
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
 
 
-def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
+def test_annot_v_l_trgt_inv_prop(xml_builder_factory):
     """Test correct handling of annotations whose target property does not exist"""
 
-    builder = metadata_builder_factory()
-    builder.add_schema(
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema(
         'MISSING_TP',
         """
         <EntityType Name="Dict" sap:content-version="1">
@@ -692,17 +692,17 @@ def test_annot_v_l_trgt_inv_prop(metadata_builder_factory):
     )
 
     try:
-        Edmx.parse(builder.serialize())
+        MetadataBuilder(xml_builder.serialize()).build()
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
 
 
-def test_namespace_with_periods(metadata_builder_factory):
+def test_namespace_with_periods(xml_builder_factory):
     """Make sure Namespace can contain period"""
 
-    builder = metadata_builder_factory()
-    builder.add_schema(
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema(
         'Several.Levels.Of.Names',
         """
         <EntityType Name="Dict" sap:content-version="1">
@@ -741,7 +741,7 @@ def test_namespace_with_periods(metadata_builder_factory):
         """
     )
 
-    schema = Edmx.parse(builder.serialize())
+    schema = MetadataBuilder(xml_builder.serialize()).build()
 
     db_entity = schema.entity_type('Database')
 
@@ -821,63 +821,69 @@ def test_edmx_association_set_end_by_entity_set():
     assert association_set.end_by_entity_set(end_to.entity_set_name) == end_to
 
 
-def test_missing_data_service(metadata_builder_factory):
+def test_missing_data_service(xml_builder_factory):
     """Test correct handling of missing DataService tag in xml"""
 
-    builder = metadata_builder_factory()
-    builder.data_services_is_enabled = False
-    xml = builder.serialize()
+    xml_builder = xml_builder_factory()
+    xml_builder.data_services_is_enabled = False
+    xml = xml_builder.serialize()
 
     try:
-        Edmx.parse(xml)
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element DataServices'
 
 
-def test_missing_schema(metadata_builder_factory):
+def test_missing_schema(xml_builder_factory):
     """Test correct handling of missing Schema tag in xml"""
 
-    builder = metadata_builder_factory()
-    builder.schema_is_enabled = False
-    xml = builder.serialize()
+    xml_builder = xml_builder_factory()
+    xml_builder.schema_is_enabled = False
+    xml = xml_builder.serialize()
 
     try:
-        Edmx.parse(xml)
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element Schema'
 
 
 @patch.object(Schema, 'from_etree')
-def test_namespace_whitelist(mock_from_etree, metadata_builder_factory):
+def test_namespace_whitelist(mock_from_etree, xml_builder_factory):
     """Test correct handling of whitelisted namespaces"""
 
-    builder = metadata_builder_factory()
-    builder.namespaces['edmx'] = 'http://docs.oasis-open.org/odata/ns/edmx'
-    builder.namespaces['edm'] = 'http://docs.oasis-open.org/odata/ns/edm'
-    builder.add_schema('', '')
-    xml = builder.serialize()
+    xml_builder = xml_builder_factory()
+    xml_builder.namespaces['edmx'] = 'http://docs.oasis-open.org/odata/ns/edmx'
+    xml_builder.namespaces['edm'] = 'http://docs.oasis-open.org/odata/ns/edm'
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
 
-    Edmx.parse(xml)
+    MetadataBuilder(xml).build()
     assert Schema.from_etree is mock_from_etree
     mock_from_etree.assert_called_once()
 
 
 @patch.object(Schema, 'from_etree')
-def test_unsupported_edmx_n(mock_from_etree, metadata_builder_factory):
+def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
     """Test correct handling of non-whitelisted Edmx namespaces"""
 
-    builder = metadata_builder_factory()
+    xml_builder = xml_builder_factory()
     edmx = 'wedonotsupportthisnamespace.com'
-    builder.namespaces['edmx'] = edmx
-    builder.add_schema('', '')
-    xml = builder.serialize()
+    xml_builder.namespaces['edmx'] = edmx
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
 
-    Edmx.parse(xml, {'edmx': edmx})
+    MetadataBuilder(
+        xml,
+        config=Config(
+            xml_namespaces={'edmx': edmx}
+        )
+    ).build()
+
     assert Schema.from_etree is mock_from_etree
     mock_from_etree.assert_called_once()
 
     try:
-        Edmx.parse(xml)
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
 
@@ -885,21 +891,28 @@ def test_unsupported_edmx_n(mock_from_etree, metadata_builder_factory):
 
 
 @patch.object(Schema, 'from_etree')
-def test_unsupported_schema_n(mock_from_etree, metadata_builder_factory):
+def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
     """Test correct handling of non-whitelisted Schema namespaces"""
 
-    builder = metadata_builder_factory()
+    xml_builder = xml_builder_factory()
     edm = 'wedonotsupportthisnamespace.com'
-    builder.namespaces['edm'] = edm
-    builder.add_schema('', '')
-    xml = builder.serialize()
+    xml_builder.namespaces['edm'] = edm
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
 
-    Edmx.parse(xml, {'edm': edm})
+    MetadataBuilder(
+        xml,
+        config=Config(
+            xml_namespaces={'edm': edm}
+        )
+    ).build()
+
     assert Schema.from_etree is mock_from_etree
     mock_from_etree.assert_called_once()
 
     try:
-        Edmx.parse(xml)
+
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
 
@@ -907,15 +920,15 @@ def test_unsupported_schema_n(mock_from_etree, metadata_builder_factory):
 
 
 @patch.object(Schema, 'from_etree')
-def test_whitelisted_edm_namespace(mock_from_etree, metadata_builder_factory):
+def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
-    builder = metadata_builder_factory()
-    builder.namespaces['edm'] = 'http://schemas.microsoft.com/ado/2009/11/edm'
-    builder.add_schema('', '')
-    xml = builder.serialize()
+    xml_builder = xml_builder_factory()
+    xml_builder.namespaces['edm'] = 'http://schemas.microsoft.com/ado/2009/11/edm'
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
 
-    Edmx.parse(xml)
+    MetadataBuilder(xml).build()
     assert Schema.from_etree is mock_from_etree
     mock_from_etree.assert_called_once()
 
@@ -963,29 +976,29 @@ def test_enum_parsing(schema):
         assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
 
 
-def test_unsupported_enum_underlying_type(metadata_builder_factory):
+def test_unsupported_enum_underlying_type(xml_builder_factory):
     """Test if parser will parse only allowed underlying types"""
-    builder = metadata_builder_factory()
-    builder.add_schema('Test', '<EnumType Name="UnsupportedEnumType" UnderlyingType="Edm.Bool" />')
-    xml = builder.serialize()
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('Test', '<EnumType Name="UnsupportedEnumType" UnderlyingType="Edm.Bool" />')
+    xml = xml_builder.serialize()
 
     try:
-        Edmx.parse(xml)
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex).startswith(f'Type Edm.Bool is not valid as underlying type for EnumType - must be one of')
 
 
-def test_enum_value_out_of_range(metadata_builder_factory):
+def test_enum_value_out_of_range(xml_builder_factory):
     """Test if parser will check for values ot of range defined by underlying type"""
-    builder = metadata_builder_factory()
-    builder.add_schema('Test', """
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('Test', """
         <EnumType Name="Num" UnderlyingType="Edm.Byte">
             <Member Name="TooBig" Value="-130" />
         </EnumType>
         """)
-    xml = builder.serialize()
+    xml = xml_builder.serialize()
 
     try:
-        Edmx.parse(xml)
+        MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Value -130 is out of range for type Edm.Byte'

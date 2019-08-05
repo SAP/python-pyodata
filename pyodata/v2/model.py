@@ -13,6 +13,7 @@ import io
 import itertools
 import logging
 import re
+import warnings
 
 from lxml import etree
 
@@ -26,6 +27,29 @@ TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 def modlog():
     return logging.getLogger(LOGGER_NAME)
+
+
+class Config:
+
+    def __init__(self,
+                 xml_namespaces=None):
+
+        """
+        :param xml_namespaces: {str: str} (default None)
+        """
+
+        if xml_namespaces is None:
+            xml_namespaces = {}
+
+        self._namespaces = xml_namespaces
+
+    @property
+    def namespaces(self):
+        return self._namespaces
+
+    @namespaces.setter
+    def namespaces(self, value: dict):
+        self._namespaces = value
 
 
 class Identifier:
@@ -827,7 +851,7 @@ class Schema:
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
-    def from_etree(schema_nodes):
+    def from_etree(schema_nodes, config: Config):
         schema = Schema()
 
         # Parse Schema nodes by parts to get over the problem of not-yet known
@@ -840,16 +864,16 @@ class Schema:
             decl = Schema.Declaration(namespace)
             schema._decls[namespace] = decl
 
-            for enum_type in schema_node.xpath('edm:EnumType', namespaces=NAMESPACES):
-                etype = EnumType.from_etree(enum_type, namespace)
+            for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
+                etype = EnumType.from_etree(enum_type, namespace, config)
                 decl.add_enum_type(etype)
 
-            for complex_type in schema_node.xpath('edm:ComplexType', namespaces=NAMESPACES):
-                ctype = ComplexType.from_etree(complex_type)
+            for complex_type in schema_node.xpath('edm:ComplexType', namespaces=config.namespaces):
+                ctype = ComplexType.from_etree(complex_type, config)
                 decl.add_complex_type(ctype)
 
-            for entity_type in schema_node.xpath('edm:EntityType', namespaces=NAMESPACES):
-                etype = EntityType.from_etree(entity_type)
+            for entity_type in schema_node.xpath('edm:EntityType', namespaces=config.namespaces):
+                etype = EntityType.from_etree(entity_type, config)
                 decl.add_entity_type(etype)
 
         # resolve types of properties
@@ -869,8 +893,8 @@ class Schema:
             namespace = schema_node.get('Namespace')
             decl = schema._decls[namespace]
 
-            for association in schema_node.xpath('edm:Association', namespaces=NAMESPACES):
-                assoc = Association.from_etree(association)
+            for association in schema_node.xpath('edm:Association', namespaces=config.namespaces):
+                assoc = Association.from_etree(association, config)
                 for end_role in assoc.end_roles:
                     try:
                         # search and assign entity type (it must exist)
@@ -928,13 +952,13 @@ class Schema:
             namespace = schema_node.get('Namespace')
             decl = schema._decls[namespace]
 
-            for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet', namespaces=NAMESPACES):
+            for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet', namespaces=config.namespaces):
                 eset = EntitySet.from_etree(entity_set)
                 eset.entity_type = schema.entity_type(eset.entity_type_info[1], namespace=eset.entity_type_info[0])
                 decl.entity_sets[eset.name] = eset
 
-            for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport', namespaces=NAMESPACES):
-                efn = FunctionImport.from_etree(function_import)
+            for function_import in schema_node.xpath('edm:EntityContainer/edm:FunctionImport', namespaces=config.namespaces):
+                efn = FunctionImport.from_etree(function_import, config)
 
                 # complete type information for return type and parameters
                 efn.return_type = schema.get_type(efn.return_type_info)
@@ -942,9 +966,8 @@ class Schema:
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
 
-            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet', namespaces=NAMESPACES):
-                assoc_set = AssociationSet.from_etree(association_set)
-
+            for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet', namespaces=config.namespaces):
+                assoc_set = AssociationSet.from_etree(association_set, config)
                 try:
                     assoc_set.association_type = schema.association(assoc_set.association_type_name,
                                                                     assoc_set.association_type_namespace)
@@ -1029,14 +1052,14 @@ class StructType(Typ):
         return list(self._properties.values())
 
     @classmethod
-    def from_etree(cls, type_node):
+    def from_etree(cls, type_node, config: Config):
         name = type_node.get('Name')
         label = sap_attribute_get_string(type_node, 'label')
         is_value_list = sap_attribute_get_bool(type_node, 'value-list', False)
 
         stype = cls(name, label, is_value_list)
 
-        for proprty in type_node.xpath('edm:Property', namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:Property', namespaces=config.namespaces):
             stp = StructTypeProperty.from_etree(proprty)
 
             if stp.name in stype._properties:
@@ -1134,7 +1157,7 @@ class EnumType(Identifier):
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def from_etree(type_node, namespace):
+    def from_etree(type_node, namespace, config: Config):
         ename = type_node.get('Name')
         is_flags = type_node.get('IsFlags')
 
@@ -1155,7 +1178,7 @@ class EnumType(Identifier):
         mtype = Types.from_name(underlying_type)
         etype = EnumType(ename, is_flags, mtype, namespace)
 
-        members = type_node.xpath('edm:Member', namespaces=NAMESPACES)
+        members = type_node.xpath('edm:Member', namespaces=config.namespaces)
 
         next_value = 0
         for member in members:
@@ -1209,14 +1232,14 @@ class EntityType(StructType):
         return self._nav_properties[property_name]
 
     @classmethod
-    def from_etree(cls, type_node):
+    def from_etree(cls, type_node, config: Config):
 
-        etype = super(EntityType, cls).from_etree(type_node)
+        etype = super(EntityType, cls).from_etree(type_node, config)
 
-        for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
             etype._key.append(etype.proprty(proprty.get('Name')))
 
-        for proprty in type_node.xpath('edm:NavigationProperty', namespaces=NAMESPACES):
+        for proprty in type_node.xpath('edm:NavigationProperty', namespaces=config.namespaces):
             navp = NavigationTypeProperty.from_etree(proprty)
 
             if navp.name in etype._nav_properties:
@@ -1627,8 +1650,8 @@ class ReferentialConstraint:
         return self._dependent
 
     @staticmethod
-    def from_etree(referential_constraint_node):
-        principal = referential_constraint_node.xpath('edm:Principal', namespaces=NAMESPACES)
+    def from_etree(referential_constraint_node, config: Config):
+        principal = referential_constraint_node.xpath('edm:Principal', namespaces=config.namespaces)
         if len(principal) != 1:
             raise RuntimeError('Referential constraint must contain exactly one principal element')
 
@@ -1637,12 +1660,12 @@ class ReferentialConstraint:
             raise RuntimeError('Principal role name was not specified')
 
         principal_refs = []
-        for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=NAMESPACES):
+        for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
             principal_refs.append(property_ref.get('Name'))
         if not principal_refs:
             raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
 
-        dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=NAMESPACES)
+        dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=config.namespaces)
         if len(dependent) != 1:
             raise RuntimeError('Referential constraint must contain exactly one dependent element')
 
@@ -1651,7 +1674,7 @@ class ReferentialConstraint:
             raise RuntimeError('Dependent role name was not specified')
 
         dependent_refs = []
-        for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=NAMESPACES):
+        for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
             dependent_refs.append(property_ref.get('Name'))
         if len(principal_refs) != len(dependent_refs):
             raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
@@ -1699,11 +1722,11 @@ class Association:
         return self._referential_constraint
 
     @staticmethod
-    def from_etree(association_node):
+    def from_etree(association_node, config: Config):
         name = association_node.get('Name')
         association = Association(name)
 
-        for end in association_node.xpath('edm:End', namespaces=NAMESPACES):
+        for end in association_node.xpath('edm:End', namespaces=config.namespaces):
             end_role = EndRole.from_etree(end)
             if end_role.entity_type_info is None:
                 raise RuntimeError('End type is not specified in the association {}'.format(name))
@@ -1712,14 +1735,14 @@ class Association:
         if len(association._end_roles) != 2:
             raise RuntimeError('Association {} does not have two end roles'.format(name))
 
-        refer = association_node.xpath('edm:ReferentialConstraint', namespaces=NAMESPACES)
+        refer = association_node.xpath('edm:ReferentialConstraint', namespaces=config.namespaces)
         if len(refer) > 1:
             raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
 
         if not refer:
             referential_constraint = None
         else:
-            referential_constraint = ReferentialConstraint.from_etree(refer[0])
+            referential_constraint = ReferentialConstraint.from_etree(refer[0], config)
 
         association._referential_constraint = referential_constraint
 
@@ -1816,12 +1839,12 @@ class AssociationSet:
         self._association_type = value
 
     @staticmethod
-    def from_etree(association_set_node):
+    def from_etree(association_set_node, config: Config):
         end_roles = []
         name = association_set_node.get('Name')
         association = Identifier.parse(association_set_node.get('Association'))
 
-        end_roles_list = association_set_node.xpath('edm:End', namespaces=NAMESPACES)
+        end_roles_list = association_set_node.xpath('edm:End', namespaces=config.namespaces)
         if len(end_roles) > 2:
             raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
 
@@ -2138,15 +2161,16 @@ class FunctionImport(Identifier):
     def http_method(self):
         return self._http_method
 
+    # pylint: disable=too-many-locals
     @staticmethod
-    def from_etree(function_import_node):
+    def from_etree(function_import_node, config: Config):
         name = function_import_node.get('Name')
         entity_set = function_import_node.get('EntitySet')
         http_method = metadata_attribute_get(function_import_node, 'HttpMethod')
         rt_info = Types.parse_type_name(function_import_node.get('ReturnType'))
 
         parameters = dict()
-        for param in function_import_node.xpath('edm:Parameter', namespaces=NAMESPACES):
+        for param in function_import_node.xpath('edm:Parameter', namespaces=config.namespaces):
             param_name = param.get('Name')
             param_type_info = Types.parse_type_name(param.get('Type'))
             param_nullable = param.get('Nullable')
@@ -2200,33 +2224,10 @@ def sap_attribute_get_bool(node, attr, default):
     raise TypeError('Not a bool attribute: {0} = {1}'.format(attr, value))
 
 
-EDMX_WHITELIST = [
-    'http://schemas.microsoft.com/ado/2007/06/edmx',
-    'http://docs.oasis-open.org/odata/ns/edmx',
-]
-
-
-EDM_WHITELIST = [
-    'http://schemas.microsoft.com/ado/2008/09/edm',
-    'http://schemas.microsoft.com/ado/2009/11/edm',
-    'http://docs.oasis-open.org/odata/ns/edm'
-]
-
-NAMESPACES = {
-    'd': 'http://schemas.microsoft.com/ado/2007/08/dataservices',
-    'm': 'http://schemas.microsoft.com/ado/2007/08/dataservices/metadata',
-    'sap': 'http://www.sap.com/Protocols/SAPData',
-    'edmx': None,
-    'edm': None
-
-}
-
-
 ANNOTATION_NAMESPACES = {
     'edm': 'http://docs.oasis-open.org/odata/ns/edm',
     'edmx': 'http://docs.oasis-open.org/odata/ns/edmx'
 }
-
 
 SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterIn': ValueHelperParameter.Direction.In,
@@ -2240,31 +2241,40 @@ SAP_VALUE_HELPER_DIRECTIONS = {
 SAP_ANNOTATION_VALUE_LIST = ['com.sap.vocabularies.Common.v1.ValueList']
 
 
-class Edmx:
+class MetadataBuilder:
+    EDMX_WHITELIST = [
+        'http://schemas.microsoft.com/ado/2007/06/edmx',
+        'http://docs.oasis-open.org/odata/ns/edmx',
+    ]
 
-    # pylint: disable=useless-super-delegation
+    EDM_WHITELIST = [
+        'http://schemas.microsoft.com/ado/2008/09/edm',
+        'http://schemas.microsoft.com/ado/2009/11/edm',
+        'http://docs.oasis-open.org/odata/ns/edm'
+    ]
 
-    def __init__(self):
-        super(Edmx, self).__init__()
+    def __init__(self, xml, config=None):
+        self._xml = xml
 
-    @staticmethod
-    def parse(metadata_xml, namespaces=None):
+        if config is None:
+            config = Config()
+        self._config = config
+
+    @property
+    def config(self):
+        return self._config
+
+    def build(self):
         """ Build model from the XML metadata"""
-        if isinstance(metadata_xml, str):
-            mdf = io.StringIO(metadata_xml)
-        elif isinstance(metadata_xml, bytes):
-            mdf = io.BytesIO(metadata_xml)
+
+        if isinstance(self._xml, str):
+            mdf = io.StringIO(self._xml)
+        elif isinstance(self._xml, bytes):
+            mdf = io.BytesIO(self._xml)
         else:
-            raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(metadata_xml)))
+            raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(self._xml)))
 
-        NAMESPACES['edmx'] = None
-        NAMESPACES['edm'] = None
-        del NAMESPACES['edmx']
-        del NAMESPACES['edm']
-
-        if namespaces is not None:
-            NAMESPACES.update(namespaces)
-
+        namespaces = self._config.namespaces
         xml = etree.parse(mdf)
         edmx = xml.getroot()
 
@@ -2278,35 +2288,36 @@ class Edmx:
         except StopIteration:
             raise PyODataParserError('Metadata document is missing the element Schema')
 
-        if 'edmx' not in NAMESPACES:
+        if 'edmx' not in self._config.namespaces:
             namespace = etree.QName(edmx.tag).namespace
 
-            if namespace not in EDMX_WHITELIST:
+            if namespace not in self.EDMX_WHITELIST:
                 raise PyODataParserError(f'Unsupported Edmx namespace - {namespace}')
 
-            NAMESPACES['edmx'] = namespace
+            namespaces['edmx'] = namespace
 
-        if 'edm' not in NAMESPACES:
+        if 'edm' not in self._config.namespaces:
             namespace = etree.QName(schema.tag).namespace
 
-            if namespace not in EDM_WHITELIST:
+            if namespace not in self.EDM_WHITELIST:
                 raise PyODataParserError(f'Unsupported Schema namespace - {namespace}')
 
-            NAMESPACES['edm'] = namespace
+            namespaces['edm'] = namespace
 
-        # aliases - http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html
-        Edmx.update_global_variables_with_alias(Edmx.get_aliases(xml))
+        self._config.namespaces = namespaces
 
-        edm_schemas = xml.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=NAMESPACES)
-        schema = Schema.from_etree(edm_schemas)
+        self.update_global_variables_with_alias(self.get_aliases(xml, self._config))
+
+        edm_schemas = xml.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=self._config.namespaces)
+        schema = Schema.from_etree(edm_schemas, self._config)
         return schema
 
     @staticmethod
-    def get_aliases(edmx):
+    def get_aliases(edmx, config: Config):
         """Get all aliases"""
 
         aliases = collections.defaultdict(set)
-        edm_root = edmx.xpath('/edmx:Edmx', namespaces=NAMESPACES)
+        edm_root = edmx.xpath('/edmx:Edmx', namespaces=config.namespaces)
         if edm_root:
             edm_ref_includes = edm_root[0].xpath('edmx:Reference/edmx:Include', namespaces=ANNOTATION_NAMESPACES)
             for ref_incl in edm_ref_includes:
@@ -2336,4 +2347,17 @@ class Edmx:
 def schema_from_xml(metadata_xml, namespaces=None):
     """Parses XML data and returns Schema representing OData Metadata"""
 
-    return Edmx.parse(metadata_xml, namespaces=namespaces)
+    meta = MetadataBuilder(
+        metadata_xml,
+        config=Config(
+            xml_namespaces=namespaces,
+        ))
+
+    return meta.build()
+
+
+class Edmx:
+    @staticmethod
+    def parse(metadata_xml, namespaces=None):
+        warnings.warn("Edmx class is deprecated in favor of MetadataBuilder", DeprecationWarning)
+        return schema_from_xml(metadata_xml, namespaces)
