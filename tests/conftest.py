@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from pyodata.v2.model import Edmx
+from pyodata.v2.model import schema_from_xml
 
 
 @pytest.fixture
@@ -16,10 +16,10 @@ def metadata():
 
 
 @pytest.fixture
-def metadata_builder_factory():
+def xml_builder_factory():
     """Skeleton OData metadata"""
 
-    class MetadaBuilder:
+    class XMLBuilder:
         """Helper class for building XML metadata document"""
 
         # pylint: disable=too-many-instance-attributes,line-too-long
@@ -103,7 +103,7 @@ def metadata_builder_factory():
                 prologue = '\n</edmx:DataServices>'
             return prologue
 
-    return MetadaBuilder
+    return XMLBuilder
 
 
 @pytest.fixture
@@ -112,4 +112,4 @@ def schema(metadata):
 
     # pylint: disable=redefined-outer-name
 
-    return Edmx.parse(metadata)
+    return schema_from_xml(metadata)
