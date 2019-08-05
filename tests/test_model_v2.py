@@ -1,12 +1,14 @@
 """Tests for OData Model module"""
-# pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines
+# pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
 
 from datetime import datetime
 from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
-    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, Config
+    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
+    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
+from tests.conftest import assert_logging_policy
 
 
 def test_edmx(schema):
@@ -572,7 +574,8 @@ def test_complex_serializer(schema):
     assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
 
 
-def test_annot_v_l_missing_e_s(xml_builder_factory):
+@patch('logging.Logger.warning')
+def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
     """Test correct handling of annotations whose entity set does not exist"""
 
     xml_builder = xml_builder_factory()
@@ -604,14 +607,25 @@ def test_annot_v_l_missing_e_s(xml_builder_factory):
         """
     )
 
-    try:
-        MetadataBuilder(xml_builder.serialize()).build()
-        assert 'Expected' == 'RuntimeError'
-    except RuntimeError as ex:
-        assert str(ex) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+    metadata = MetadataBuilder(xml_builder.serialize())
+
+    with pytest.raises(RuntimeError) as e_info:
+        metadata.build()
+    assert str(e_info.value) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+
+    metadata.config.set_custom_error_policy({
+        ParserError.ANNOTATION: PolicyWarning()
+    })
+
+    metadata.build()
+    assert_logging_policy(mock_warning,
+                          'RuntimeError',
+                          'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+                          )
 
 
-def test_annot_v_l_missing_e_t(xml_builder_factory):
+@patch('logging.Logger.warning')
+def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
     """Test correct handling of annotations whose target type does not exist"""
 
     xml_builder = xml_builder_factory()
@@ -645,14 +659,28 @@ def test_annot_v_l_missing_e_t(xml_builder_factory):
         """
     )
 
+    metadata = MetadataBuilder(xml_builder.serialize())
+
     try:
-        MetadataBuilder(xml_builder.serialize()).build()
+        metadata.build()
         assert 'Expected' == 'RuntimeError'
     except RuntimeError as ex:
         assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
 
+    metadata.config.set_custom_error_policy({
+        ParserError.ANNOTATION: PolicyWarning()
+    })
 
-def test_annot_v_l_trgt_inv_prop(xml_builder_factory):
+    metadata.build()
+    assert_logging_policy(mock_warning,
+                          'RuntimeError',
+                          'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+                          )
+
+
+@patch('pyodata.v2.model.PolicyIgnore.resolve')
+@patch('logging.Logger.warning')
+def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory):
     """Test correct handling of annotations whose target property does not exist"""
 
     xml_builder = xml_builder_factory()
@@ -691,11 +719,32 @@ def test_annot_v_l_trgt_inv_prop(xml_builder_factory):
         """
     )
 
-    try:
-        MetadataBuilder(xml_builder.serialize()).build()
-        assert 'Expected' == 'RuntimeError'
-    except RuntimeError as ex:
-        assert str(ex) == 'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting) does not exist'
+    metadata = MetadataBuilder(xml_builder.serialize())
+
+    with pytest.raises(RuntimeError) as typ_ex_info:
+        metadata.build()
+    assert typ_ex_info.value.args[0] == 'Target Property NoExisting of EntityType(Dict) as defined in ' \
+                                        'ValueHelper(Dict/NoExisting) does not exist'
+
+    metadata.config.set_custom_error_policy({
+        ParserError.ANNOTATION: PolicyIgnore()
+    })
+
+    metadata.build()
+    assert PolicyIgnore.resolve is mock_resolve
+    mock_resolve.asser_called_once()
+
+    metadata.config.set_custom_error_policy({
+        ParserError.ANNOTATION: PolicyWarning()
+    })
+
+    metadata.build()
+
+    assert_logging_policy(mock_warning,
+                          'RuntimeError',
+                          'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting)'
+                          ' does not exist'
+                          )
 
 
 def test_namespace_with_periods(xml_builder_factory):
@@ -777,6 +826,149 @@ def test_edmx_entity_sets(schema):
     assert cars_set.countable is False
     assert cars_set.searchable is False
     assert cars_set.topable is True
+
+
+def test_config_set_default_error_policy():
+    """ Test configurability of policies """
+    config = Config(
+        custom_error_policies={
+            ParserError.ANNOTATION: PolicyWarning()
+        }
+    )
+
+    assert isinstance(config.err_policy(ParserError.ENTITY_TYPE), PolicyFatal)
+    assert isinstance(config.err_policy(ParserError.ANNOTATION), PolicyWarning)
+
+    config.set_default_error_policy(PolicyIgnore())
+
+    assert isinstance(config.err_policy(ParserError.ENTITY_TYPE), PolicyIgnore)
+    assert isinstance(config.err_policy(ParserError.ANNOTATION), PolicyIgnore)
+
+
+def test_null_type(xml_builder_factory):
+    """ Test NullType being correctly assigned to invalid types"""
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('TEST.NAMESPACE', """
+        <EntityType Name="MasterProperty">
+            <Property Name="Key" Type="Edm.UnknownType" />
+        </EntityType>
+        
+        <EnumType Name="MasterEnum" UnderlyingType="Edm.String" />
+        
+         <ComplexType Name="MasterComplex">
+                <Property Name="Width" Type="Edm.Double" />
+                <Property Name="Width" Type="Edm.Double" />
+        </ComplexType>
+        
+        <EntityType Name="MasterEntity">
+            <NavigationProperty Name="ID" />
+        </EntityType>
+    """)
+
+    metadata = MetadataBuilder(
+        xml_builder.serialize(),
+        config=Config(
+            default_error_policy=PolicyIgnore()
+        ))
+
+    schema = metadata.build()
+
+    type_info = TypeInfo(namespace=None, name='MasterProperty', is_collection=False)
+    assert isinstance(schema.get_type(type_info).proprty('Key').typ, NullType)
+
+    type_info = TypeInfo(namespace=None, name='MasterEnum', is_collection=False)
+    assert isinstance(schema.get_type(type_info), NullType)
+
+    type_info = TypeInfo(namespace=None, name='MasterComplex', is_collection=False)
+    assert isinstance(schema.get_type(type_info), NullType)
+
+    type_info = TypeInfo(namespace=None, name='MasterEntity', is_collection=False)
+    assert isinstance(schema.get_type(type_info), NullType)
+
+    with pytest.raises(PyODataModelError) as typ_ex_info:
+        schema.get_type(type_info).Any
+    assert typ_ex_info.value.args[0] == f'Cannot access this type. An error occurred during parsing type ' \
+                          f'stated in xml({schema.get_type(type_info).name}) was not found, therefore it has been ' \
+                          f'replaced with NullType.'
+
+
+def test_faulty_association(xml_builder_factory):
+    """ Test NullAssociation being correctly assigned to invalid associations"""
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', """
+           <EntityType Name="MasterEntity">
+               <Property Name="Key" Type="Edm.String" />
+               <NavigationProperty Name="Followers" Relationship="EXAMPLE_SRV.Followers" FromRole="MasterRole"
+                                    ToRole="FollowerRole"/>
+           </EntityType>
+           
+           <EntityType Name="FollowerEntity">
+               <Property Name="Key" Type="Edm.String" />
+           </EntityType>
+
+            <Association Name="Followers">
+                <End Type="FaultyNamespace.MasterEntity" Multiplicity="1" Role="MasterRole"/>
+                <End Type="FaultyNamespace.FollowerEntity" Multiplicity="*" Role="FollowerRole"/>
+            </Association>
+       """)
+
+    metadata = MetadataBuilder(
+        xml_builder.serialize(),
+        config=Config(
+            default_error_policy=PolicyIgnore()
+        ))
+
+    schema = metadata.build()
+    assert isinstance(schema.associations[0], NullAssociation)
+
+    with pytest.raises(PyODataModelError) as typ_ex_info:
+        schema.associations[0].Any
+    assert typ_ex_info.value.args[0] == 'Cannot access this association. An error occurred during parsing ' \
+                                        'association metadata due to that annotation has been omitted.'
+
+def test_faulty_association_set(xml_builder_factory):
+    """ Test NullAssociation being correctly assigned to invalid associations"""
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', """
+        <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true">
+           <AssociationSet Name="toDataEntitySet" Association="EXAMPLE_SRV.toDataEntity">
+                    <End EntitySet="MasterEntities" Role="FromRole_toDataEntity"/>
+                    <End EntitySet="DataValueHelp" Role="ToRole_toDataEntity"/>
+            </AssociationSet>
+        </EntityContainer>
+       """)
+
+    metadata = MetadataBuilder(
+        xml_builder.serialize(),
+        config=Config(
+            default_error_policy=PolicyWarning()
+        ))
+
+    schema = metadata.build()
+    assert isinstance(schema.association_set('toDataEntitySet'), NullAssociation)
+
+    with pytest.raises(PyODataModelError) as typ_ex_info:
+        schema.association_set('toDataEntitySet').Any
+    assert typ_ex_info.value.args[0] == 'Cannot access this association. An error occurred during parsing ' \
+                                        'association metadata due to that annotation has been omitted.'
+
+
+def test_missing_association_for_navigation_property(xml_builder_factory):
+    """ Test faulty aassociations on navigation property"""
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', """
+           <EntityType Name="MasterEntity">
+               <Property Name="Key" Type="Edm.String" />
+               <NavigationProperty Name="Followers" Relationship="EXAMPLE_SRV.Followers" FromRole="MasterRole"
+                                    ToRole="FollowerRole"/>
+           </EntityType>
+       """)
+
+    metadata = MetadataBuilder(xml_builder.serialize())
+
+    with pytest.raises(KeyError) as typ_ex_info:
+        metadata.build()
+    assert typ_ex_info.value.args[0] == 'Association Followers does not exist in namespace EXAMPLE_SRV'
 
 
 def test_edmx_association_end_by_role():
