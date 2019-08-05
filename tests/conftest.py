@@ -1,5 +1,5 @@
 """PyTest Fixtures"""
-
+import logging
 import os
 import pytest
 from pyodata.v2.model import schema_from_xml
@@ -113,3 +113,9 @@ def schema(metadata):
     # pylint: disable=redefined-outer-name
 
     return schema_from_xml(metadata)
+
+
+def assert_logging_policy(mock_warning, *args):
+    """Assert if an warning was outputted by PolicyWarning """
+    assert logging.Logger.warning is mock_warning
+    mock_warning.assert_called_with('[%s] %s', *args)

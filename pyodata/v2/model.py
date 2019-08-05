@@ -4,16 +4,17 @@ Simple representation of Metadata of OData V2
 Author: Jakub Filak <jakub.filak@sap.com>
 Date:   2017-08-21
 """
-# pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines
+# pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines, too-many-public-methods
 
 import collections
 import datetime
-import enum
+from enum import Enum, auto
 import io
 import itertools
 import logging
 import re
 import warnings
+from abc import ABC, abstractmethod
 
 from lxml import etree
 
@@ -29,19 +30,101 @@ def modlog():
     return logging.getLogger(LOGGER_NAME)
 
 
+class NullAssociation:
+    def __init__(self, name):
+        self.name = name
+
+    def __getattr__(self, item):
+        raise PyODataModelError('Cannot access this association. An error occurred during parsing '
+                                'association metadata due to that annotation has been omitted.')
+
+
+class NullType:
+    def __init__(self, name):
+        self.name = name
+
+    def __getattr__(self, item):
+        raise PyODataModelError(f'Cannot access this type. An error occurred during parsing '
+                                f'type stated in xml({self.name}) was not found, therefore it has been replaced with NullType.')
+
+
+class ErrorPolicy(ABC):
+    @abstractmethod
+    def resolve(self, ekseption):
+        pass
+
+
+class PolicyFatal(ErrorPolicy):
+    def resolve(self, ekseption):
+        raise ekseption
+
+
+class PolicyWarning(ErrorPolicy):
+    def __init__(self):
+        logging.basicConfig(format='%(levelname)s: %(message)s')
+        self._logger = logging.getLogger()
+
+    def resolve(self, ekseption):
+        self._logger.warning('[%s] %s', ekseption.__class__.__name__, str(ekseption))
+
+
+class PolicyIgnore(ErrorPolicy):
+    def resolve(self, ekseption):
+        pass
+
+
+class ParserError(Enum):
+    PROPERTY = auto()
+    ANNOTATION = auto()
+    ASSOCIATION = auto()
+
+    ENUM_TYPE = auto()
+    ENTITY_TYPE = auto()
+    COMPLEX_TYPE = auto()
+
+
 class Config:
 
     def __init__(self,
+                 custom_error_policies=None,
+                 default_error_policy=None,
                  xml_namespaces=None):
 
         """
+        :param custom_error_policies: {ParserError: ErrorPolicy} (default None)
+                                      Used to specified individual policies for XML tags. See documentation for more
+                                      details.
+
+        :param default_error_policy: ErrorPolicy (default PolicyFatal)
+                                     If custom policy is not specified for the tag, the default policy will be used.
+
         :param xml_namespaces: {str: str} (default None)
         """
+
+        self._custom_error_policy = custom_error_policies
+
+        if default_error_policy is None:
+            default_error_policy = PolicyFatal()
+
+        self._default_error_policy = default_error_policy
 
         if xml_namespaces is None:
             xml_namespaces = {}
 
         self._namespaces = xml_namespaces
+
+    def err_policy(self, error: ParserError):
+        if self._custom_error_policy is None:
+            return self._default_error_policy
+
+        return self._custom_error_policy.get(error, self._default_error_policy)
+
+    def set_default_error_policy(self, policy: ErrorPolicy):
+        self._custom_error_policy = None
+        self._default_error_policy = policy
+
+    def set_custom_error_policy(self, policies: dict):
+        self._custom_error_policy = policies
 
     @property
     def namespaces(self):
@@ -418,7 +501,7 @@ class EnumTypTrait(TypTraits):
 class Typ(Identifier):
     Types = None
 
-    Kinds = enum.Enum('Kinds', 'Primitive Complex')
+    Kinds = Enum('Kinds', 'Primitive Complex')
 
     def __init__(self, name, null_value, traits=TypTraits(), kind=None):
         super(Typ, self).__init__(name)
@@ -591,6 +674,9 @@ class Schema:
             self.entity_types[etype.name] = etype
 
             # automatically create and register collection variant if not exists
+            if isinstance(etype, NullType):
+                return
+
             collection_type_name = 'Collection({})'.format(etype.name)
             self.entity_types[collection_type_name] = Collection(etype.name, etype)
 
@@ -600,6 +686,9 @@ class Schema:
             self.complex_types[ctype.name] = ctype
 
             # automatically create and register collection variant if not exists
+            if isinstance(ctype, NullType):
+                return
+
             collection_type_name = 'Collection({})'.format(ctype.name)
             self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
 
@@ -615,10 +704,11 @@ class Schema:
             except KeyError:
                 raise KeyError('There is no Schema Namespace {}'.format(key))
 
-    def __init__(self):
+    def __init__(self, config: Config):
         super(Schema, self).__init__()
 
         self._decls = Schema.Declarations()
+        self._config = config
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, ','.join(self.namespaces))
@@ -626,6 +716,10 @@ class Schema:
     @property
     def namespaces(self):
         return list(self._decls.keys())
+
+    @property
+    def config(self):
+        return self._config
 
     def typ(self, type_name, namespace=None):
         """Returns either EntityType, ComplexType or EnumType that matches the name.
@@ -852,7 +946,7 @@ class Schema:
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
     def from_etree(schema_nodes, config: Config):
-        schema = Schema()
+        schema = Schema(config)
 
         # Parse Schema nodes by parts to get over the problem of not-yet known
         # entity types referenced by entity sets, function imports and
@@ -865,19 +959,37 @@ class Schema:
             schema._decls[namespace] = decl
 
             for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
-                etype = EnumType.from_etree(enum_type, namespace, config)
+                try:
+                    etype = EnumType.from_etree(enum_type, namespace, config)
+                except (PyODataParserError, AttributeError) as ex:
+                    config.err_policy(ParserError.ENUM_TYPE).resolve(ex)
+                    etype = NullType(enum_type.get('Name'))
+
                 decl.add_enum_type(etype)
 
             for complex_type in schema_node.xpath('edm:ComplexType', namespaces=config.namespaces):
-                ctype = ComplexType.from_etree(complex_type, config)
+                try:
+                    ctype = ComplexType.from_etree(complex_type, config)
+                except (KeyError, AttributeError) as ex:
+                    config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
+                    ctype = NullType(complex_type.get('Name'))
+
                 decl.add_complex_type(ctype)
 
             for entity_type in schema_node.xpath('edm:EntityType', namespaces=config.namespaces):
-                etype = EntityType.from_etree(entity_type, config)
+                try:
+                    etype = EntityType.from_etree(entity_type, config)
+                except (KeyError, AttributeError) as ex:
+                    config.err_policy(ParserError.ENTITY_TYPE).resolve(ex)
+                    etype = NullType(entity_type.get('Name'))
+
                 decl.add_entity_type(etype)
 
         # resolve types of properties
         for stype in itertools.chain(schema.entity_types, schema.complex_types):
+            if isinstance(stype, NullType):
+                continue
+
             if stype.kind == Typ.Kinds.Complex:
                 # skip collections (no need to assign any types since type of collection
                 # items is resolved separately
@@ -885,8 +997,13 @@ class Schema:
                     continue
 
                 for prop in stype.proprties():
-                    prop.typ = schema.get_type(prop.type_info)
+                    try:
+                        prop.typ = schema.get_type(prop.type_info)
+                    except PyODataModelError as ex:
+                        config.err_policy(ParserError.PROPERTY).resolve(ex)
+                        prop.typ = NullType(prop.type_info[1])
 
+        # pylint: disable=too-many-nested-blocks
         # Then, process Associations nodes because they refer EntityTypes and
         # they are referenced by AssociationSets.
         for schema_node in schema_nodes:
@@ -895,57 +1012,69 @@ class Schema:
 
             for association in schema_node.xpath('edm:Association', namespaces=config.namespaces):
                 assoc = Association.from_etree(association, config)
-                for end_role in assoc.end_roles:
-                    try:
-                        # search and assign entity type (it must exist)
-                        if end_role.entity_type_info.namespace is None:
-                            end_role.entity_type_info.namespace = namespace
+                try:
+                    for end_role in assoc.end_roles:
+                        try:
+                            # search and assign entity type (it must exist)
+                            if end_role.entity_type_info.namespace is None:
+                                end_role.entity_type_info.namespace = namespace
 
-                        etype = schema.entity_type(end_role.entity_type_info.name, end_role.entity_type_info.namespace)
+                            etype = schema.entity_type(end_role.entity_type_info.name, end_role.entity_type_info.namespace)
 
-                        end_role.entity_type = etype
-                    except KeyError:
-                        raise PyODataModelError(
-                            'EntityType {} does not exist in Schema Namespace {}'
-                            .format(end_role.entity_type_info.name, end_role.entity_type_info.namespace))
+                            end_role.entity_type = etype
+                        except KeyError:
+                            raise PyODataModelError(
+                                f'EntityType {end_role.entity_type_info.name} does not exist in Schema '
+                                f'Namespace {end_role.entity_type_info.namespace}')
 
-                if assoc.referential_constraint is not None:
-                    role_names = [end_role.role for end_role in assoc.end_roles]
-                    principal_role = assoc.referential_constraint.principal
+                    if assoc.referential_constraint is not None:
+                        role_names = [end_role.role for end_role in assoc.end_roles]
+                        principal_role = assoc.referential_constraint.principal
 
-                    # Check if the role was defined in the current association
-                    if principal_role.name not in role_names:
-                        raise RuntimeError(
-                            'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
+                        # Check if the role was defined in the current association
+                        if principal_role.name not in role_names:
+                            raise RuntimeError(
+                                'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
 
-                    # Check if principal role properties exist
-                    role_name = principal_role.name
-                    entity_type_name = assoc.end_by_role(role_name).entity_type_name
-                    schema.check_role_property_names(principal_role, entity_type_name, namespace)
+                        # Check if principal role properties exist
+                        role_name = principal_role.name
+                        entity_type_name = assoc.end_by_role(role_name).entity_type_name
+                        schema.check_role_property_names(principal_role, entity_type_name, namespace)
 
-                    dependent_role = assoc.referential_constraint.dependent
+                        dependent_role = assoc.referential_constraint.dependent
 
-                    # Check if the role was defined in the current association
-                    if dependent_role.name not in role_names:
-                        raise RuntimeError(
-                            'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
+                        # Check if the role was defined in the current association
+                        if dependent_role.name not in role_names:
+                            raise RuntimeError(
+                                'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
 
-                    # Check if dependent role properties exist
-                    role_name = dependent_role.name
-                    entity_type_name = assoc.end_by_role(role_name).entity_type_name
-                    schema.check_role_property_names(dependent_role, entity_type_name, namespace)
-
-                decl.associations[assoc.name] = assoc
+                        # Check if dependent role properties exist
+                        role_name = dependent_role.name
+                        entity_type_name = assoc.end_by_role(role_name).entity_type_name
+                        schema.check_role_property_names(dependent_role, entity_type_name, namespace)
+                except (PyODataModelError, RuntimeError) as ex:
+                    config.err_policy(ParserError.ASSOCIATION).resolve(ex)
+                    decl.associations[assoc.name] = NullAssociation(assoc.name)
+                else:
+                    decl.associations[assoc.name] = assoc
 
         # resolve navigation properties
         for stype in schema.entity_types:
+            # skip null type
+            if isinstance(stype, NullType):
+                continue
+
             # skip collections
             if stype.is_collection:
                 continue
 
             for nav_prop in stype.nav_proprties:
-                assoc = schema.association(nav_prop.association_info.name, nav_prop.association_info.namespace)
-                nav_prop.association = assoc
+                try:
+                    assoc = schema.association(nav_prop.association_info.name, nav_prop.association_info.namespace)
+                    nav_prop.association = assoc
+                except KeyError as ex:
+                    config.err_policy(ParserError.ASSOCIATION).resolve(ex)
+                    nav_prop.association = NullAssociation(nav_prop.association_info.name)
 
         # Then, process EntitySet, FunctionImport and AssociationSet nodes.
         for schema_node in schema_nodes:
@@ -969,29 +1098,34 @@ class Schema:
             for association_set in schema_node.xpath('edm:EntityContainer/edm:AssociationSet', namespaces=config.namespaces):
                 assoc_set = AssociationSet.from_etree(association_set, config)
                 try:
-                    assoc_set.association_type = schema.association(assoc_set.association_type_name,
-                                                                    assoc_set.association_type_namespace)
-                except KeyError:
-                    raise PyODataModelError(
-                        'Association {} does not exist in namespace {}'
-                        .format(assoc_set.association_type_name, assoc_set.association_type_namespace))
-
-                for end in assoc_set.end_roles:
-                    # Check if an entity set exists in the current scheme
-                    # and add a reference to the corresponding entity set
                     try:
-                        entity_set = schema.entity_set(end.entity_set_name, namespace)
-                        end.entity_set = entity_set
+                        assoc_set.association_type = schema.association(assoc_set.association_type_name,
+                                                                        assoc_set.association_type_namespace)
                     except KeyError:
-                        raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
-                                                .format(end.entity_set_name, namespace))
-                    # Check if role is defined in Association
-                    if assoc_set.association_type.end_by_role(end.role) is None:
-                        raise PyODataModelError('Role {} is not defined in association {}'
-                                                .format(end.role, assoc_set.association_type_name))
+                        raise PyODataModelError(
+                            'Association {} does not exist in namespace {}'
+                            .format(assoc_set.association_type_name, assoc_set.association_type_namespace))
 
-                decl.association_sets[assoc_set.name] = assoc_set
+                    for end in assoc_set.end_roles:
+                        # Check if an entity set exists in the current scheme
+                        # and add a reference to the corresponding entity set
+                        try:
+                            entity_set = schema.entity_set(end.entity_set_name, namespace)
+                            end.entity_set = entity_set
+                        except KeyError:
+                            raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
+                                                    .format(end.entity_set_name, namespace))
+                        # Check if role is defined in Association
+                        if assoc_set.association_type.end_by_role(end.role) is None:
+                            raise PyODataModelError('Role {} is not defined in association {}'
+                                                    .format(end.role, assoc_set.association_type_name))
+                except (PyODataModelError, KeyError) as ex:
+                    config.err_policy(ParserError.ASSOCIATION).resolve(ex)
+                    decl.association_sets[assoc_set.name] = NullAssociation(assoc_set.name)
+                else:
+                    decl.association_sets[assoc_set.name] = assoc_set
 
+        # pylint: disable=too-many-nested-blocks
         # Finally, process Annotation nodes when all Scheme nodes are completely processed.
         for schema_node in schema_nodes:
             for annotation_group in schema_node.xpath('edm:Annotations', namespaces=ANNOTATION_NAMESPACES):
@@ -1000,28 +1134,30 @@ class Schema:
                         modlog().warning('{0} not in the namespaces {1}'.format(annotation, ','.join(schema.namespaces)))
                         continue
 
-                    if annotation.kind == Annotation.Kinds.ValueHelper:
+                    try:
+                        if annotation.kind == Annotation.Kinds.ValueHelper:
+                            try:
+                                annotation.entity_set = schema.entity_set(
+                                    annotation.collection_path, namespace=annotation.element_namespace)
+                            except KeyError:
+                                raise RuntimeError(f'Entity Set {annotation.collection_path} '
+                                                   f'for {annotation} does not exist')
 
-                        try:
-                            annotation.entity_set = schema.entity_set(
-                                annotation.collection_path, namespace=annotation.element_namespace)
-                        except KeyError:
-                            raise RuntimeError('Entity Set {0} for {1} does not exist'
-                                               .format(annotation.collection_path, annotation))
+                            try:
+                                vh_type = schema.typ(annotation.proprty_entity_type_name,
+                                                     namespace=annotation.element_namespace)
+                            except KeyError:
+                                raise RuntimeError(f'Target Type {annotation.proprty_entity_type_name} '
+                                                   f'of {annotation} does not exist')
 
-                        try:
-                            vh_type = schema.typ(
-                                annotation.proprty_entity_type_name, namespace=annotation.element_namespace)
-                        except KeyError:
-                            raise RuntimeError('Target Type {0} of {1} does not exist'.format(
-                                annotation.proprty_entity_type_name, annotation))
-
-                        try:
-                            target_proprty = vh_type.proprty(annotation.proprty_name)
-                        except KeyError:
-                            raise RuntimeError('Target Property {0} of {1} as defined in {2} does not exist'.format(
-                                annotation.proprty_name, vh_type, annotation))
-
+                            try:
+                                target_proprty = vh_type.proprty(annotation.proprty_name)
+                            except KeyError:
+                                raise RuntimeError(f'Target Property {annotation.proprty_name} '
+                                                   f'of {vh_type} as defined in {annotation} does not exist')
+                    except (RuntimeError, PyODataModelError) as ex:
+                        config.err_policy(ParserError.ANNOTATION).resolve(ex)
+                    else:
                         annotation.proprty = target_proprty
                         target_proprty.value_helper = annotation
 
@@ -1855,7 +1991,7 @@ class AssociationSet:
 
 
 class Annotation:
-    Kinds = enum.Enum('Kinds', 'ValueHelper')
+    Kinds = Enum('Kinds', 'ValueHelper')
 
     def __init__(self, kind, target, qualifier=None):
         super(Annotation, self).__init__()
@@ -2037,7 +2173,7 @@ class ValueHelper(Annotation):
 
 
 class ValueHelperParameter:
-    Direction = enum.Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
+    Direction = Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
 
     def __init__(self, direction, local_property_name, list_property_name):
         super(ValueHelperParameter, self).__init__()
@@ -2186,7 +2322,7 @@ class FunctionImport(Identifier):
 
 
 class FunctionImportParameter(VariableDeclaration):
-    Modes = enum.Enum('Modes', 'In Out InOut')
+    Modes = Enum('Modes', 'In Out InOut')
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale, mode):
         super(FunctionImportParameter, self).__init__(name, type_info, nullable, max_length, precision, scale)
