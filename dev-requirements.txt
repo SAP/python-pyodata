@@ -1,0 +1,10 @@
+requests==2.20.0
+pytest>=2.7.0
+responses>=0.8.1
+setuptools>=38.2.4
+setuptools-scm>=1.15.6
+pylint
+pytest-cov
+codecov
+flake8
+sphinx

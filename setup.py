@@ -37,18 +37,21 @@ setup(
     packages=find_packages(exclude=("tests")),
     zip_safe=False,
     install_requires=[
-        "enum34>=1.0.4",
         "lxml>=3.7.3",
     ],
     extras_require={
     },
     tests_require=[
+        "codecov",
+        "flake8",
         "setuptools>=38.2.4",
         "setuptools-scm>=1.15.6",
-        "funcsigs>=1.0.2",
         "requests==2.20.0",
         "responses>=0.8.1",
+        "pylint",
         "pytest>=2.7.0",
+        "pytest-cov",
+        "sphinx",
     ],
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 5 - Production/Stable',
