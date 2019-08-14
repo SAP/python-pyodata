@@ -101,6 +101,7 @@ For parser to use your custom configuration, it needs to be passed as an argumen
 .. code-block:: python
 
     import pyodata
+    from pyodata.v2.model import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError, Config
     import requests
 
     SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
