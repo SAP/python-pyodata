@@ -192,7 +192,7 @@ class Types:
                 Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
             Types.register_type(Typ('Edm.Int16', '0', EdmIntTypTraits()))
             Types.register_type(Typ('Edm.Int32', '0', EdmIntTypTraits()))
-            Types.register_type(Typ('Edm.Int64', '0L', EdmIntTypTraits()))
+            Types.register_type(Typ('Edm.Int64', '0L', EdmLongIntTypTraits()))
             Types.register_type(Typ('Edm.SByte', '0'))
             Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
             Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
@@ -459,6 +459,24 @@ class EdmIntTypTraits(TypTraits):
 
     def from_literal(self, value):
         return int(value)
+
+
+class EdmLongIntTypTraits(TypTraits):
+    """All Edm Integer for big numbers traits"""
+
+    # pylint: disable=no-self-use
+    def to_literal(self, value):
+        return '%dL' % (value)
+
+    # pylint: disable=no-self-use
+    def from_json(self, value):
+        if value[-1] == 'L':
+            return int(value[:-1])
+
+        return int(value)
+
+    def from_literal(self, value):
+        return self.from_json(value)
 
 
 class EdmStructTypTraits(TypTraits):
