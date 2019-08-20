@@ -6,21 +6,41 @@ from argparse import ArgumentParser
 import pyodata
 import requests
 
+from getpass import getpass
+
 
 def _parse_args(argv):
     parser = ArgumentParser()
     parser.add_argument('SERVICE_ROOR_URL', type=str)
+    parser.add_argument('--user', default=None, type=str)
+    parser.add_argument('--password', default=None, type=str)
     args = parser.parse_args(argv[1:])
 
     return args
 
+
 def _main(argv):
     args = _parse_args(argv)
 
-    HTTP_LIB = requests.Session()
+    session = requests.Session()
+
+    if args.user is not None:
+
+        if args.password is None:
+            args.password = getpass(f'Enter password for {args.user}: ')
+
+        session.auth = (args.user, args.password)
+
+    try:
+        session.head(args.SERVICE_ROOR_URL)
+        args.password = 'xxxxx'
+    except pyodata.exceptions.HttpError as err:
+        sys.stderr.write(str(err))
+        sys.stderr.write('\n')
+        sys.exit(1)
 
     print('[Fetching $metadata ...]')
-    client = pyodata.Client(args.SERVICE_ROOR_URL, HTTP_LIB)
+    client = pyodata.Client(args.SERVICE_ROOR_URL, session)
 
     print('[Printing out all Entity Sets ...]')
     for es in client.schema.entity_sets:
