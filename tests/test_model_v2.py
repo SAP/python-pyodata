@@ -382,9 +382,16 @@ def test_traits():
     assert typ.traits.from_literal('345') == 345
 
     typ = Types.from_name('Edm.Int64')
-    assert repr(typ.traits) == 'EdmIntTypTraits'
-    assert typ.traits.to_literal(23) == '23'
+    assert repr(typ.traits) == 'EdmLongIntTypTraits'
+    assert typ.traits.to_literal(23) == '23L'
+    assert typ.traits.from_literal('345L') == 345
+    assert typ.traits.from_json('345L') == 345
     assert typ.traits.from_literal('345') == 345
+    assert typ.traits.from_json('345') == 345
+    assert typ.traits.from_literal('0') == 0
+    assert typ.traits.from_json('0') == 0
+    assert typ.traits.from_literal('0L') == 0
+    assert typ.traits.from_json('0L') == 0
 
     # GUIDs
     typ = Types.from_name('Edm.Guid')
