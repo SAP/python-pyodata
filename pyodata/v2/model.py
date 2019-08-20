@@ -458,7 +458,7 @@ class EdmIntTypTraits(TypTraits):
         return int(value)
 
     def from_literal(self, value):
-        return int(value)
+        return float(value)
 
 
 class EdmStructTypTraits(TypTraits):
