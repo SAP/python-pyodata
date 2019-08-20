@@ -1108,7 +1108,8 @@ class Schema:
                 efn = FunctionImport.from_etree(function_import, config)
 
                 # complete type information for return type and parameters
-                efn.return_type = schema.get_type(efn.return_type_info)
+                if efn.return_type_info is not None:
+                    efn.return_type = schema.get_type(efn.return_type_info)
                 for param in efn.parameters:
                     param.typ = schema.get_type(param.type_info)
                 decl.function_imports[efn.name] = efn
@@ -2321,7 +2322,10 @@ class FunctionImport(Identifier):
         name = function_import_node.get('Name')
         entity_set = function_import_node.get('EntitySet')
         http_method = metadata_attribute_get(function_import_node, 'HttpMethod')
-        rt_info = Types.parse_type_name(function_import_node.get('ReturnType'))
+
+        rt_type = function_import_node.get('ReturnType')
+        rt_info = None if rt_type is None else Types.parse_type_name(rt_type)
+        print(name, rt_type, rt_info)
 
         parameters = dict()
         for param in function_import_node.xpath('edm:Parameter', namespaces=config.namespaces):

@@ -362,6 +362,21 @@ def test_function_import_primitive(service):
 
 
 @responses.activate
+def test_function_import_without_return_type(service):
+    """A simple function call without return type"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=204)
+
+    result = service.functions.refresh.execute()
+    assert result is None
+
+
+@responses.activate
 def test_function_import_entity(service):
     """Function call with entity return type"""
 
