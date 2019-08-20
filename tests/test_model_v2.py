@@ -268,7 +268,7 @@ def test_edmx_function_imports(schema):
     """Test parsing of function imports"""
 
     assert set((func_import.name for func_import in schema.function_imports)) == {'get_best_measurements', 'retrieve',
-                                                                                  'get_max', 'sum', 'sum_complex'}
+                                                                                  'get_max', 'sum', 'sum_complex', 'refresh'}
     # pylint: disable=redefined-outer-name
 
     function_import = schema.function_import('retrieve')
@@ -287,6 +287,11 @@ def test_edmx_function_imports(schema):
     assert param.mode == 'In'
     assert param.typ.traits.to_literal('Foo') == "'Foo'"
     assert param.typ.traits.from_literal("'Foo'") == 'Foo'
+
+    # function import without return type
+    function_import = schema.function_import('refresh')
+    assert function_import.return_type is None
+    assert function_import.http_method == 'GET'
 
     # function import that returns entity
     function_import = schema.function_import('get_max')

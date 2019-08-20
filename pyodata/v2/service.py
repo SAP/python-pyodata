@@ -1177,9 +1177,16 @@ class FunctionContainer:
         def function_import_handler(fimport, response):
             """Get function call response from HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
-                raise HttpError('Function import call failed with status code {0}'.format(response.status_code),
+            if response.status_code >= 300:
+                raise HttpError('Function import call failed with the status code {0}'.format(response.status_code),
                                 response)
+
+            if fimport.return_type is None:
+                if response.text:
+                    logging.getLogger(LOGGER_NAME).warning(
+                        'The No Return Function import has returned content:\n%s', response.text)
+
+                return None
 
             response_data = response.json()['d']
 
