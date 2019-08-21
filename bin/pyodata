@@ -15,10 +15,10 @@ def print_out_metadata_info(args, client):
         print(es.name)
 
         for prop in es.entity_type.proprties():
-            print(f'  {prop.name}({prop.typ.name})')
+            print(f' + {prop.name}({prop.typ.name})')
 
         for prop in es.entity_type.nav_proprties:
-            print(f'  {prop.name}({prop.to_role.entity_type_name})')
+            print(f' + {prop.name}({prop.to_role.entity_type_name})')
 
 
 def print_out_entity_set(args, client):
