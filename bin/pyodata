@@ -20,6 +20,15 @@ def print_out_metadata_info(args, client):
         for prop in es.entity_type.nav_proprties:
             print(f' + {prop.name}({prop.to_role.entity_type_name})')
 
+    for fs in client.schema.function_imports:
+        print(f'{fs.http_method} {fs.name}')
+
+        for param in fs.parameters:
+            print(f' > {param.name}({param.typ.name})')
+
+        if fs.return_type is not None:
+            print(f' < {fs.return_type.name}')
+
 
 def print_out_entity_set(args, client):
     typ = client.schema.entity_set(args.name).entity_type
