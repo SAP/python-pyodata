@@ -41,6 +41,12 @@ def print_out_entity_set(args, client):
         print('-' * 80)
 
 
+def print_out_function_import(args, client):
+    function = getattr(client.functions, args.name)
+    response = function.execute()
+    print(response)
+
+
 def _parse_args(argv):
     parser = ArgumentParser()
     parser.add_argument('SERVICE_ROOR_URL', type=str)
@@ -52,6 +58,12 @@ def _parse_args(argv):
     entity_set_parser = subparsers.add_parser('ENTITY_SET')
     entity_set_parser.add_argument('name', type=str)
     entity_set_parser.set_defaults(func=print_out_entity_set)
+
+    func_import_parser = subparsers.add_parser('FUNCTION_IMPORT')
+    func_import_parser.add_argument('name', type=str)
+    func_import_parser.add_argument('PARAMETERS', nargs='*', type=str,
+                                    help='NAME=VALUE pairs')
+    func_import_parser.set_defaults(func=print_out_function_import)
 
     args = parser.parse_args(argv[1:])
 
