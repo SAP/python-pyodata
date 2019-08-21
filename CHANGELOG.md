@@ -1,5 +1,14 @@
 # Changelog
 
+## Enumerating the most important changes in each version.
+
+# 1.3.0
+  * e6098351 - service: fix an out-of-range index in an err msg - Jakub Filak
+  * ff05be5f - model: add support for EnumType - Martin Miksik
+  * 17f30b93 - model: add support for permissive parsing of metadata (parse even faulty metadata.) - Martin Miksik
+  * 5b84d0aa - dependencies: split requirements.txt and dev-requirements.txt, drop unused. - Jakub Filak
+
+
 # 1.2.3
   * dca01a28 - model:  add support for whitelisted and custom namespaces - Martin Miksik
 
