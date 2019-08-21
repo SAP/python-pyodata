@@ -46,6 +46,12 @@ def _main(argv):
     for es in client.schema.entity_sets:
         print(es.name)
 
+        for prop in es.entity_type.proprties():
+            print(f'  {prop.name}({prop.typ.name})')
+
+        for prop in es.entity_type.nav_proprties:
+            print(f'  {prop.name}({prop.to_role.entity_type_name})')
+
     print('[Done!]')
     return 0
 
