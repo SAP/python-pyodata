@@ -83,6 +83,32 @@ def test_create_entity_code_400(service):
 
 
 @responses.activate
+def test_create_entity_containing_enum(service):
+    """Basic test on creating entity with enum"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/EnumTests".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'CountryOfOrigin': 'USA',
+        }},
+        status=201)
+
+    result = service.entity_sets.EnumTests.create_entity().set(**{'CountryOfOrigin': 'USA'}).execute()
+
+    USA = service.schema.enum_type('Country').USA
+    assert result.CountryOfOrigin == USA
+
+    traits = service.schema.enum_type('Country').traits
+    literal = traits.to_literal(USA)
+
+    assert literal == "EXAMPLE_SRV.Country\'USA\'"
+    assert traits.from_literal(literal).name == 'USA'
+
+@responses.activate
 def test_create_entity_nested(service):
     """Basic test on creating entity"""
 
@@ -642,6 +668,26 @@ def test_entity_get_value_with_proxy(service):
 
     stream = request.execute()
     assert stream.content == b'DEADBEAF'
+
+
+@responses.activate
+def test_entity_get_value_without_proxy_error(service):
+    """Check getting $value without proxy"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/CarIDPics('Hadraplan')/$value/".format(service.url),
+        headers={'Content-type': 'text/plain'},
+        body='Internal Server Error',
+        status=500)
+
+    with pytest.raises(HttpError) as caught_ex:
+        service.entity_sets.CarIDPics.get_entity('Hadraplan').get_value().execute()
+
+    assert str(caught_ex.value).startswith('HTTP GET for $value failed with status code 500')
+    assert caught_ex.value.response.status_code == 500
 
 
 @responses.activate

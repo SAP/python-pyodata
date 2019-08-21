@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/SAP/python-pyodata.svg?branch=master)](https://travis-ci.org/SAP/python-pyodata)
 [![PyPI version](https://badge.fury.io/py/pyodata.svg)](https://badge.fury.io/py/pyodata)
 [![codecov](https://codecov.io/gh/SAP/python-pyodata/branch/master/graph/badge.svg)](https://codecov.io/gh/SAP/python-pyodata)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/SAP/python-pyodata.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/SAP/python-pyodata/alerts/)
 
 # Python OData Client - pyodata
 

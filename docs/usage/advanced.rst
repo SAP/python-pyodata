@@ -67,3 +67,19 @@ the class *HttpError*.
 
 The class *pyodata.vendor.SAP.BusinessGatewayError* is an example of such
 an HTTP error handling.
+
+Enable Logging
+--------------
+
+.. _Python logging: https://docs.python.org/3/library/logging.html
+
+The library uses `Python logging`_ without own handler, so to enable logging
+it is enough to set log level to the desired value.
+
+.. code-block:: python
+
+    import logging
+
+    logging.basicConfig()
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)

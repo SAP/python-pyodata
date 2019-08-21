@@ -21,28 +21,6 @@ Basic initialization which is going to work for everybody:
 
     northwind = pyodata.Client(SERVICE_URL, requests.Session())
 
-
-Set custom namespaces
----------------------
-
-Let's assume you need to work with a service  which uses namespaces not directly supported by this library e. g. ones
-hosted on private urls such as *customEdmxUrl.com* and *customEdmUrl.com*:
-
-.. code-block:: python
-
-    import pyodata
-    import requests
-
-    SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
-
-    namespaces = {
-        'edmx': "customEdmxUrl.com"
-        'edm': 'customEdmUrl.com'
-    }
-
-    northwind = pyodata.Client(SERVICE_URL, requests.Session(), namespaces=namespaces)
-
-
 Get the service proxy client for an OData service requiring authentication
 --------------------------------------------------------------------------
 
@@ -101,3 +79,65 @@ Python client initialization:
 
 
 For more information on client side SSL cerificationcas, please refer to this [gist](https://gist.github.com/mtigas/952344).
+
+Dealing with errors during parsing metadata
+-------------------------------------------
+
+In the case where you need to consume a service which has not fully valid metadata document and is not under your control, you can configure the metadata parser to try to recover from detected problems.
+
+Parser recovery measures include actions such as using a stub entity type if the parser cannot find a referenced entity type. The stub entity type allows the parser to continue processing the given metadata but causes fatal errors when accessed from the client.
+
+Class config provides easy to use wrapper for all parser configuration. These are:
+    - XML namespaces
+    - Parser policies (how parser act in case of invalid XML tag). We now support three types of policies:
+        - Policy fatal - the policy raises exception and terminates the parser
+        - Policy warning - the policy reports the detected problem, executes a fallback code and then continues normally
+        - Policy ignore - the policy executes a fallback code without reporting the problem and then continues normally
+
+Parser policies can be specified individually for each XML tag (See enum ParserError for more details). If no policy is specified for the tag, the default policy is used.
+
+For parser to use your custom configuration, it needs to be passed as an argument to the client.
+
+.. code-block:: python
+
+    import pyodata
+    from pyodata.v2.model import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError, Config
+    import requests
+
+    SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
+
+    namespaces = {
+        'edmx': 'customEdmxUrl.com',
+        'edm': 'customEdmUrl.com'
+    }
+
+    custom_config = Config(
+        xml_namespaces=namespaces,
+        default_error_policy=PolicyFatal(),
+        custom_error_policies={
+             ParserError.ANNOTATION: PolicyWarning(),
+             ParserError.ASSOCIATION: PolicyIgnore()
+        })
+
+    northwind = pyodata.Client(SERVICE_URL, requests.Session(), config=custom_config)
+
+Set custom namespaces (Deprecated - use config instead)
+-------------------------------------------------------
+
+Let's assume you need to work with a service  which uses namespaces not directly supported by this library e. g. ones
+hosted on private urls such as *customEdmxUrl.com* and *customEdmUrl.com*:
+
+.. code-block:: python
+
+    import pyodata
+    import requests
+
+    SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
+
+    namespaces = {
+        'edmx': 'customEdmxUrl.com'
+        'edm': 'customEdmUrl.com'
+    }
+
+    northwind = pyodata.Client(SERVICE_URL, requests.Session(), namespaces=namespaces)
+

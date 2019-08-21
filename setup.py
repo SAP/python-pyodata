@@ -12,14 +12,11 @@
 # either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-from os.path import dirname, join
 import os
-import re
+import os.path
 from setuptools import setup, find_packages
-import subprocess
 
 source_location = os.path.abspath(os.path.dirname(__file__))
-
 
 NAME = 'python-pyodata'
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -40,18 +37,21 @@ setup(
     packages=find_packages(exclude=("tests")),
     zip_safe=False,
     install_requires=[
-        "enum34>=1.0.4",
         "lxml>=3.7.3",
     ],
     extras_require={
     },
     tests_require=[
+        "codecov",
+        "flake8",
         "setuptools>=38.2.4",
         "setuptools-scm>=1.15.6",
-        "funcsigs>=1.0.2",
         "requests==2.20.0",
         "responses>=0.8.1",
+        "pylint",
         "pytest>=2.7.0",
+        "pytest-cov",
+        "sphinx",
     ],
     classifiers=[ # cf. http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 5 - Production/Stable',

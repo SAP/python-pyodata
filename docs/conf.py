@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'PyOData'
-copyright = '2019, SAP'
+copyright = '2019 SAP SE or an SAP affiliate company'
 author = 'SAP'
 
 # The short X.Y version
