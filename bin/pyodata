@@ -9,11 +9,41 @@ import requests
 from getpass import getpass
 
 
+def print_out_metadata_info(args, client):
+    print('[Printing out all Entity Sets ...]')
+    for es in client.schema.entity_sets:
+        print(es.name)
+
+        for prop in es.entity_type.proprties():
+            print(f'  {prop.name}({prop.typ.name})')
+
+        for prop in es.entity_type.nav_proprties:
+            print(f'  {prop.name}({prop.to_role.entity_type_name})')
+
+
+def print_out_entity_set(args, client):
+    typ = client.schema.entity_set(args.name).entity_type
+    request = getattr(client.entity_sets, args.name).get_entities()
+    entities = request.execute()
+
+    for entity in entities:
+        for prop in typ.proprties():
+            print(f'{prop.name} = {getattr(entity, prop.name)}')
+        print('-' * 80)
+
+
 def _parse_args(argv):
     parser = ArgumentParser()
     parser.add_argument('SERVICE_ROOR_URL', type=str)
     parser.add_argument('--user', default=None, type=str)
     parser.add_argument('--password', default=None, type=str)
+    parser.set_defaults(func=print_out_metadata_info)
+
+    subparsers = parser.add_subparsers()
+    entity_set_parser = subparsers.add_parser('ENTITY_SET')
+    entity_set_parser.add_argument('name', type=str)
+    entity_set_parser.set_defaults(func=print_out_entity_set)
+
     args = parser.parse_args(argv[1:])
 
     return args
@@ -42,15 +72,7 @@ def _main(argv):
     print('[Fetching $metadata ...]')
     client = pyodata.Client(args.SERVICE_ROOR_URL, session)
 
-    print('[Printing out all Entity Sets ...]')
-    for es in client.schema.entity_sets:
-        print(es.name)
-
-        for prop in es.entity_type.proprties():
-            print(f'  {prop.name}({prop.typ.name})')
-
-        for prop in es.entity_type.nav_proprties:
-            print(f'  {prop.name}({prop.to_role.entity_type_name})')
+    args.func(args, client)
 
     print('[Done!]')
     return 0
