@@ -800,7 +800,7 @@ class Schema:
     def get_type(self, type_info):
 
         # construct search name based on collection information
-        search_name = type_info[1] if not type_info[2] else 'Collection({})'.format(type_info[1])
+        search_name = type_info.name if not type_info.is_collection else 'Collection({})'.format(type_info.name)
 
         # first look for type in primitive types
         try:
@@ -810,25 +810,25 @@ class Schema:
 
         # then look for type in entity types
         try:
-            return self.entity_type(search_name, type_info[0])
+            return self.entity_type(search_name, type_info.namespace)
         except KeyError:
             pass
 
         # then look for type in complex types
         try:
-            return self.complex_type(search_name, type_info[0])
+            return self.complex_type(search_name, type_info.namespace)
         except KeyError:
             pass
 
         # then look for type in enum types
         try:
-            return self.enum_type(search_name, type_info[0])
+            return self.enum_type(search_name, type_info.namespace)
         except KeyError:
             pass
 
         raise PyODataModelError(
-            'Neither primitive types nor types parsed from service metadata contain requested type {}'.format(type_info[
-                1]))
+            'Neither primitive types nor types parsed from service metadata contain requested type {}'
+            .format(type_info.name))
 
     @property
     def entity_types(self):
@@ -1019,7 +1019,7 @@ class Schema:
                         prop.typ = schema.get_type(prop.type_info)
                     except PyODataModelError as ex:
                         config.err_policy(ParserError.PROPERTY).resolve(ex)
-                        prop.typ = NullType(prop.type_info[1])
+                        prop.typ = NullType(prop.type_info.name)
 
         # pylint: disable=too-many-nested-blocks
         # Then, process Associations nodes because they refer EntityTypes and
