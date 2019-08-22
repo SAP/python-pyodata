@@ -4,6 +4,7 @@ import datetime
 import responses
 import requests
 import pytest
+from unittest.mock import patch
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
@@ -362,6 +363,26 @@ def test_function_import_primitive(service):
 
 
 @responses.activate
+@patch('logging.Logger.warning')
+def test_function_import_primitive_unexpected_status_code(mock_warning, service):
+    """Simple function call should use status code 200"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/sum?A=2&B=4".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': 6},
+        status=201)
+
+    result = service.functions.sum.parameter('A', 2).parameter('B', 4).execute()
+    mock_warning.assert_called_with(
+        'The Function Import %s has replied with HTTP Status Code %d instead of 200',
+        'sum', 201)
+
+
+@responses.activate
 def test_function_import_without_return_type(service):
     """A simple function call without return type"""
 
@@ -374,6 +395,149 @@ def test_function_import_without_return_type(service):
 
     result = service.functions.refresh.execute()
     assert result is None
+
+
+@responses.activate
+@patch('logging.Logger.warning')
+def test_function_import_without_return_type_wrong_code(mock_warning, service):
+    """A simple function call without return type should use status code 204"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=200)
+
+    result = service.functions.refresh.execute()
+    assert result is None
+
+    mock_warning.assert_called_with(
+        'The No Return Function Import %s has replied with HTTP Status Code %d instead of 204',
+        'refresh', 200)
+
+
+@responses.activate
+@patch('logging.Logger.warning')
+def test_function_import_without_return_type_wrong_code(mock_warning, service):
+    """A simple function call without return type should not return any data"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        body=b'unexpected',
+        status=204)
+
+    result = service.functions.refresh.execute()
+    assert result is None
+
+    mock_warning.assert_called_with(
+        'The No Return Function Import %s has returned content:\n%s',
+        'refresh', 'unexpected')
+
+
+@responses.activate
+def test_function_import_http_redirect(service):
+    """Function Imports do not support Redirects"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=300)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Function Import refresh requires Redirection which is not supported'
+
+
+@responses.activate
+def test_function_import_http_bad_request(service):
+    """Function Imports report user friendly error message for Bad Requests"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=400)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Function Import refresh call has failed with status code 400'
+
+
+@responses.activate
+def test_function_import_http_sever_error(service):
+    """Function Imports report user friendly error message for Server Errors"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=500)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Server has encountered an error while processing Function Import refresh'
+
+
+@responses.activate
+def test_function_import_http_not_authorized(service):
+    """Function Imports report user friendly error message for Not Authorized"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=401)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Not authorized to call Function Import refresh'
+
+
+@responses.activate
+def test_function_import_http_forbidden(service):
+    """Function Imports report user friendly error message for Forbidden"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=403)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Missing privileges to call Function Import refresh'
+
+
+@responses.activate
+def test_function_import_http_forbidden(service):
+    """Function Imports report user friendly error message for Not Allowed"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/refresh".format(service.url),
+        status=405)
+
+    with pytest.raises(HttpError) as caught:
+        service.functions.refresh.execute()
+
+    assert str(caught.value) == 'Despite definition Function Import refresh does not support HTTP GET'
 
 
 @responses.activate

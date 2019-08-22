@@ -1177,16 +1177,48 @@ class FunctionContainer:
         def function_import_handler(fimport, response):
             """Get function call response from HTTP Response"""
 
-            if response.status_code >= 300:
-                raise HttpError('Function import call failed with the status code {0}'.format(response.status_code),
+            if 300 <= response.status_code < 400:
+                raise HttpError(f'Function Import {fimport.name} requires Redirection which is not supported',
+                                response)
+
+            if response.status_code == 401:
+                raise HttpError(f'Not authorized to call Function Import {fimport.name}',
+                                response)
+
+            if response.status_code == 403:
+                raise HttpError(f'Missing privileges to call Function Import {fimport.name}',
+                                response)
+
+            if response.status_code == 405:
+                raise HttpError(
+                    f'Despite definition Function Import {fimport.name} does not support HTTP {fimport.http_method}',
+                    response)
+
+            if 400 <= response.status_code < 500:
+                raise HttpError(
+                    f'Function Import {fimport.name} call has failed with status code {response.status_code}',
+                    response)
+
+            if response.status_code >= 500:
+                raise HttpError(f'Server has encountered an error while processing Function Import {fimport.name}',
                                 response)
 
             if fimport.return_type is None:
+                if response.status_code != 204:
+                    logging.getLogger(LOGGER_NAME).warning(
+                        'The No Return Function Import %s has replied with HTTP Status Code %d instead of 204',
+                        fimport.name, response.status_code)
+
                 if response.text:
                     logging.getLogger(LOGGER_NAME).warning(
-                        'The No Return Function import has returned content:\n%s', response.text)
+                        'The No Return Function Import %s has returned content:\n%s', fimport.name, response.text)
 
                 return None
+
+            if response.status_code != 200:
+                logging.getLogger(LOGGER_NAME).warning(
+                    'The Function Import %s has replied with HTTP Status Code %d instead of 200',
+                    fimport.name, response.status_code)
 
             response_data = response.json()['d']
 
