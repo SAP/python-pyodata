@@ -14,7 +14,13 @@ def print_out_metadata_info(args, client):
     for es in client.schema.entity_sets:
         print(es.name)
 
-        for prop in es.entity_type.proprties():
+        proprties = es.entity_type.proprties()
+
+        for prop in es.entity_type.key_proprties:
+            print(f' K {prop.name}({prop.typ.name})')
+            proprties.remove(prop)
+
+        for prop in proprties:
             print(f' + {prop.name}({prop.typ.name})')
 
         for prop in es.entity_type.nav_proprties:
@@ -35,9 +41,16 @@ def print_out_entity_set(args, client):
     request = getattr(client.entity_sets, args.name).get_entities()
     entities = request.execute()
 
+    keys = {kp.name for kp in typ.key_proprties}
+    members = {mp.name for mp in typ.proprties() if mp.name not in keys}
+
     for entity in entities:
-        for prop in typ.proprties():
-            print(f'{prop.name} = {getattr(entity, prop.name)}')
+        for prop in keys:
+            print(f'K {prop} = {getattr(entity, prop)}')
+
+        for prop in members:
+            print(f'+ {prop} = {getattr(entity, prop)}')
+
         print('-' * 80)
 
 
