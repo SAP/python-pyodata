@@ -6,7 +6,6 @@ import requests
 import pytest
 from unittest.mock import patch
 
-import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter

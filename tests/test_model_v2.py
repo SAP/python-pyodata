@@ -4,11 +4,17 @@ import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 import pytest
-from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
-    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
-    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation
-from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
+
 from tests.conftest import assert_logging_policy
+from pyodata.config import Config
+from pyodata.model.builder import MetadataBuilder
+from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, NullAssociation, EndRole, \
+    AssociationSetEndRole, Schema, StructTypeProperty, AssociationSet, Association
+from pyodata.model.type_traits import EdmStructTypeSerializer
+from pyodata.policies import ParserError, PolicyWarning, PolicyIgnore, PolicyFatal
+from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
+from pyodata.v2 import ODataV2
+
 
 
 def test_edmx(schema):
@@ -350,20 +356,22 @@ def test_edmx_complex_type_prop_vh(schema):
 def test_traits():
     """Test individual traits"""
 
+    config = Config(ODataV2)
+
     # generic
-    typ = Types.from_name('Edm.Binary')
+    typ = Types.from_name('Edm.Binary', config)
     assert repr(typ.traits) == 'TypTraits'
     assert typ.traits.to_literal('bincontent') == 'bincontent'
     assert typ.traits.from_literal('some bin content') == 'some bin content'
 
     # string
-    typ = Types.from_name('Edm.String')
+    typ = Types.from_name('Edm.String', config)
     assert repr(typ.traits) == 'EdmStringTypTraits'
     assert typ.traits.to_literal('Foo Foo') == "'Foo Foo'"
     assert typ.traits.from_literal("'Alice Bob'") == 'Alice Bob'
 
     # bool
-    typ = Types.from_name('Edm.Boolean')
+    typ = Types.from_name('Edm.Boolean', config)
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
     assert typ.traits.to_literal(True) == 'true'
     assert typ.traits.from_literal('true') is True
@@ -376,17 +384,17 @@ def test_traits():
     assert typ.traits.from_json(False) is False
 
     # integers
-    typ = Types.from_name('Edm.Int16')
+    typ = Types.from_name('Edm.Int16', config)
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_literal(23) == '23'
     assert typ.traits.from_literal('345') == 345
 
-    typ = Types.from_name('Edm.Int32')
+    typ = Types.from_name('Edm.Int32', config)
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_literal(23) == '23'
     assert typ.traits.from_literal('345') == 345
 
-    typ = Types.from_name('Edm.Int64')
+    typ = Types.from_name('Edm.Int64', config)
     assert repr(typ.traits) == 'EdmLongIntTypTraits'
     assert typ.traits.to_literal(23) == '23L'
     assert typ.traits.from_literal('345L') == 345
@@ -399,7 +407,7 @@ def test_traits():
     assert typ.traits.from_json('0L') == 0
 
     # GUIDs
-    typ = Types.from_name('Edm.Guid')
+    typ = Types.from_name('Edm.Guid', config)
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
     assert typ.traits.to_literal('000-0000') == "guid'000-0000'"
     assert typ.traits.from_literal("guid'1234-56'") == '1234-56'
@@ -411,7 +419,9 @@ def test_traits():
 def test_traits_datetime():
     """Test Edm.DateTime traits"""
 
-    typ = Types.from_name('Edm.DateTime')
+    config = Config(ODataV2)
+
+    typ = Types.from_name('Edm.DateTime', config)
     assert repr(typ.traits) == 'EdmDateTimeTypTraits'
 
     # 1. direction Python -> OData
@@ -500,10 +510,12 @@ def test_traits_datetime():
 def test_traits_collections():
     """Test collection traits"""
 
-    typ = Types.from_name('Collection(Edm.Int32)')
+    config = Config(ODataV2)
+
+    typ = Types.from_name('Collection(Edm.Int32)', config)
     assert typ.traits.from_json(['23', '34']) == [23, 34]
 
-    typ = Types.from_name('Collection(Edm.String)')
+    typ = Types.from_name('Collection(Edm.String)', config)
     assert typ.traits.from_json(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
@@ -545,14 +557,16 @@ def test_type_parsing():
 def test_types():
     """Test Types repository"""
 
+    config = Config(ODataV2)
+
     # generic
     for type_name in ['Edm.Binary', 'Edm.String', 'Edm.Int16', 'Edm.Guid']:
-        typ = Types.from_name(type_name)
+        typ = Types.from_name(type_name, config)
         assert typ.kind == Typ.Kinds.Primitive
         assert not typ.is_collection
 
     # Collection of primitive types
-    typ = Types.from_name('Collection(Edm.String)')
+    typ = Types.from_name('Collection(Edm.String)', config)
     assert repr(typ) == 'Collection(Typ(Edm.String))'
     assert typ.kind is Typ.Kinds.Primitive
     assert typ.is_collection
@@ -690,7 +704,7 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
                           )
 
 
-@patch('pyodata.v2.model.PolicyIgnore.resolve')
+@patch.object(PolicyIgnore, 'resolve')
 @patch('logging.Logger.warning')
 def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory):
     """Test correct handling of annotations whose target property does not exist"""
@@ -843,6 +857,7 @@ def test_edmx_entity_sets(schema):
 def test_config_set_default_error_policy():
     """ Test configurability of policies """
     config = Config(
+        ODataV2,
         custom_error_policies={
             ParserError.ANNOTATION: PolicyWarning()
         }
@@ -880,6 +895,7 @@ def test_null_type(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyIgnore()
         ))
 
@@ -927,6 +943,7 @@ def test_faulty_association(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyIgnore()
         ))
 
@@ -953,6 +970,7 @@ def test_faulty_association_set(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyWarning()
         ))
 
@@ -1079,6 +1097,7 @@ def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
     MetadataBuilder(
         xml,
         config=Config(
+            ODataV2,
             xml_namespaces={'edmx': edmx}
         )
     ).build()
@@ -1107,6 +1126,7 @@ def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
     MetadataBuilder(
         xml,
         config=Config(
+            ODataV2,
             xml_namespaces={'edm': edm}
         )
     ).build()
@@ -1232,7 +1252,7 @@ def test_enum_value_out_of_range(xml_builder_factory):
 
     try:
         MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
+    except BaseException as ex:
         assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
 
 
@@ -1286,6 +1306,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
                                         'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 
@@ -1307,6 +1328,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
                                         'existing ValueListProperty --- of EntityType(DataEntity)'
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 
@@ -1324,6 +1346,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     mock_warning.reset_mock()
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 

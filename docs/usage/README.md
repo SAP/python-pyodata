@@ -1,4 +1,4 @@
-The User Guide
+versionThe User Guide
 --------------
 
 * [Initialization](initialization.rst)

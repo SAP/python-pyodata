@@ -121,7 +121,9 @@ For parser to use your custom configuration, it needs to be passed as an argumen
 .. code-block:: python
 
     import pyodata
-    from pyodata.v2.model import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError, Config
+    from pyodata.v2 import ODataV2
+    from pyodata.policies import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError
+    from pyodata.config import Config
     import requests
 
     SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
@@ -132,6 +134,7 @@ For parser to use your custom configuration, it needs to be passed as an argumen
     }
 
     custom_config = Config(
+        ODataV2,
         xml_namespaces=namespaces,
         default_error_policy=PolicyFatal(),
         custom_error_policies={

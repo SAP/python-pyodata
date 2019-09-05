@@ -2,7 +2,7 @@
 import logging
 import os
 import pytest
-from pyodata.v2.model import schema_from_xml
+from pyodata.model.builder import schema_from_xml
 
 
 @pytest.fixture
