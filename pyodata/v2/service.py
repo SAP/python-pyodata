@@ -480,6 +480,25 @@ class EntityCreateRequest(ODataHttpRequest):
         return self
 
 
+class EntityDeleteRequest(ODataHttpRequest):
+    """Used for deleting entity (DELETE operations on a single entity)"""
+
+    def __init__(self, url, connection, handler, entity_set, entity_key):
+        super(EntityDeleteRequest, self).__init__(url, connection, handler)
+        self._logger = logging.getLogger(LOGGER_NAME)
+        self._entity_set = entity_set
+        self._entity_key = entity_key
+
+        self._logger.debug('New instance of EntityDeleteRequest for entity type: %s', entity_set.entity_type.name)
+
+    def get_path(self):
+        return self._entity_set.name + self._entity_key.to_key_string()
+
+    def get_method(self):
+        # pylint: disable=no-self-use
+        return 'DELETE'
+
+
 class EntityModifyRequest(ODataHttpRequest):
     """Used for modyfing entities (UPDATE/MERGE operations on a single entity)
 
@@ -1129,6 +1148,25 @@ class EntitySetProxy:
         self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
+                                   entity_key)
+
+    def delete_entity(self, key: EntityKey = None, **kwargs):
+        """Delete the entity"""
+
+        def delete_entity_handler(response):
+            """Check if entity deletion was successful"""
+
+            if response.status_code != 204:
+                raise HttpError(f'HTTP POST for Entity delete {self._name} '
+                                f'failed with status code {response.status_code}',
+                                response)
+
+        if key is not None and isinstance(key, EntityKey):
+            entity_key = key
+        else:
+            entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
+
+        return EntityDeleteRequest(self._service.url, self._service.connection, delete_entity_handler, self._entity_set,
                                    entity_key)
 
 

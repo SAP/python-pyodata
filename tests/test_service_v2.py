@@ -590,6 +590,46 @@ def test_update_entity(service):
     request.execute()
 
 
+@responses.activate
+def test_delete_entity(service):
+    """Check deleting of entity"""
+
+    responses.add(responses.DELETE, f"{service.url}/Employees(23)", status=204)
+    request = service.entity_sets.Employees.delete_entity(23)
+
+    assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
+    assert request.execute() is None
+
+
+@responses.activate
+def test_delete_entity_with_key(service):
+    """Check deleting of entity with key"""
+
+    responses.add(responses.DELETE, f"{service.url}/Employees(ID=23)", status=204)
+    key = EntityKey(service.schema.entity_type('Employee'), ID=23)
+    request = service.entity_sets.Employees.delete_entity(key=key)
+
+    assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
+    assert request.execute() is None
+
+
+@responses.activate
+def test_delete_entity_http_error(service):
+    """Check if error is raisen when deleting unknown entity"""
+
+    responses.add(responses.DELETE, f"{service.url}/Employees(ID=23)", status=404)
+    key = EntityKey(service.schema.entity_type('Employee'), ID=23)
+    request = service.entity_sets.Employees.delete_entity(key=key)
+
+    assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
+
+    with pytest.raises(HttpError) as caught_ex:
+        request.execute()
+
+    assert str(caught_ex.value).startswith('HTTP POST for Entity delete')
+    assert caught_ex.value.response.status_code == 404
+
+
 def test_update_entity_with_entity_key(service):
     """Make sure the method update_entity handles correctly the parameter key which is EntityKey"""
 
