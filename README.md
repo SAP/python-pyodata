@@ -11,6 +11,10 @@ way for communication with OData services.
 The goal of this Python module is to hide all OData protocol implementation
 details.
 
+## Supported features
+
+- OData V2
+
 ## Requirements
 
 - [Python >= 3.6](https://www.python.org/downloads/release/python-368/)

@@ -17,6 +17,11 @@ PyOData: OData for Pythonistas
 
 Python agnostic implementation of OData client library.
 
+Supported features
+------------------
+
+- OData V2
+
 Basic usage
 -----------
 
