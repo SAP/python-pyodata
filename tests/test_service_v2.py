@@ -5,6 +5,7 @@ import responses
 import requests
 import pytest
 from unittest.mock import patch
+
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
@@ -277,7 +278,7 @@ def test_entity_key_complex(service):
     entity = service.entity_sets.TemperatureMeasurements.get_entity(key=None, **entity_key).execute()
     assert key_properties == set(entity_property.name for entity_property in  entity.entity_key.key_properties)
     # check also python represantation of date
-    assert entity.Date == datetime.datetime(2017, 12, 24, 18, 0)
+    assert entity.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
 
 
 def test_get_entity_property_complex_key(service):
@@ -574,7 +575,7 @@ def test_update_entity(service):
         "{0}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')".format(service.url),
         json={'d': {
             'Sensor': 'Sensor-address',
-            'Date': "datetime'2017-12-24T18:00'",
+            'Date': "/Date(1714138400000)/",
             'Value': 34
         }},
         status=204)
@@ -586,6 +587,16 @@ def test_update_entity(service):
     assert isinstance(request, pyodata.v2.service.EntityModifyRequest)
 
     request.set(Value=34)
+    # Tests if update entity correctly calls 'to_json' method
+    request.set(Date=datetime.datetime(2017, 12, 24, 19, 0))
+
+    assert request._values['Value'] == 34
+    assert request._values['Date'] == '/Date(1514142000000)/'
+
+    # If preformatted datetime is passed (e. g. you already replaced datetime instance with string which is
+    # complaint with odata specification), 'to_json' does not update given value (for backward compatibility reasons)
+    request.set(Date='/Date(1714138400000)/')
+    assert request._values['Date'] == '/Date(1714138400000)/'
 
     request.execute()
 
@@ -1418,3 +1429,82 @@ def test_navigation_count_with_filter(service):
     assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
 
     assert request.execute() == 3
+
+
+@responses.activate
+def test_create_entity_with_datetime(service):
+    """
+        Basic test on creating entity with datetime
+        Also tzinfo is set to simulate user passing datetime object with different timezone than UTC
+    """
+
+    # https://stackoverflow.com/questions/17976063/how-to-create-tzinfo-when-i-have-utc-offset
+    class MyUTCOffsetTimezone(datetime.tzinfo):
+
+        def __init__(self, offset=19800, name=None):
+            self.offset = datetime.timedelta(seconds=offset)
+            self.name = name or self.__class__.__name__
+
+        def utcoffset(self, dt):
+            return self.offset
+
+        def tzname(self, dt):
+            return self.name
+
+        def dst(self, dt):
+            return datetime.timedelta(0)
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/TemperatureMeasurements".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Sensor': 'Sensor1',
+            'Date': '/Date(1514138400000)/',
+            'Value': '34'
+        }},
+        status=201)
+
+
+    # Offset -18000 sec is for America/Chicago (CDT) timezone
+    request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
+        'Sensor': 'Sensor1',
+        'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=MyUTCOffsetTimezone(-18000)),
+        'Value': 34
+    })
+
+    assert request._values['Date'] == '/Date(1514138400000)/'
+
+    result = request.execute()
+    assert result.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
+
+
+@responses.activate
+def test_parsing_of_datetime_before_unix_time(service):
+    """Test DateTime handling of time before 1970"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        "{0}/TemperatureMeasurements".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Sensor': 'Sensor1',
+            'Date': '/Date(-777877200000)/',
+            'Value': '34'
+        }},
+        status=201)
+
+    request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
+        'Sensor': 'Sensor1',
+        'Date': datetime.datetime(1945, 5, 8, 19, 0),
+        'Value': 34
+    })
+
+    assert request._values['Date'] == '/Date(-777877200000)/'
+
+    result = request.execute()
+    assert result.Date == datetime.datetime(1945, 5, 8, 19, 0, tzinfo=datetime.timezone.utc)

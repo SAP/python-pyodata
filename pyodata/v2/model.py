@@ -322,6 +322,9 @@ class TypTraits:
     def from_json(self, value):
         return value
 
+    def to_json(self, value):
+        return value
+
     def from_literal(self, value):
         return value
 
@@ -376,6 +379,14 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         return super(EdmDateTimeTypTraits, self).to_literal(value.isoformat())
 
+    def to_json(self, value):
+        if isinstance(value, str):
+            return value
+
+        # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
+        # https://www.odata.org/documentation/odata-version-2-0/json-format/
+        return f'/Date({int(value.replace(tzinfo=datetime.timezone.utc).timestamp()) * 1000})/'
+
     def from_json(self, value):
 
         if value is None:
@@ -389,7 +400,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         try:
             # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
-            value = datetime.datetime(1970, 1, 1) + datetime.timedelta(milliseconds=int(value))
+            value = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(milliseconds=int(value))
         except ValueError:
             raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
