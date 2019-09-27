@@ -85,8 +85,7 @@ def decode_multipart(data, content_type):
                 for submessage in part.get_payload():
                     messages.append(decode(submessage))
                 break
-            else:
-                messages.append(part.get_payload())
+            messages.append(part.get_payload())
         return messages
 
     data = "Content-Type: {}\n".format(content_type) + data
