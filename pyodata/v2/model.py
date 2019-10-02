@@ -377,7 +377,8 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             raise PyODataModelError(
                 'Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
 
-        return super(EdmDateTimeTypTraits, self).to_literal(value.isoformat())
+        # Sets timezone to none to avoid including timezone information in the literal form.
+        return super(EdmDateTimeTypTraits, self).to_literal(value.replace(tzinfo=None).isoformat())
 
     def to_json(self, value):
         if isinstance(value, str):
