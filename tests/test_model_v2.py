@@ -1,7 +1,7 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
@@ -416,7 +416,7 @@ def test_traits_datetime():
 
     # 1. direction Python -> OData
 
-    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456)
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=timezone.utc)
     assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44.123456'"
 
     # without miliseconds part
