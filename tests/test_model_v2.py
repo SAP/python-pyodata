@@ -744,7 +744,6 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
 
     metadata.build()
     assert PolicyIgnore.resolve is mock_resolve
-
     mock_resolve.assert_called_once()
 
     metadata.config.set_custom_error_policy({
