@@ -496,6 +496,9 @@ class EntityDeleteRequest(ODataHttpRequest):
     def get_method(self):
         # pylint: disable=no-self-use
         return 'DELETE'
+    
+    def get_headers(self):
+        return {'Accept': 'application/json'}
 
 
 class EntityModifyRequest(ODataHttpRequest):
