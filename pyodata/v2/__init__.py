@@ -18,10 +18,13 @@ from pyodata.model.elements import StructTypeProperty, StructType, NavigationTyp
     NullAssociation
 
 from pyodata.model.from_etree_callbacks import struct_type_property_from_etree, struct_type_from_etree, \
-    navigation_type_property_from_etree, complex_type_from_etree, entity_type_from_etree, enum_type_from_etree, \
-    entity_set_from_etree, end_role_from_etree, referential_constraint_from_etree, association_from_etree, \
-    association_set_end_role_from_etree, association_set_from_etree, external_annotation_from_etree, \
-    annotation_from_etree, value_helper_from_etree, value_helper_parameter_from_etree, function_import_from_etree
+    entity_type_from_etree, enum_type_from_etree, entity_set_from_etree, end_role_from_etree, \
+    referential_constraint_from_etree, association_from_etree, association_set_end_role_from_etree, \
+    association_set_from_etree, external_annotation_from_etree, annotation_from_etree, value_helper_from_etree, \
+    value_helper_parameter_from_etree, function_import_from_etree, complex_type_from_etree
+
+
+from pyodata.v2.from_etree_callbacks import navigation_type_property_from_etree
 
 
 def modlog():

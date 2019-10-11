@@ -18,10 +18,10 @@ SERVICE_URL = 'http://example.com'
 
 
 @responses.activate
-def test_create_client_for_local_metadata(metadata):
+def test_create_client_for_local_metadata(metadata_v2):
     """Check client creation for valid use case with local metadata"""
 
-    client = pyodata.Client(SERVICE_URL, requests, metadata=metadata)
+    client = pyodata.Client(SERVICE_URL, requests, metadata=metadata_v2)
 
     assert isinstance(client, pyodata.v2.service.Service)
 
@@ -29,14 +29,14 @@ def test_create_client_for_local_metadata(metadata):
 
 
 @responses.activate
-def test_create_service_application_xml(metadata):
+def test_create_service_application_xml(metadata_v2):
     """Check client creation for valid use case with MIME type 'application/xml'"""
 
     responses.add(
         responses.GET,
         "{0}/$metadata".format(SERVICE_URL),
         content_type='application/xml',
-        body=metadata,
+        body=metadata_v2,
         status=200)
 
     client = pyodata.Client(SERVICE_URL, requests)
@@ -51,14 +51,14 @@ def test_create_service_application_xml(metadata):
 
 
 @responses.activate
-def test_create_service_text_xml(metadata):
+def test_create_service_text_xml(metadata_v2):
     """Check client creation for valid use case with MIME type 'text/xml'"""
 
     responses.add(
         responses.GET,
         "{0}/$metadata".format(SERVICE_URL),
         content_type='text/xml',
-        body=metadata,
+        body=metadata_v2,
         status=200)
 
     client = pyodata.Client(SERVICE_URL, requests)
@@ -106,14 +106,14 @@ def test_metadata_saml_not_authorized():
 
 @responses.activate
 @patch('warnings.warn')
-def test_client_custom_configuration(mock_warning, metadata):
+def test_client_custom_configuration(mock_warning, metadata_v2):
     """Check client creation for custom configuration"""
 
     responses.add(
         responses.GET,
         "{0}/$metadata".format(SERVICE_URL),
         content_type='application/xml',
-        body=metadata,
+        body=metadata_v2,
         status=200)
 
     namespaces = {

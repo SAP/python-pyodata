@@ -6,11 +6,20 @@ from pyodata.model.builder import schema_from_xml
 
 
 @pytest.fixture
-def metadata():
+def metadata_v2():
+    return metadata('metadata.xml')
+
+
+@pytest.fixture
+def metadata_v4():
+    return metadata('metadata_v4.xml')
+
+
+def metadata(file_name: str):
     """Example OData metadata"""
     path_to_current_file = os.path.realpath(__file__)
     current_directory = os.path.split(path_to_current_file)[0]
-    path_to_file = os.path.join(current_directory, "metadata.xml")
+    path_to_file = os.path.join(current_directory, file_name)
 
     return open(path_to_file, 'rb').read()
 
@@ -107,12 +116,12 @@ def xml_builder_factory():
 
 
 @pytest.fixture
-def schema(metadata):
+def schema(metadata_v2):
     """Parsed metadata"""
 
     # pylint: disable=redefined-outer-name
 
-    return schema_from_xml(metadata)
+    return schema_from_xml(metadata_v2)
 
 
 def assert_logging_policy(mock_warning, *args):

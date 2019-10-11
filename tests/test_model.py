@@ -8,7 +8,7 @@ from pyodata.model.elements import Schema, Types, Typ
 from pyodata.v2 import ODataV2
 
 
-def test_from_etree_mixin(metadata):
+def test_from_etree_mixin(metadata_v2):
     """Test FromEtreeMixin class"""
 
     class EmptyODATA(ODATAVersion):
@@ -17,7 +17,7 @@ def test_from_etree_mixin(metadata):
             return {}
 
     config = Config(EmptyODATA)
-    builder = MetadataBuilder(metadata, config=config)
+    builder = MetadataBuilder(metadata_v2, config=config)
 
     with pytest.raises(PyODataParserError) as typ_ex_info:
         builder.build()

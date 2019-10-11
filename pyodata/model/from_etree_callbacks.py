@@ -1,6 +1,7 @@
 """ Reusable implementation of from_etree methods for the most of edm elements """
 
 # pylint: disable=unused-argument, missing-docstring, invalid-name
+import copy
 import logging
 
 from pyodata.config import Config
@@ -40,12 +41,23 @@ def struct_type_property_from_etree(entity_type_property_node, config: Config):
 
 
 # pylint: disable=protected-access
-def struct_type_from_etree(type_node, config: Config, kwargs):
+def struct_type_from_etree(type_node, config: Config, typ, schema=None):
     name = type_node.get('Name')
-    label = sap_attribute_get_string(type_node, 'label')
-    is_value_list = sap_attribute_get_bool(type_node, 'value-list', False)
+    base_type = type_node.get('BaseType')
 
-    stype = kwargs['type'](name, label, is_value_list)
+    if base_type is None:
+        label = sap_attribute_get_string(type_node, 'label')
+        is_value_list = sap_attribute_get_bool(type_node, 'value-list', False)
+        stype = typ(name, label, is_value_list)
+    else:
+        base_type = Types.parse_type_name(base_type)
+
+        try:
+            stype = copy.deepcopy(schema.get_type(base_type))
+        except KeyError:
+            raise PyODataParserError(f'BaseType \'{base_type.name}\' not found in schema')
+
+        stype._name = name
 
     for proprty in type_node.xpath('edm:Property', namespaces=config.namespaces):
         stp = StructTypeProperty.from_etree(proprty, config)
@@ -59,23 +71,19 @@ def struct_type_from_etree(type_node, config: Config, kwargs):
     # all properites are loaded because
     # there might be links between them.
     for ctp in list(stype._properties.values()):
-        ctp.struct_type = stype
+        if ctp.struct_type is None:  # TODO: Is it correct
+            ctp.struct_type = stype
 
     return stype
 
 
-def navigation_type_property_from_etree(node, config: Config):
-    return NavigationTypeProperty(
-        node.get('Name'), node.get('FromRole'), node.get('ToRole'), Identifier.parse(node.get('Relationship')))
-
-
-def complex_type_from_etree(etree, config: Config):
-    return StructType.from_etree(etree, config, type=ComplexType)
+def complex_type_from_etree(etree, config: Config, schema=None):
+    return StructType.from_etree(etree, config, typ=ComplexType, schema=schema)
 
 
 # pylint: disable=protected-access
-def entity_type_from_etree(etree, config: Config):
-    etype = StructType.from_etree(etree, config, type=EntityType)
+def entity_type_from_etree(etree, config: Config, schema=None):
+    etype = StructType.from_etree(etree, config, typ=EntityType, schema=schema)
 
     for proprty in etree.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
         etype._key.append(etype.proprty(proprty.get('Name')))
@@ -92,13 +100,17 @@ def entity_type_from_etree(etree, config: Config):
 
 
 # pylint: disable=protected-access, too-many-locals
-def enum_type_from_etree(type_node, config: Config, kwargs):
+def enum_type_from_etree(type_node, config: Config, namespace):
     ename = type_node.get('Name')
     is_flags = type_node.get('IsFlags')
 
-    namespace = kwargs['namespace']
+    # namespace = kwargs['namespace']
 
     underlying_type = type_node.get('UnderlyingType')
+
+    # https://docs.oasis-open.org/odata/odata-csdl-json/v4.01/csprd04/odata-csdl-json-v4.01-csprd04.html#sec_EnumerationType
+    if underlying_type is None:
+        underlying_type = 'Edm.Int32'
 
     valid_types = {
         'Edm.Byte': [0, 2 ** 8 - 1],
@@ -263,8 +275,7 @@ def external_annotation_from_etree(annotations_node, config):
         yield annot
 
 
-def annotation_from_etree(target, config, kwargs):
-    annotation_node = kwargs['annotation_node']
+def annotation_from_etree(target, config, annotation_node):
     term = annotation_node.get('Term')
 
     if term in config.sap_annotation_value_list:
@@ -274,13 +285,12 @@ def annotation_from_etree(target, config, kwargs):
     return None
 
 
-def value_helper_from_etree(target, config, kwargs):
+def value_helper_from_etree(target, config, annotation_node):
     label = None
     collection_path = None
     search_supported = False
     params_node = None
 
-    annotation_node = kwargs['annotation_node']
     for prop_value in annotation_node.xpath('edm:Record/edm:PropertyValue', namespaces=config.annotation_namespace):
         rprop = prop_value.get('Property')
         if rprop == 'Label':

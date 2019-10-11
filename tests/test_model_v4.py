@@ -3,11 +3,13 @@ import datetime
 import geojson
 import pytest
 
+from model.builder import MetadataBuilder
 from pyodata.exceptions import PyODataModelError
 from pyodata.model.elements import Types
 
 from pyodata.config import Config
 from pyodata.v4 import ODataV4
+from tests.conftest import metadata
 
 
 def test_type_traits():
@@ -139,4 +141,12 @@ def test_type_traits():
     assert multi_polygon == traits.from_json(json_multi_polygon)
     assert json_multi_polygon == traits.to_json(multi_polygon)
 
+
+def test_schema(metadata_v4):
+    meta_builder = MetadataBuilder(
+        metadata_v4,
+        config=Config(ODataV4)
+    )
+
+    meta_builder.build()
 

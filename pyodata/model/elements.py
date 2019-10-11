@@ -29,7 +29,7 @@ class FromEtreeMixin:
             raise PyODataParserError(f'{cls.__name__} is unsupported in {config.odata_version.__name__}')
 
         if kwargs:
-            return callback(etree, config, kwargs)
+            return callback(etree, config, **kwargs)
 
         return callback(etree, config)
 

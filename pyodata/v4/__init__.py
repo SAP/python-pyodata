@@ -2,11 +2,15 @@
 
 from typing import List
 
+from pyodata.model.from_etree_callbacks import enum_type_from_etree, struct_type_property_from_etree, \
+    struct_type_from_etree, complex_type_from_etree
 from pyodata.config import ODATAVersion
 from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
-from pyodata.model.elements import Typ
+from pyodata.model.elements import Typ, Schema, EnumType, ComplexType, StructType, StructTypeProperty
 from pyodata.v4.type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
+
+from pyodata.v4.from_etree_callbacks import schema_from_etree
 
 
 class ODataV4(ODATAVersion):
@@ -15,6 +19,12 @@ class ODataV4(ODATAVersion):
     @staticmethod
     def from_etree_callbacks():
         return {
+            StructTypeProperty: struct_type_property_from_etree,
+            StructType: struct_type_from_etree,
+            # NavigationTypeProperty: navigation_type_property_from_etree,
+            EnumType: enum_type_from_etree,
+            ComplexType: complex_type_from_etree,
+            Schema: schema_from_etree,
         }
 
     @staticmethod
