@@ -4,8 +4,10 @@ import itertools
 import logging
 from typing import List
 
-from pyodata.model.type_traits import EdmBooleanTypTraits, EdmDateTimeTypTraits, EdmPrefixedTypTraits, \
-    EdmIntTypTraits, EdmLongIntTypTraits, EdmStringTypTraits
+from pyodata.v2.type_traits import EdmDateTimeTypTraits
+
+from pyodata.model.type_traits import EdmBooleanTypTraits, EdmPrefixedTypTraits, EdmIntTypTraits, \
+    EdmLongIntTypTraits, EdmStringTypTraits
 from pyodata.policies import ParserError
 from pyodata.config import ODATAVersion, Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError

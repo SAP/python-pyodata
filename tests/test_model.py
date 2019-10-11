@@ -5,7 +5,7 @@ from pyodata.config import Config, ODATAVersion
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.builder import MetadataBuilder
 from pyodata.model.elements import Schema, Types, Typ
-from v2 import ODataV2
+from pyodata.v2 import ODataV2
 
 
 def test_from_etree_mixin(metadata):
