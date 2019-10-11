@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Client can be created from local metadata - Jakub Filak
 - support all standard EDM schema versions - Jakub Filak
 - Splits python representation of metadata and metadata parsing - Martin Miksik
+- Separate type repositories for individual versions of OData - Martin Miksik
 
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing

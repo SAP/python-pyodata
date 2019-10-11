@@ -1,9 +1,13 @@
 """ Contains definition of configuration class for PyOData and for ODATA versions. """
 
 from abc import ABC, abstractmethod
-from typing import Type, List, Dict, Callable
+from typing import Type, List, Dict, Callable, TYPE_CHECKING
 
 from pyodata.policies import PolicyFatal, ParserError, ErrorPolicy
+
+# pylint: disable=cyclic-import
+if TYPE_CHECKING:
+    from pyodata.model.elements import Typ  # noqa
 
 
 class ODATAVersion(ABC):
@@ -15,20 +19,18 @@ class ODATAVersion(ABC):
         raise RuntimeError('ODATAVersion and its children are intentionally stateless, '
                            'therefore you can not create instance of them')
 
+    # Separate dictionary of all registered types (primitive, complex and collection variants) for each child
+    Types: Dict[str, 'Typ'] = dict()
+
     @staticmethod
     @abstractmethod
-    def supported_primitive_types() -> List[str]:
+    def primitive_types() -> List['Typ']:
         """ Here we define which primitive types are supported and what is their python representation"""
 
     @staticmethod
     @abstractmethod
     def from_etree_callbacks() -> Dict[object, Callable]:
         """ Here we define which elements are supported and what is their python representation"""
-
-    @classmethod
-    def is_primitive_type_supported(cls, type_name):
-        """ Convenience method which decides whatever given type is supported."""
-        return type_name in cls.supported_primitive_types()
 
 
 class Config:

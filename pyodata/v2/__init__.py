@@ -4,6 +4,8 @@ import itertools
 import logging
 from typing import List
 
+from pyodata.model.type_traits import EdmBooleanTypTraits, EdmDateTimeTypTraits, EdmPrefixedTypTraits, \
+    EdmIntTypTraits, EdmLongIntTypTraits, EdmStringTypTraits
 from pyodata.policies import ParserError
 from pyodata.config import ODATAVersion, Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
@@ -52,24 +54,24 @@ class ODataV2(ODATAVersion):
         }
 
     @staticmethod
-    def supported_primitive_types() -> List[str]:
+    def primitive_types() -> List[Typ]:
         return [
-            'Null',
-            'Edm.Binary',
-            'Edm.Boolean',
-            'Edm.Byte',
-            'Edm.DateTime',
-            'Edm.Decimal',
-            'Edm.Double',
-            'Edm.Single',
-            'Edm.Guid',
-            'Edm.Int16',
-            'Edm.Int32',
-            'Edm.Int64',
-            'Edm.SByte',
-            'Edm.String',
-            'Edm.Time',
-            'Edm.DateTimeOffset',
+            Typ('Null', 'null'),
+            Typ('Edm.Binary', 'binary\'\''),
+            Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()),
+            Typ('Edm.Byte', '0'),
+            Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()),
+            Typ('Edm.Decimal', '0.0M'),
+            Typ('Edm.Double', '0.0d'),
+            Typ('Edm.Single', '0.0f'),
+            Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')),
+            Typ('Edm.Int16', '0', EdmIntTypTraits()),
+            Typ('Edm.Int32', '0', EdmIntTypTraits()),
+            Typ('Edm.Int64', '0L', EdmLongIntTypTraits()),
+            Typ('Edm.SByte', '0'),
+            Typ('Edm.String', '\'\'', EdmStringTypTraits()),
+            Typ('Edm.Time', 'time\'PT00H00M\''),
+            Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\'')
         ]
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements, protected-access,missing-docstring

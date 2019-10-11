@@ -4,7 +4,8 @@ import pytest
 from pyodata.config import Config, ODATAVersion
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.builder import MetadataBuilder
-from pyodata.model.elements import Schema, Types
+from pyodata.model.elements import Schema, Types, Typ
+from v2 import ODataV2
 
 
 def test_from_etree_mixin(metadata):
@@ -29,9 +30,9 @@ def test_supported_primitive_types():
 
     class EmptyODATA(ODATAVersion):
         @staticmethod
-        def supported_primitive_types() -> List[str]:
+        def primitive_types() -> List[Typ]:
             return [
-                'Edm.Binary'
+                Typ('Edm.Binary', 'binary\'\'')
             ]
 
     config = Config(EmptyODATA)
@@ -51,7 +52,7 @@ def test_odata_version_statelessness():
             return {}
 
         @staticmethod
-        def supported_primitive_types() -> List[str]:
+        def primitive_types() -> List[Typ]:
             return []
 
     with pytest.raises(RuntimeError) as typ_ex_info:
@@ -59,3 +60,25 @@ def test_odata_version_statelessness():
 
     assert typ_ex_info.value.args[0] == 'ODATAVersion and its children are intentionally stateless, ' \
                                         'therefore you can not create instance of them'
+
+
+def test_types_repository_separation():
+
+    class TestODATA(ODATAVersion):
+        @staticmethod
+        def primitive_types() -> List['Typ']:
+            return [
+                Typ('PrimitiveType', '0')
+            ]
+
+    config_test = Config(TestODATA)
+    config_v2 = Config(ODataV2)
+
+    assert TestODATA.Types is None
+    assert TestODATA.Types == ODataV2.Types
+
+    # Build type repository by initial call
+    Types.from_name('PrimitiveType', config_test)
+    Types.from_name('Edm.Int16', config_v2)
+
+    assert TestODATA.Types != ODataV2.Types

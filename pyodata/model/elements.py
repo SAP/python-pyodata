@@ -8,8 +8,7 @@ from enum import Enum
 from pyodata.config import Config
 from pyodata.exceptions import PyODataModelError, PyODataException, PyODataParserError
 
-from pyodata.model.type_traits import EdmBooleanTypTraits, EdmDateTimeTypTraits, EdmPrefixedTypTraits, \
-    EdmIntTypTraits, EdmLongIntTypTraits, EdmStringTypTraits, TypTraits, EdmStructTypTraits, EnumTypTrait
+from pyodata.model.type_traits import TypTraits, EdmStructTypTraits, EnumTypTrait
 
 
 IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
@@ -80,7 +79,7 @@ class Identifier:
 
 
 class Types:
-    """Repository of all available OData types
+    """ Repository of all available OData types in given version
 
        Since each type has instance of appropriate type, this
        repository acts as central storage for all instances. The
@@ -88,61 +87,31 @@ class Types:
        always reuse existing instances if possible
     """
 
-    # dictionary of all registered types (primitive, complex and collection variants)
-    Types = None
-
     @staticmethod
-    def _build_types():
-        """Create and register instances of all primitive Edm types"""
+    def register_type(typ: 'Typ', config: Config):
+        """Add new type to the ODATA version type repository as well as its collection variant"""
 
-        if Types.Types is None:
-            Types.Types = {}
-
-            Types.register_type(Typ('Null', 'null'))
-            Types.register_type(Typ('Edm.Binary', 'binary\'\''))
-            Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
-            Types.register_type(Typ('Edm.Byte', '0'))
-            Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
-            Types.register_type(Typ('Edm.Decimal', '0.0M'))
-            Types.register_type(Typ('Edm.Double', '0.0d'))
-            Types.register_type(Typ('Edm.Single', '0.0f'))
-            Types.register_type(
-                Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
-            Types.register_type(Typ('Edm.Int16', '0', EdmIntTypTraits()))
-            Types.register_type(Typ('Edm.Int32', '0', EdmIntTypTraits()))
-            Types.register_type(Typ('Edm.Int64', '0L', EdmLongIntTypTraits()))
-            Types.register_type(Typ('Edm.SByte', '0'))
-            Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
-            Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
-            Types.register_type(Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\''))
-
-    @staticmethod
-    def register_type(typ):
-        """Add new  type to the type repository as well as its collection variant"""
-
-        # build types hierarchy on first use (lazy creation)
-        if Types.Types is None:
-            Types._build_types()
+        o_version = config.odata_version
 
         # register type only if it doesn't exist
-        # pylint: disable=unsupported-membership-test
-        if typ.name not in Types.Types:
-            # pylint: disable=unsupported-assignment-operation
-            Types.Types[typ.name] = typ
+        if typ.name not in o_version.Types:
+            o_version.Types[typ.name] = typ
 
         # automatically create and register collection variant if not exists
         collection_name = 'Collection({})'.format(typ.name)
-        # pylint: disable=unsupported-membership-test
-        if collection_name not in Types.Types:
+        if collection_name not in o_version.Types:
             collection_typ = Collection(typ.name, typ)
-            # pylint: disable=unsupported-assignment-operation
-            Types.Types[collection_name] = collection_typ
+            o_version.Types[collection_name] = collection_typ
 
     @staticmethod
     def from_name(name, config: Config):
+        o_version = config.odata_version
+
         # build types hierarchy on first use (lazy creation)
-        if Types.Types is None:
-            Types._build_types()
+        if not o_version.Types:
+            o_version.Types = dict()
+            for typ in o_version.primitive_types():
+                Types.register_type(typ, config)
 
         search_name = name
 
@@ -152,11 +121,10 @@ class Types:
             name = name[11:-1]  # strip collection() decorator
             search_name = 'Collection({})'.format(name)
 
-        if not config.odata_version.is_primitive_type_supported(name):
+        try:
+            return o_version.Types[search_name]
+        except KeyError:
             raise KeyError('Requested primitive type is not supported in this version of ODATA')
-
-        # pylint: disable=unsubscriptable-object
-        return Types.Types[search_name]
 
     @staticmethod
     def parse_type_name(type_name):
