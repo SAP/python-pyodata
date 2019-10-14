@@ -6,7 +6,7 @@ from lxml import etree
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError
-from pyodata.model.elements import ValueHelperParameter, Schema
+from pyodata.model.elements import ValueHelperParameter, Schema, build_element
 import pyodata.v2 as v2
 
 
@@ -105,7 +105,7 @@ class MetadataBuilder:
         self.update_alias(self.get_aliases(xml, self._config), self._config)
 
         edm_schemas = xml.xpath('/edmx:Edmx/edmx:DataServices/edm:Schema', namespaces=self._config.namespaces)
-        return Schema.from_etree(edm_schemas, self._config)
+        return build_element(Schema, self._config, schema_nodes=edm_schemas)
 
     @staticmethod
     def get_aliases(edmx, config: Config):

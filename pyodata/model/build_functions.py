@@ -1,4 +1,4 @@
-""" Reusable implementation of from_etree methods for the most of edm elements """
+""" Reusable implementation of build functions for the most of edm elements """
 
 # pylint: disable=unused-argument, missing-docstring, invalid-name
 import copy
@@ -7,17 +7,16 @@ import logging
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_string, StructType, StructTypeProperty, \
-    NavigationTypeProperty, Identifier, Types, EnumType, EnumMember, EntitySet, EndRole, ReferentialConstraint, \
-    PrincipalRole, DependentRole, Association, AssociationSetEndRole, AssociationSet, \
-    ValueHelper, ValueHelperParameter, FunctionImportParameter, \
-    FunctionImport, metadata_attribute_get, EntityType, ComplexType, Annotation
+    Identifier, Types, EnumType, EnumMember, EntitySet, ReferentialConstraint, PrincipalRole, DependentRole, \
+    ValueHelper, ValueHelperParameter, FunctionImportParameter, FunctionImport, metadata_attribute_get, EntityType, \
+    ComplexType, Annotation, build_element, Association, EndRole, AssociationSetEndRole, AssociationSet
 
 
 def modlog():
     return logging.getLogger("callbacks")
 
 
-def struct_type_property_from_etree(entity_type_property_node, config: Config):
+def build_struct_type_property(config: Config, entity_type_property_node):
     return StructTypeProperty(
         entity_type_property_node.get('Name'),
         Types.parse_type_name(entity_type_property_node.get('Type')),
@@ -41,7 +40,7 @@ def struct_type_property_from_etree(entity_type_property_node, config: Config):
 
 
 # pylint: disable=protected-access
-def struct_type_from_etree(type_node, config: Config, typ, schema=None):
+def build_struct_type(config: Config, type_node, typ, schema=None):
     name = type_node.get('Name')
     base_type = type_node.get('BaseType')
 
@@ -60,7 +59,7 @@ def struct_type_from_etree(type_node, config: Config, typ, schema=None):
         stype._name = name
 
     for proprty in type_node.xpath('edm:Property', namespaces=config.namespaces):
-        stp = StructTypeProperty.from_etree(proprty, config)
+        stp = build_element(StructTypeProperty, config, entity_type_property_node=proprty)
 
         if stp.name in stype._properties:
             raise KeyError('{0} already has property {1}'.format(stype, stp.name))
@@ -77,19 +76,19 @@ def struct_type_from_etree(type_node, config: Config, typ, schema=None):
     return stype
 
 
-def complex_type_from_etree(etree, config: Config, schema=None):
-    return StructType.from_etree(etree, config, typ=ComplexType, schema=schema)
+def build_complex_type(config: Config, type_node, schema=None):
+    return build_element(StructType, config, type_node=type_node, typ=ComplexType, schema=schema)
 
 
 # pylint: disable=protected-access
-def entity_type_from_etree(etree, config: Config, schema=None):
-    etype = StructType.from_etree(etree, config, typ=EntityType, schema=schema)
+def build_entity_type(config: Config, type_node, schema=None):
+    etype = build_element(StructType, config, type_node=type_node, typ=EntityType, schema=schema)
 
-    for proprty in etree.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
+    for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
         etype._key.append(etype.proprty(proprty.get('Name')))
 
-    for proprty in etree.xpath('edm:NavigationProperty', namespaces=config.namespaces):
-        navp = NavigationTypeProperty.from_etree(proprty, config)
+    for proprty in type_node.xpath('edm:NavigationProperty', namespaces=config.namespaces):
+        navp = build_element('NavigationTypeProperty', config, node=proprty)
 
         if navp.name in etype._nav_properties:
             raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
@@ -100,7 +99,7 @@ def entity_type_from_etree(etree, config: Config, schema=None):
 
 
 # pylint: disable=protected-access, too-many-locals
-def enum_type_from_etree(type_node, config: Config, namespace):
+def build_enum_type(config: Config, type_node, namespace):
     ename = type_node.get('Name')
     is_flags = type_node.get('IsFlags')
 
@@ -149,7 +148,7 @@ def enum_type_from_etree(type_node, config: Config, namespace):
     return etype
 
 
-def entity_set_from_etree(entity_set_node, config):
+def build_entity_set(config, entity_set_node):
     name = entity_set_node.get('Name')
     et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
@@ -169,7 +168,7 @@ def entity_set_from_etree(entity_set_node, config):
                      topable, req_filter, label)
 
 
-def end_role_from_etree(end_role_node, config):
+def build_end_role(config: Config, end_role_node):
     entity_type_info = Types.parse_type_name(end_role_node.get('Type'))
     multiplicity = end_role_node.get('Multiplicity')
     role = end_role_node.get('Role')
@@ -177,7 +176,7 @@ def end_role_from_etree(end_role_node, config):
     return EndRole(entity_type_info, multiplicity, role)
 
 
-def referential_constraint_from_etree(referential_constraint_node, config: Config):
+def build_referential_constraint(config: Config, referential_constraint_node):
     principal = referential_constraint_node.xpath('edm:Principal', namespaces=config.namespaces)
     if len(principal) != 1:
         raise RuntimeError('Referential constraint must contain exactly one principal element')
@@ -212,12 +211,12 @@ def referential_constraint_from_etree(referential_constraint_node, config: Confi
 
 
 # pylint: disable=protected-access
-def association_from_etree(association_node, config: Config):
+def build_association(config: Config, association_node):
     name = association_node.get('Name')
     association = Association(name)
 
     for end in association_node.xpath('edm:End', namespaces=config.namespaces):
-        end_role = EndRole.from_etree(end, config)
+        end_role = build_element(EndRole, config, end_role_node=end)
         if end_role.entity_type_info is None:
             raise RuntimeError('End type is not specified in the association {}'.format(name))
         association._end_roles.append(end_role)
@@ -232,21 +231,21 @@ def association_from_etree(association_node, config: Config):
     if not refer:
         referential_constraint = None
     else:
-        referential_constraint = ReferentialConstraint.from_etree(refer[0], config)
+        referential_constraint = build_element(ReferentialConstraint, config, referential_constraint_node=refer[0])
 
     association._referential_constraint = referential_constraint
 
     return association
 
 
-def association_set_end_role_from_etree(end_node, config):
+def build_association_set_end_role(config: Config, end_node):
     role = end_node.get('Role')
     entity_set = end_node.get('EntitySet')
 
     return AssociationSetEndRole(role, entity_set)
 
 
-def association_set_from_etree(association_set_node, config: Config):
+def build_association_set(config: Config, association_set_node):
     end_roles = []
     name = association_set_node.get('Name')
     association = Identifier.parse(association_set_node.get('Association'))
@@ -256,12 +255,12 @@ def association_set_from_etree(association_set_node, config: Config):
         raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
 
     for end_role in end_roles_list:
-        end_roles.append(AssociationSetEndRole.from_etree(end_role, config))
+        end_roles.append(build_element(AssociationSetEndRole, config, end_node=end_role))
 
     return AssociationSet(name, association.name, association.namespace, end_roles)
 
 
-def external_annotation_from_etree(annotations_node, config):
+def build_external_annotation(config, annotations_node):
     target = annotations_node.get('Target')
 
     if annotations_node.get('Qualifier'):
@@ -269,23 +268,23 @@ def external_annotation_from_etree(annotations_node, config):
         return
 
     for annotation in annotations_node.xpath('edm:Annotation', namespaces=config.annotation_namespace):
-        annot = Annotation.from_etree(target, config, annotation_node=annotation)
+        annot = build_element(Annotation, config, target=target, annotation_node=annotation)
         if annot is None:
             continue
         yield annot
 
 
-def annotation_from_etree(target, config, annotation_node):
+def build_annotation(config, target, annotation_node):
     term = annotation_node.get('Term')
 
     if term in config.sap_annotation_value_list:
-        return ValueHelper.from_etree(target, config, annotation_node=annotation_node)
+        return build_element(ValueHelper, config, target=target, annotation_node=annotation_node)
 
     modlog().warning('Unsupported Annotation( %s )', term)
     return None
 
 
-def value_helper_from_etree(target, config, annotation_node):
+def build_value_helper(config, target, annotation_node):
     label = None
     collection_path = None
     search_supported = False
@@ -306,14 +305,14 @@ def value_helper_from_etree(target, config, annotation_node):
 
     if params_node is not None:
         for prm in params_node.xpath('edm:Collection/edm:Record', namespaces=config.annotation_namespace):
-            param = ValueHelperParameter.from_etree(prm, config)
+            param = build_element(ValueHelperParameter, config, value_help_parameter_node=prm)
             param.value_helper = value_helper
             value_helper._parameters.append(param)
 
     return value_helper
 
 
-def value_helper_parameter_from_etree(value_help_parameter_node, config):
+def build_value_helper_parameter(config, value_help_parameter_node):
     typ = value_help_parameter_node.get('Type')
     direction = config.sap_value_helper_directions[typ]
     local_prop_name = None
@@ -329,7 +328,7 @@ def value_helper_parameter_from_etree(value_help_parameter_node, config):
 
 
 # pylint: disable=too-many-locals
-def function_import_from_etree(function_import_node, config: Config):
+def build_function_import(config: Config, function_import_node):
     name = function_import_node.get('Name')
     entity_set = function_import_node.get('EntitySet')
     http_method = metadata_attribute_get(function_import_node, 'HttpMethod')

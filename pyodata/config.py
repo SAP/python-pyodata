@@ -22,6 +22,7 @@ class ODATAVersion(ABC):
     # Separate dictionary of all registered types (primitive, complex and collection variants) for each child
     Types: Dict[str, 'Typ'] = dict()
 
+
     @staticmethod
     @abstractmethod
     def primitive_types() -> List['Typ']:
@@ -29,7 +30,7 @@ class ODATAVersion(ABC):
 
     @staticmethod
     @abstractmethod
-    def from_etree_callbacks() -> Dict[object, Callable]:
+    def build_functions() -> Dict[type, Callable]:
         """ Here we define which elements are supported and what is their python representation"""
 
 

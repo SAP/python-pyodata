@@ -2,14 +2,14 @@
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
 import os
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 
 from tests.conftest import assert_logging_policy
 from pyodata.config import Config
 from pyodata.model.builder import MetadataBuilder
-from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, NullAssociation, EndRole, \
-    AssociationSetEndRole, Schema, StructTypeProperty, AssociationSet, Association
+from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, NullAssociation, Schema, \
+    StructTypeProperty, EndRole, AssociationSetEndRole, AssociationSet, Association
 from pyodata.model.type_traits import EdmStructTypeSerializer
 from pyodata.policies import ParserError, PolicyWarning, PolicyIgnore, PolicyFatal
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
@@ -1069,8 +1069,8 @@ def test_missing_schema(xml_builder_factory):
         assert str(ex) == 'Metadata document is missing the element Schema'
 
 
-@patch.object(Schema, 'from_etree')
-def test_namespace_whitelist(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_namespace_whitelist(mock_build_element: MagicMock, xml_builder_factory):
     """Test correct handling of whitelisted namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1079,13 +1079,11 @@ def test_namespace_whitelist(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert MetadataBuilder(xml).build() == 'Mocked'
 
 
-@patch.object(Schema, 'from_etree')
-def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_unsupported_edmx_n(mock_build_element, xml_builder_factory):
     """Test correct handling of non-whitelisted Edmx namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1094,7 +1092,7 @@ def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(
+    schema = MetadataBuilder(
         xml,
         config=Config(
             ODataV2,
@@ -1102,19 +1100,18 @@ def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
         )
     ).build()
 
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert schema == 'Mocked'
 
     try:
         MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
 
-    mock_from_etree.assert_called_once()
+    mock_build_element.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
-def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_unsupported_schema_n(mock_build_element, xml_builder_factory):
     """Test correct handling of non-whitelisted Schema namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1123,7 +1120,7 @@ def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(
+    schema = MetadataBuilder(
         xml,
         config=Config(
             ODataV2,
@@ -1131,19 +1128,17 @@ def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
         )
     ).build()
 
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert schema == 'Mocked'
 
     try:
-
         MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
 
-    mock_from_etree.assert_called_once()
+    mock_build_element.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
 def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
@@ -1152,13 +1147,11 @@ def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert MetadataBuilder(xml).build() == 'Mocked'
 
 
-@patch.object(Schema, 'from_etree')
-def test_whitelisted_edm_namespace_2006_04(mock_from_etree, xml_builder_factory):
+@patch('pyodata.v2.build_functions_v2.build_schema')
+def test_whitelisted_edm_namespace_2006_04(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
     xml_builder = xml_builder_factory()
@@ -1167,12 +1160,11 @@ def test_whitelisted_edm_namespace_2006_04(mock_from_etree, xml_builder_factory)
     xml = xml_builder.serialize()
 
     MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    mocked.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
-def test_whitelisted_edm_namespace_2007_05(mock_from_etree, xml_builder_factory):
+@patch('pyodata.v2.build_functions_v2.build_schema')
+def test_whitelisted_edm_namespace_2007_05(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
     xml_builder = xml_builder_factory()
@@ -1181,8 +1173,7 @@ def test_whitelisted_edm_namespace_2007_05(mock_from_etree, xml_builder_factory)
     xml = xml_builder.serialize()
 
     MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    mocked.assert_called_once()
 
 
 def test_enum_parsing(schema):

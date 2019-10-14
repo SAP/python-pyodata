@@ -3,8 +3,9 @@ import datetime
 import geojson
 import pytest
 
-from model.builder import MetadataBuilder
+from pyodata.model.builder import MetadataBuilder
 from pyodata.exceptions import PyODataModelError
+from pyodata.model.type_traits import TypTraits
 from pyodata.model.elements import Types
 
 from pyodata.config import Config

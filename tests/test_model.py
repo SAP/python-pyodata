@@ -13,7 +13,7 @@ def test_from_etree_mixin(metadata_v2):
 
     class EmptyODATA(ODATAVersion):
         @staticmethod
-        def from_etree_callbacks():
+        def build_functions():
             return {}
 
     config = Config(EmptyODATA)
@@ -48,7 +48,7 @@ def test_odata_version_statelessness():
 
     class EmptyODATA(ODATAVersion):
         @staticmethod
-        def from_etree_callbacks():
+        def build_functions():
             return {}
 
         @staticmethod

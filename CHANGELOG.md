@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Separate type repositories for individual versions of OData - Martin Miksik
 - Support for OData V4 primitive types - Martin Miksik
 
+### Changed
+- Implementation and naming schema of `from_etree` - Martin Miksik
+
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing
   unknown type/member - Martin Miksik

@@ -4,6 +4,7 @@ import collections
 import itertools
 import logging
 from enum import Enum
+from typing import Union
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataModelError, PyODataException, PyODataParserError
@@ -19,19 +20,33 @@ def modlog():
     return logging.getLogger("Elements")
 
 
-class FromEtreeMixin:
-    @classmethod
-    def from_etree(cls, etree, config: Config, **kwargs):
-        callbacks = config.odata_version.from_etree_callbacks()
-        if cls in callbacks:
-            callback = callbacks[cls]
-        else:
-            raise PyODataParserError(f'{cls.__name__} is unsupported in {config.odata_version.__name__}')
+def build_element(element_name: Union[str, type], config: Config, **kwargs):
+    """
+    This function is responsible for resolving which implementation is to be called for parsing EDM element. It's a
+    primitive implementation of dynamic dispatch, thus there exist table where all supported elements are assigned
+    parsing function. When elements class or element name is passed we search this table. If key exists we call the
+    corresponding function with kwargs arguments, otherwise we raise an exception.
 
-        if kwargs:
-            return callback(etree, config, **kwargs)
+    Important to note is that although elements among version, can have the same name their properties can differ
+    significantly thus class representing ElementX in V2 is not necessarily equal to ElementX in V4.
 
-        return callback(etree, config)
+    :param element_name: Passing class is preferred as it does not add 'magic' strings to our code but if you
+                         can't import the class of the element pass the class name instead.
+    :param config: Config
+    :param kwargs: Any arguments that are to be passed to the build function e. g. etree, schema...
+
+    :return: Object
+    """
+
+    if not isinstance(element_name, str):
+        element_name = element_name.__name__
+
+    callbacks = config.odata_version.build_functions()
+    for clb in callbacks:
+        if element_name == clb.__name__:
+            return callbacks[clb](config, **kwargs)
+
+    raise PyODataParserError(f'{element_name} is unsupported in {config.odata_version.__name__}')
 
 
 class NullAssociation:
@@ -277,7 +292,7 @@ class VariableDeclaration(Identifier):
                                     .format(self._scale, self._precision))
 
 
-class Schema(FromEtreeMixin):
+class Schema:
     class Declaration:
         def __init__(self, namespace):
             super(Schema.Declaration, self).__init__()
@@ -567,7 +582,7 @@ class Schema(FromEtreeMixin):
                 raise PyODataModelError('Property {} does not exist in {}'.format(proprty, entity_type.name))
 
 
-class StructType(FromEtreeMixin, Typ):
+class StructType(Typ):
     def __init__(self, name, label, is_value_list):
         super(StructType, self).__init__(name, None, EdmStructTypTraits(self), Typ.Kinds.Complex)
 
@@ -635,7 +650,7 @@ class EnumMember:
         return self._parent
 
 
-class EnumType(FromEtreeMixin, Identifier):
+class EnumType(Identifier):
     def __init__(self, name, is_flags, underlying_type, namespace):
         super(EnumType, self).__init__(name)
         self._member = list()
@@ -702,7 +717,7 @@ class EntityType(StructType):
         return self._nav_properties[property_name]
 
 
-class EntitySet(FromEtreeMixin, Identifier):
+class EntitySet(Identifier):
     def __init__(self, name, entity_type_info, addressable, creatable, updatable, deletable, searchable, countable,
                  pageable, topable, req_filter, label):
         super(EntitySet, self).__init__(name)
@@ -779,7 +794,7 @@ class EntitySet(FromEtreeMixin, Identifier):
         return self._label
 
 
-class StructTypeProperty(FromEtreeMixin, VariableDeclaration):
+class StructTypeProperty(VariableDeclaration):
     """Property of structure types (Entity/Complex type)
 
        Type of the property can be:
@@ -906,7 +921,7 @@ class StructTypeProperty(FromEtreeMixin, VariableDeclaration):
         self._value_helper = value
 
 
-class NavigationTypeProperty(FromEtreeMixin, VariableDeclaration):
+class NavigationTypeProperty(VariableDeclaration):
     """Defines a navigation property, which provides a reference to the other end of an association
 
        Unlike properties defined with the Property element, navigation properties do not define the
@@ -962,7 +977,7 @@ class NavigationTypeProperty(FromEtreeMixin, VariableDeclaration):
         return self.to_role.entity_type
 
 
-class EndRole(FromEtreeMixin):
+class EndRole:
     MULTIPLICITY_ONE = '1'
     MULTIPLICITY_ZERO_OR_ONE = '0..1'
     MULTIPLICITY_ZERO_OR_MORE = '*'
@@ -1030,7 +1045,7 @@ class DependentRole(ReferentialConstraintRole):
     pass
 
 
-class ReferentialConstraint(FromEtreeMixin):
+class ReferentialConstraint():
     def __init__(self, principal, dependent):
         self._principal = principal
         self._dependent = dependent
@@ -1044,7 +1059,7 @@ class ReferentialConstraint(FromEtreeMixin):
         return self._dependent
 
 
-class Association(FromEtreeMixin):
+class Association:
     """Defines a relationship between two entity types.
 
        An association must specify the entity types that are involved in
@@ -1082,7 +1097,7 @@ class Association(FromEtreeMixin):
         return self._referential_constraint
 
 
-class AssociationSetEndRole(FromEtreeMixin):
+class AssociationSetEndRole:
     def __init__(self, role, entity_set_name):
         self._role = role
         self._entity_set_name = entity_set_name
@@ -1115,7 +1130,7 @@ class AssociationSetEndRole(FromEtreeMixin):
         self._entity_set = value
 
 
-class AssociationSet(FromEtreeMixin):
+class AssociationSet:
     def __init__(self, name, association_type_name, association_type_namespace, end_roles):
         self._name = name
         self._association_type_name = association_type_name
@@ -1165,7 +1180,7 @@ class AssociationSet(FromEtreeMixin):
         self._association_type = value
 
 
-class Annotation(FromEtreeMixin):
+class Annotation():
     Kinds = Enum('Kinds', 'ValueHelper')
 
     def __init__(self, kind, target, qualifier=None):
@@ -1195,7 +1210,8 @@ class Annotation(FromEtreeMixin):
         return self._kind
 
 
-class ExternalAnnotation(FromEtreeMixin):
+# pylint: disable=too-few-public-methods
+class ExternalAnnotation():
     pass
 
 
@@ -1299,7 +1315,7 @@ class ValueHelper(Annotation):
         raise KeyError('{0} has no list property {1}'.format(self, name))
 
 
-class ValueHelperParameter(FromEtreeMixin):
+class ValueHelperParameter():
     Direction = Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
 
     def __init__(self, direction, local_property_name, list_property_name):
@@ -1366,7 +1382,7 @@ class ValueHelperParameter(FromEtreeMixin):
         self._list_property = value
 
 
-class FunctionImport(FromEtreeMixin, Identifier):
+class FunctionImport(Identifier):
     def __init__(self, name, return_type_info, entity_set, parameters, http_method='GET'):
         super(FunctionImport, self).__init__(name)
 

@@ -1,11 +1,17 @@
-# pylint: disable=missing-docstring,invalid-name,unused-argument,protected-access
+""" Repository of build functions specific to the ODATA V4"""
+
+# pylint: disable=missing-docstring
+
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError
-from pyodata.model.elements import ComplexType, Schema, EnumType, NullType
+from pyodata.model.elements import ComplexType, Schema, EnumType, NullType, build_element
 from pyodata.policies import ParserError
 
 
-def schema_from_etree(schema_nodes, config: Config):
+# pylint: disable=protected-access
+# While building schema it is necessary to set few attributes which in the rest of the application should remain
+# constant.
+def build_schema(config: Config, schema_nodes):
     schema = Schema(config)
 
     # Parse Schema nodes by parts to get over the problem of not-yet known
@@ -21,7 +27,7 @@ def schema_from_etree(schema_nodes, config: Config):
 
         for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
             try:
-                etype = EnumType.from_etree(enum_type, config, namespace=namespace)
+                etype = build_element(EnumType, config, type_node=enum_type, namespace=namespace)
             except (PyODataParserError, AttributeError) as ex:
                 config.err_policy(ParserError.ENUM_TYPE).resolve(ex)
                 etype = NullType(enum_type.get('Name'))
@@ -30,7 +36,7 @@ def schema_from_etree(schema_nodes, config: Config):
 
         for complex_type in schema_node.xpath('edm:ComplexType', namespaces=config.namespaces):
             try:
-                ctype = ComplexType.from_etree(complex_type, config, schema=schema)
+                ctype = build_element(ComplexType, config, type_node=complex_type, schema=schema)
             except (KeyError, AttributeError) as ex:
                 config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
                 ctype = NullType(complex_type.get('Name'))

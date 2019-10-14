@@ -2,29 +2,29 @@
 
 from typing import List
 
-from pyodata.model.from_etree_callbacks import enum_type_from_etree, struct_type_property_from_etree, \
-    struct_type_from_etree, complex_type_from_etree
 from pyodata.config import ODATAVersion
 from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
 from pyodata.model.elements import Typ, Schema, EnumType, ComplexType, StructType, StructTypeProperty
 from pyodata.v4.type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
 
-from pyodata.v4.from_etree_callbacks import schema_from_etree
+
+import pyodata.v4.build_functions as build_functions_v4
+import pyodata.model.build_functions as build_functions
 
 
 class ODataV4(ODATAVersion):
     """ Definition of OData V4 """
 
     @staticmethod
-    def from_etree_callbacks():
+    def build_functions():
         return {
-            StructTypeProperty: struct_type_property_from_etree,
-            StructType: struct_type_from_etree,
+            StructTypeProperty: build_functions.build_struct_type_property,
+            StructType: build_functions.build_struct_type,
             # NavigationTypeProperty: navigation_type_property_from_etree,
-            EnumType: enum_type_from_etree,
-            ComplexType: complex_type_from_etree,
-            Schema: schema_from_etree,
+            EnumType: build_functions.build_enum_type,
+            ComplexType: build_functions.build_complex_type,
+            Schema: build_functions_v4.build_schema,
         }
 
     @staticmethod
