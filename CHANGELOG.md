@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- fix annotation policy for invalid metadata containing annotation with property referencing unknown type - Martin Miksik
 
 ## [1.3.0]
 
