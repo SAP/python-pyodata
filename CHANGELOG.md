@@ -1,25 +1,68 @@
-# Changelog
+# Change Log
+All notable changes to this project will be documented in this file.
 
-# 1.2.3
-  * dca01a28 - model:  add support for whitelisted and custom namespaces - Martin Miksik
-  * dd467e6a - model:  add Microsoft's edm namespace to whitelisted namespaces - Martin Miksik
+The format is based on [Keep a Changelog](http://keepachangelog.com/)
+and this project adheres to [Semantic Versioning](http://semver.org/).
 
-# 1.2.2
-  * ed1ae8a - model:  fix namespace parsing - Jakub Filak
+## [Unreleased]
 
-# 1.2.1
-  * d95e2b2 - model: handle association set ends with same entity sets - Lubos Mjachky
+## [1.3.0]
 
-# 1.2.0
+### Added
+- support Edm.EnumType - Martin Miksik
+- support for permissive parsing of $metadata - Martin Miksik
+- support deleting Entities - Martin Miksik
 
-  * 69a3ce1 - model: reword error messages for assoc. sets - Jakub Filak 
-  * e592063 - model: fix searching for Assoc. Set without NS - Jakub Filak 
-  * 36cb45f - service: do not search for Ass. Sets in own namespace - Jakub Filak 
-  * a280798 - service: add implementation of count - FedorSelitsky 
+### Changed
+- Emd.Int64 literals do no need to have the suffix L - Jakub Filak
+- more user friendly Function call errors - Jakub Filak
 
-# 1.1.2
+### Fixed
+- correctly handle calls to Function Imports without return type - Jakub Filak
+- correctly serialize DateTime values to JSON in create/update methods - Martin Miksik
+- remove timezone info from DateTime URL literals - Martin Miksik
 
-  * e69fee6 - client: correctly detect MIME of $metadata - Jakub Filak
-  * 9c23ff8 - dependencies: Update setup.py - minimal lxml instead of pinned. - Petr Hanak
+# # [1.2.3]
 
-# 1.1.1 - First PIP package release 
+### Added
+- add support for whitelisted and custom namespaces - Martin Miksik
+- add Microsoft's edm namespace to whitelisted namespaces - Martin Miksik
+
+## [1.2.2]
+
+### Fixed
+- fix parsing of Namespaces with several dots - Jakub Filak
+
+## [1.2.1]
+
+### Changed
+- handle association set ends with same entity sets - Lubos Mjachky
+
+## [1.2.0]
+
+### Added
+- add implementation of $count - FedorSelitsky
+
+### Fixed
+- fix searching for Associations Set without Namespace - Jakub Filak
+
+### Changed
+- reword error messages for Association Sets - Jakub Filak
+
+## [1.1.2]
+
+### Fixed
+- client: correctly detect MIME of $metadata - Jakub Filak
+
+### Changed
+- dependencies: Update setup.py - minimal lxml instead of pinned. - Petr Hanak
+
+## 1.1.1 - First PIP package release
+
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.3.0...HEAD
+[1.3.0]: https://github.com/SAP/python-pyodata/compare/1.2.3...1.3.0
+[1.2.3]: https://github.com/SAP/python-pyodata/compare/1.2.2...1.2.3
+[1.2.2]: https://github.com/SAP/python-pyodata/compare/1.2.1...1.2.2
+[1.2.1]: https://github.com/SAP/python-pyodata/compare/1.2.0...1.2.1
+[1.2.0]: https://github.com/SAP/python-pyodata/compare/1.1.2...1.2.0
+[1.1.2]: https://github.com/SAP/python-pyodata/compare/1.1.1...1.1.2
