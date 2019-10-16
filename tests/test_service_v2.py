@@ -11,6 +11,9 @@ import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
+from tests.conftest import assert_request_contains_header
+
+
 URL_ROOT = 'http://odatapy.example.com'
 
 
@@ -158,8 +161,7 @@ def test_create_entity_header_x_requested_with(service):
     result = service.entity_sets.Cars.create_entity().set(**entity).execute()
 
     assert result.Name == 'Hadraplan'
-    assert 'X-Requested-With' in responses.calls[0].request.headers
-    assert responses.calls[0].request.headers['X-Requested-With'] == 'X'
+    assert_request_contains_header(responses.calls[0].request.headers, 'X-Requested-With', 'X')
 
 
 @responses.activate

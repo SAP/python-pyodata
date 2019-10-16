@@ -119,3 +119,8 @@ def assert_logging_policy(mock_warning, *args):
     """Assert if an warning was outputted by PolicyWarning """
     assert logging.Logger.warning is mock_warning
     mock_warning.assert_called_with('[%s] %s', *args)
+
+
+def assert_request_contains_header(headers, name, value):
+    assert name in headers
+    assert headers[name] == value
