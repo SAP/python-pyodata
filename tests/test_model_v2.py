@@ -1,6 +1,6 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
-
+import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 import pytest
@@ -1206,3 +1206,97 @@ def test_enum_value_out_of_range(xml_builder_factory):
         MetadataBuilder(xml).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
+
+
+@patch('logging.Logger.warning')
+def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_factory):
+    """Test that correct behavior when non existing property is referenced in annotation"""
+
+    local_data_property = 'DataType'
+    value_list_property = 'Type'
+
+    schema = """
+        <EntityType Name="MasterEntity" sap:content-version="1">
+            <Property Name="Data" Type="Edm.String" sap:text="DataName"/>
+            <Property Name="DataName" Type="Edm.String" />
+            <Property Name="DataType" Type="Edm.String"/>
+        </EntityType>
+        <EntityType Name="DataEntity" sap:content-version="1" sap:value-list="true" sap:label="Data entities">
+           <Property Name="Type" Type="Edm.String" Nullable="false"/>
+        </EntityType>
+
+        <EntityContainer Name="EXAMPLE_SRV" >
+            <EntitySet Name="DataValueHelp" EntityType="EXAMPLE_SRV.DataEntity" />
+        </EntityContainer>
+
+        <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="EXAMPLE_SRV.MasterEntity/Data">
+            <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+                    <Record>
+                        <PropertyValue Property="CollectionPath" String="DataValueHelp"/>
+                        <PropertyValue Property="Parameters">
+                            <Collection>
+                                <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly">
+                                    <PropertyValue Property="LocalDataProperty" PropertyPath="{}"/>
+                                    <PropertyValue Property="ValueListProperty" String="{}"/>
+                                </Record>
+                            </Collection>
+                        </PropertyValue>
+                    </Record>
+                </Annotation>
+        </Annotations>
+    """
+
+    # Test case 1. -> LocalDataProperty is faulty and ValueListProperty is valid
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', schema.format('---', value_list_property))
+    xml = xml_builder.serialize()
+
+    with pytest.raises(RuntimeError) as typ_ex_info:
+        MetadataBuilder(xml).build()
+
+    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
+                                        'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
+
+    MetadataBuilder(xml, Config(
+        default_error_policy=PolicyWarning()
+    )).build()
+
+    assert_logging_policy(mock_warning,
+                          'RuntimeError',
+                          'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to '
+                          'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
+                          )
+
+    # Test case 2. -> LocalDataProperty is valid and ValueListProperty is faulty
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, '---'))
+    xml = xml_builder.serialize()
+
+    with pytest.raises(RuntimeError) as typ_ex_info:
+        MetadataBuilder(xml).build()
+
+    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
+                                        'existing ValueListProperty --- of EntityType(DataEntity)'
+
+    MetadataBuilder(xml, Config(
+        default_error_policy=PolicyWarning()
+    )).build()
+
+    assert_logging_policy(mock_warning,
+                          'RuntimeError',
+                          'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non '
+                          'existing ValueListProperty --- of EntityType(DataEntity)'
+                          )
+
+    # Test case 3. -> LocalDataProperty is valid and ValueListProperty is also valid
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, value_list_property))
+    xml = xml_builder.serialize()
+
+    mock_warning.reset_mock()
+
+    MetadataBuilder(xml, Config(
+        default_error_policy=PolicyWarning()
+    )).build()
+
+    assert mock_warning.called is False

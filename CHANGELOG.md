@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Client can be created from local metadata - Jakub Filak
 
+### Fixed
+- make sure configured error policies are applied for Annotations referencing
+  unknown type/member - Martin Miksik
+
 ## [1.3.0]
 
 ### Added

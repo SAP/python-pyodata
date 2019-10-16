@@ -1164,11 +1164,11 @@ class Schema:
                             except KeyError:
                                 raise RuntimeError(f'Target Property {annotation.proprty_name} '
                                                    f'of {vh_type} as defined in {annotation} does not exist')
+
+                            annotation.proprty = target_proprty
+                            target_proprty.value_helper = annotation
                     except (RuntimeError, PyODataModelError) as ex:
                         config.err_policy(ParserError.ANNOTATION).resolve(ex)
-                    else:
-                        annotation.proprty = target_proprty
-                        target_proprty.value_helper = annotation
 
         return schema
 
