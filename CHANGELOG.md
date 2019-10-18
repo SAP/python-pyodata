@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Splits python representation of metadata and metadata parsing - Martin Miksik
 - Separate type repositories for individual versions of OData - Martin Miksik
 - Support for OData V4 primitive types - Martin Miksik
+- Support for navigation property in OData v4 - Martin Miksik
 
 ### Changed
 - Implementation and naming schema of `from_etree` - Martin Miksik

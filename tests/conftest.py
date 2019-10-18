@@ -2,7 +2,10 @@
 import logging
 import os
 import pytest
-from pyodata.model.builder import schema_from_xml
+
+from pyodata.config import Config
+from pyodata.model.builder import schema_from_xml, MetadataBuilder
+from pyodata.v4 import ODataV4
 
 
 @pytest.fixture
@@ -122,6 +125,16 @@ def schema(metadata_v2):
     # pylint: disable=redefined-outer-name
 
     return schema_from_xml(metadata_v2)
+
+
+@pytest.fixture
+def schema_v4(metadata_v4):
+    meta = MetadataBuilder(
+        metadata_v4,
+        config=Config(ODataV4)
+    )
+
+    return meta.build()
 
 
 def assert_logging_policy(mock_warning, *args):

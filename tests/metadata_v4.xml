@@ -55,7 +55,7 @@
                 <Property Name="Concurrency" Type="Edm.Int64" Nullable="false">
                     <Annotation Term="Org.OData.Core.V1.Computed" Bool="true" />
                 </Property>
-                <NavigationProperty Name="Friends" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.Person)" />
+                <NavigationProperty Name="Friends" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.Person)" Partner="Friends" />
                 <NavigationProperty Name="Trips" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.Trip)" ContainsTarget="true" />
                 <NavigationProperty Name="Photo" Type="Microsoft.OData.SampleService.Models.TripPin.Photo" />
             </EntityType>
@@ -133,6 +133,20 @@
                 <Property Name="Tags" Type="Collection(Edm.String)" Nullable="false" />
                 <NavigationProperty Name="Photos" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.Photo)" />
                 <NavigationProperty Name="PlanItems" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.PlanItem)" ContainsTarget="true" />
+            </EntityType>
+            <!-- https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/csprd06/odata-csdl-xml-v4.01-csprd06.html#sec_ReferentialConstraint -->
+            <EntityType Name="Product">
+              <Property Name="CategoryID" Type="Edm.String" Nullable="false"/>
+              <Property Name="CategoryKind" Type="Edm.String" Nullable="true" />
+              <NavigationProperty Name="Category" Type="Category" Nullable="false">
+                <ReferentialConstraint Property="CategoryID" ReferencedProperty="ID" />
+              </NavigationProperty>
+            </EntityType>
+            <EntityType Name="Category">
+              <Key>
+                <PropertyRef Name="ID" />
+              </Key>
+              <Property Name="ID" Type="Edm.String" Nullable="false" />
             </EntityType>
             <Function Name="GetFavoriteAirline" IsBound="true" EntitySetPath="person/Trips/PlanItems/Microsoft.OData.SampleService.Models.TripPin.Flight/Airline" IsComposable="true">
                 <Parameter Name="person" Type="Microsoft.OData.SampleService.Models.TripPin.Person" Nullable="false" />

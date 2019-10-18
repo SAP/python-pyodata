@@ -5,23 +5,20 @@
 
 import itertools
 import logging
+from typing import List
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
-from pyodata.model.elements import EntityType, ComplexType, Schema, EnumType, NullType, build_element, \
-    NullAssociation, EntitySet, FunctionImport, AssociationSet, ExternalAnnotation, Annotation, Association, Typ, \
-    NavigationTypeProperty, Identifier
+from pyodata.model.elements import EntityType, ComplexType, EnumType, NullType, build_element, \
+    EntitySet, FunctionImport, ExternalAnnotation, Annotation, Typ, Identifier, Types
 from pyodata.policies import ParserError
+from pyodata.v2.elements import AssociationSetEndRole, Association, AssociationSet, NavigationTypeProperty, EndRole, \
+    Schema, NullAssociation, ReferentialConstraint, PrincipalRole, DependentRole
 
 
 def modlog():
     """ Logging function for debugging."""
     return logging.getLogger("v2_build_functions")
-
-
-def build_navigation_type_property(config: Config, node):
-    return NavigationTypeProperty(
-        node.get('Name'), node.get('FromRole'), node.get('ToRole'), Identifier.parse(node.get('Relationship')))
 
 
 # pylint: disable=protected-access,too-many-locals, too-many-branches,too-many-statements
@@ -245,3 +242,100 @@ def build_schema(config: Config, schema_nodes):
                 except (RuntimeError, PyODataModelError) as ex:
                     config.err_policy(ParserError.ANNOTATION).resolve(ex)
     return schema
+
+
+def build_navigation_type_property(config: Config, node):
+    return NavigationTypeProperty(
+        node.get('Name'), node.get('FromRole'), node.get('ToRole'), Identifier.parse(node.get('Relationship')))
+
+
+def build_end_role(config: Config, end_role_node):
+    entity_type_info = Types.parse_type_name(end_role_node.get('Type'))
+    multiplicity = end_role_node.get('Multiplicity')
+    role = end_role_node.get('Role')
+
+    return EndRole(entity_type_info, multiplicity, role)
+
+
+# pylint: disable=protected-access
+def build_association(config: Config, association_node):
+    name = association_node.get('Name')
+    association = Association(name)
+
+    for end in association_node.xpath('edm:End', namespaces=config.namespaces):
+        end_role = build_element(EndRole, config, end_role_node=end)
+        if end_role.entity_type_info is None:
+            raise RuntimeError('End type is not specified in the association {}'.format(name))
+        association._end_roles.append(end_role)
+
+    if len(association._end_roles) != 2:
+        raise RuntimeError('Association {} does not have two end roles'.format(name))
+
+    refer = association_node.xpath('edm:ReferentialConstraint', namespaces=config.namespaces)
+    if len(refer) > 1:
+        raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
+
+    if not refer:
+        referential_constraint = None
+    else:
+        referential_constraint = build_element(ReferentialConstraint, config, referential_constraint_node=refer[0])
+
+    association._referential_constraint = referential_constraint
+
+    return association
+
+
+def build_association_set_end_role(config: Config, end_node):
+    role = end_node.get('Role')
+    entity_set = end_node.get('EntitySet')
+
+    return AssociationSetEndRole(role, entity_set)
+
+
+def build_association_set(config: Config, association_set_node):
+    end_roles: List[AssociationSetEndRole] = []
+    name = association_set_node.get('Name')
+    association = Identifier.parse(association_set_node.get('Association'))
+
+    end_roles_list = association_set_node.xpath('edm:End', namespaces=config.namespaces)
+    if len(end_roles) > 2:
+        raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
+
+    for end_role in end_roles_list:
+        end_roles.append(build_element(AssociationSetEndRole, config, end_node=end_role))
+
+    return AssociationSet(name, association.name, association.namespace, end_roles)
+
+
+def build_referential_constraint(config: Config, referential_constraint_node):
+    principal = referential_constraint_node.xpath('edm:Principal', namespaces=config.namespaces)
+    if len(principal) != 1:
+        raise RuntimeError('Referential constraint must contain exactly one principal element')
+
+    principal_name = principal[0].get('Role')
+    if principal_name is None:
+        raise RuntimeError('Principal role name was not specified')
+
+    principal_refs = []
+    for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
+        principal_refs.append(property_ref.get('Name'))
+    if not principal_refs:
+        raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
+
+    dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=config.namespaces)
+    if len(dependent) != 1:
+        raise RuntimeError('Referential constraint must contain exactly one dependent element')
+
+    dependent_name = dependent[0].get('Role')
+    if dependent_name is None:
+        raise RuntimeError('Dependent role name was not specified')
+
+    dependent_refs = []
+    for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
+        dependent_refs.append(property_ref.get('Name'))
+    if len(principal_refs) != len(dependent_refs):
+        raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
+                           .format(principal_name, dependent_name))
+
+    return ReferentialConstraint(
+        PrincipalRole(principal_name, principal_refs), DependentRole(dependent_name, dependent_refs))

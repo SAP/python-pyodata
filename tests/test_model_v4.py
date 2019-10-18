@@ -11,6 +11,7 @@ from pyodata.model.elements import Types
 from pyodata.config import Config
 from pyodata.v4 import ODataV4
 from tests.conftest import metadata
+from v4 import NavigationTypeProperty
 
 
 def test_type_traits():
@@ -150,4 +151,24 @@ def test_schema(metadata_v4):
     )
 
     meta_builder.build()
+
+
+def test_edmx_navigation_properties(schema_v4):
+    """Test parsing of navigation properties"""
+
+    entity = schema_v4.entity_type('Person')
+    assert str(entity) == 'EntityType(Person)'
+    assert entity.name == 'Person'
+
+    nav_prop = entity.nav_proprty('Friends')
+    assert str(nav_prop) == 'NavigationTypeProperty(Friends)'
+    assert repr(nav_prop.typ) == 'Collection(EntityType(Person))'
+    assert repr(nav_prop.partner) == 'NavigationTypeProperty(Friends)'
+
+
+def test_referential_constraint(schema_v4):
+    nav_property: NavigationTypeProperty = schema_v4.entity_type('Product').nav_proprty('Category')
+    assert str(nav_property) == 'NavigationTypeProperty(Category)'
+    assert repr(nav_property.referential_constraints[0]) == \
+        'ReferentialConstraint(StructTypeProperty(CategoryID), StructTypeProperty(ID))'
 

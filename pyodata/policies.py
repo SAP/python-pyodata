@@ -11,12 +11,14 @@ from enum import Enum, auto
 class ParserError(Enum):
     """ Represents all the different errors the parser is able to deal with."""
     PROPERTY = auto()
+    NAVIGATION_PROPERTY = auto()
     ANNOTATION = auto()
     ASSOCIATION = auto()
 
     ENUM_TYPE = auto()
     ENTITY_TYPE = auto()
     COMPLEX_TYPE = auto()
+    REFERENTIAL_CONSTRAINT = auto()
 
 
 class ErrorPolicy(ABC):
