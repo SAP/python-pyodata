@@ -11,6 +11,7 @@ from enum import Enum, auto
 class ParserError(Enum):
     """ Represents all the different errors the parser is able to deal with."""
     PROPERTY = auto()
+    NAVIGATION_PROPERTY = auto()
     ANNOTATION = auto()
     ASSOCIATION = auto()
 

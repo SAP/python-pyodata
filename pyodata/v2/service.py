@@ -17,6 +17,7 @@ from io import BytesIO
 import requests
 
 from pyodata.model import elements
+from pyodata.v2 import elements as elements_v2
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError
 
 LOGGER_NAME = 'pyodata.service'
@@ -736,8 +737,8 @@ class EntityProxy:
 
                     # cache value according to multiplicity
                     if prop.to_role.multiplicity in \
-                            [elements.EndRole.MULTIPLICITY_ONE,
-                             elements.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
+                            [elements_v2.EndRole.MULTIPLICITY_ONE,
+                             elements_v2.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
 
                         # cache None in case we receive nothing (null) instead of entity data
                         if proprties[prop.name] is None:
@@ -745,7 +746,7 @@ class EntityProxy:
                         else:
                             self._cache[prop.name] = EntityProxy(service, None, prop_etype, proprties[prop.name])
 
-                    elif prop.to_role.multiplicity == elements.EndRole.MULTIPLICITY_ZERO_OR_MORE:
+                    elif prop.to_role.multiplicity == elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE:
                         # default value is empty array
                         self._cache[prop.name] = []
 
@@ -815,7 +816,7 @@ class EntityProxy:
             raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
 
         roles = navigation_property.association.end_roles
-        if all((role.multiplicity != elements.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        if all((role.multiplicity != elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
             return NavEntityProxy(self, nav_property, navigation_entity_set.entity_type, {})
 
         return EntitySetProxy(
@@ -1024,7 +1025,7 @@ class EntitySetProxy:
                 'No association set for role {} {}'.format(navigation_property.to_role, association_set.end_roles))
 
         roles = navigation_property.association.end_roles
-        if all((role.multiplicity != elements.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        if all((role.multiplicity != elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
             return self._get_nav_entity(key, nav_property, navigation_entity_set)
 
         return EntitySetProxy(

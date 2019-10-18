@@ -8,13 +8,12 @@ import pytest
 from tests.conftest import assert_logging_policy
 from pyodata.config import Config
 from pyodata.model.builder import MetadataBuilder
-from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, NullAssociation, Schema, \
-    StructTypeProperty, EndRole, AssociationSetEndRole, AssociationSet, Association
+from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, Schema, StructTypeProperty
 from pyodata.model.type_traits import EdmStructTypeSerializer
 from pyodata.policies import ParserError, PolicyWarning, PolicyIgnore, PolicyFatal
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 from pyodata.v2 import ODataV2
-
+from pyodata.v2.elements import EndRole, AssociationSet, AssociationSetEndRole, Association, NullAssociation
 
 
 def test_edmx(schema):
