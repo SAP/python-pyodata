@@ -63,6 +63,7 @@ def test_odata_version_statelessness():
 
 
 def test_types_repository_separation():
+    ODataV2.Types = dict()
 
     class TestODATA(ODATAVersion):
         @staticmethod
@@ -74,11 +75,12 @@ def test_types_repository_separation():
     config_test = Config(TestODATA)
     config_v2 = Config(ODataV2)
 
-    assert TestODATA.Types is None
+    assert not TestODATA.Types
     assert TestODATA.Types == ODataV2.Types
 
     # Build type repository by initial call
     Types.from_name('PrimitiveType', config_test)
     Types.from_name('Edm.Int16', config_v2)
 
+    assert ODataV2.Types
     assert TestODATA.Types != ODataV2.Types

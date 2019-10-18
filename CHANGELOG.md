@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing
   unknown type/member - Martin Miksik
+- Race condition in `test_types_repository_separation` - Martin Miksik
 
 ## [1.3.0]
 
