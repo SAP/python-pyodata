@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Client can be created from local metadata - Jakub Filak
+
 ## [1.3.0]
 
 ### Added

@@ -77,8 +77,28 @@ Python client initialization:
 
     client = pyodata.Client(SERVICE_URL, session)
 
-
 For more information on client side SSL cerificationcas, please refer to this [gist](https://gist.github.com/mtigas/952344).
+
+Get the service with local metadata
+-----------------------------------
+
+It may happen that you will have metadata document for your service downloaded
+in a local file and you will want to initialize the service proxy from this
+file. In such a case you can provide content of the file as the named argument
+`metadata`. Please, make sure you provide `bytes` and not `str` (required by
+the xml parser lxml).
+
+.. code-block:: python
+
+    import pyodata
+    import requests
+
+    SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
+
+    with open('/the/file/path.xml', 'rb') as mtd_file:
+        local_metadata = mtd_file.read()
+
+    northwind = pyodata.Client(SERVICE_URL, requests.Session(), metadata=local_metadata)
 
 Dealing with errors during parsing metadata
 -------------------------------------------

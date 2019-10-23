@@ -23,6 +23,17 @@ def test_invalid_odata_version():
 
 
 @responses.activate
+def test_create_client_for_local_metadata(metadata):
+    """Check client creation for valid use case with local metadata"""
+
+    client = pyodata.Client(SERVICE_URL, requests, metadata=metadata)
+
+    assert isinstance(client, pyodata.v2.service.Service)
+
+    assert len(client.schema.entity_sets) != 0
+
+
+@responses.activate
 def test_create_service_application_xml(metadata):
     """Check client creation for valid use case with MIME type 'application/xml'"""
 
