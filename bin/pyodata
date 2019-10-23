@@ -62,7 +62,7 @@ def print_out_function_import(args, client):
 
 def _parse_args(argv):
     parser = ArgumentParser()
-    parser.add_argument('SERVICE_ROOR_URL', type=str)
+    parser.add_argument('SERVICE_ROOT_URL', type=str)
     parser.add_argument('--user', default=None, type=str)
     parser.add_argument('--password', default=None, type=str)
     parser.set_defaults(func=print_out_metadata_info)
@@ -96,7 +96,7 @@ def _main(argv):
         session.auth = (args.user, args.password)
 
     try:
-        session.head(args.SERVICE_ROOR_URL)
+        session.head(args.SERVICE_ROOT_URL)
         args.password = 'xxxxx'
     except pyodata.exceptions.HttpError as err:
         sys.stderr.write(str(err))
@@ -104,7 +104,7 @@ def _main(argv):
         sys.exit(1)
 
     print('[Fetching $metadata ...]')
-    client = pyodata.Client(args.SERVICE_ROOR_URL, session)
+    client = pyodata.Client(args.SERVICE_ROOT_URL, session)
 
     args.func(args, client)
 
