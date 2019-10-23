@@ -4,9 +4,27 @@ import sys
 from argparse import ArgumentParser
 
 import pyodata
+from pyodata.v2.model import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError, Config
+
 import requests
 
 from getpass import getpass
+
+
+ERROR_POLICIES={
+    'FATAL': PolicyFatal,
+    'WARNING': PolicyWarning,
+    'IGNORE': PolicyIgnore
+}
+
+POLICY_TARGETS={
+    'PARSER_INVALID_PROPERTY': ParserError.PROPERTY,
+    'PARSER_INVALID_ANNOTATION': ParserError.ANNOTATION,
+    'PARSER_INVALID_ASSOCIATION': ParserError.ASSOCIATION,
+    'PARSER_INVALID_ENUM_TYPE': ParserError.ENUM_TYPE,
+    'PARSER_INVALID_ENTITY_TYPE': ParserError.ENTITY_TYPE,
+    'PARSER_INVALID_COMPLEX_TYPE': ParserError.COMPLEX_TYPE
+}
 
 
 def print_out_metadata_info(args, client):
@@ -59,7 +77,6 @@ def print_out_function_import(args, client):
     response = function.execute()
     print(response)
 
-
 def _parse_args(argv):
     parser = ArgumentParser()
     parser.add_argument('SERVICE_ROOT_URL', type=str)
@@ -69,6 +86,11 @@ def _parse_args(argv):
                         help='Path to the XML file with service $metadata')
     parser.add_argument('--no-session-init', default=False,
                         action='store_true', help='Skip HTTP session initialization')
+    parser.add_argument('--default-error-policy', default=None, choices=ERROR_POLICIES.keys(),
+                        help='Specify metadata parser default error handler')
+    parser.add_argument('--custom-error-policy', action='append', type=str,
+                        help='Specify metadata parser custom error handlers in the form: TARGET=POLICY')
+
     parser.set_defaults(func=print_out_metadata_info)
 
     subparsers = parser.add_subparsers()
@@ -119,7 +141,38 @@ def _main(argv):
     else:
         print('[Fetching $metadata ...]')
 
-    client = pyodata.Client(args.SERVICE_ROOT_URL, session, metadata=static_metadata)
+    config = None
+
+    def get_config():
+        if config is None:
+            return Config()
+
+        return config
+
+    if args.default_error_policy:
+        config = get_config()
+        config.set_default_error_policy(ERROR_POLICIES[args.default_error_policy]())
+
+    if args.custom_error_policy:
+        custom_policies = dict()
+
+        try:
+            for target, policy in (param.split('=') for param in args.custom_error_policy):
+                try:
+                    custom_policies[POLICY_TARGETS[target]] = ERROR_POLICIES[policy]()
+                except KeyError as ex:
+                    print(f'Invalid Error Target ({target}) or Error Policy ({policy}): {str(ex)}', file=sys.stderr)
+                    print('Allowed targets : {}'.format(';'.join(POLICY_TARGETS.keys())), file=sys.stderr)
+                    print('Allowed policies: {}'.format(';'.join(ERROR_POLICIES.keys())), file=sys.stderr)
+                    sys.exit(1)
+        except ValueError as ex:
+            print('Custom policy must have the format TARGET=POLICY: {}'.format(' '.join(args.custom_error_policy)), file=sys.stderr)
+            sys.exit(1)
+
+        config = get_config()
+        config.set_custom_error_policy(custom_policies)
+
+    client = pyodata.Client(args.SERVICE_ROOT_URL, session, metadata=static_metadata, config=config)
 
     args.func(args, client)
 
