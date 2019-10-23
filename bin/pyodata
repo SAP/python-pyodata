@@ -67,6 +67,8 @@ def _parse_args(argv):
     parser.add_argument('--password', default=None, type=str)
     parser.add_argument('--metadata', default=None, type=str,
                         help='Path to the XML file with service $metadata')
+    parser.add_argument('--no-session-init', default=False,
+                        action='store_true', help='Skip HTTP session initialization')
     parser.set_defaults(func=print_out_metadata_info)
 
     subparsers = parser.add_subparsers()
@@ -97,13 +99,17 @@ def _main(argv):
 
         session.auth = (args.user, args.password)
 
-    try:
-        session.head(args.SERVICE_ROOT_URL)
-        args.password = 'xxxxx'
-    except pyodata.exceptions.HttpError as err:
-        sys.stderr.write(str(err))
-        sys.stderr.write('\n')
-        sys.exit(1)
+    # Oh, I am sorry for the double negation,
+    # but I cannot find a better construction.
+    if args.no_session_init == False:
+        print('[Initializing HTTP session ...]')
+        try:
+            session.head(args.SERVICE_ROOT_URL)
+            args.password = 'xxxxx'
+        except pyodata.exceptions.HttpError as err:
+            sys.stderr.write(str(err))
+            sys.stderr.write('\n')
+            sys.exit(1)
 
     static_metadata = None
     if args.metadata:
