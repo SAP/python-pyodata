@@ -65,6 +65,8 @@ def _parse_args(argv):
     parser.add_argument('SERVICE_ROOT_URL', type=str)
     parser.add_argument('--user', default=None, type=str)
     parser.add_argument('--password', default=None, type=str)
+    parser.add_argument('--metadata', default=None, type=str,
+                        help='Path to the XML file with service $metadata')
     parser.set_defaults(func=print_out_metadata_info)
 
     subparsers = parser.add_subparsers()
@@ -103,8 +105,15 @@ def _main(argv):
         sys.stderr.write('\n')
         sys.exit(1)
 
-    print('[Fetching $metadata ...]')
-    client = pyodata.Client(args.SERVICE_ROOT_URL, session)
+    static_metadata = None
+    if args.metadata:
+        print(f'[Loading $metadata from: {args.metadata} ...]')
+        with open(args.metadata, 'rb') as mtd_fl:
+            static_metadata = mtd_fl.read()
+    else:
+        print('[Fetching $metadata ...]')
+
+    client = pyodata.Client(args.SERVICE_ROOT_URL, session, metadata=static_metadata)
 
     args.func(args, client)
 
