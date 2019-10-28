@@ -1137,6 +1137,34 @@ def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     mock_from_etree.assert_called_once()
 
 
+@patch.object(Schema, 'from_etree')
+def test_whitelisted_edm_namespace_2006_04(mock_from_etree, xml_builder_factory):
+    """Test correct handling of whitelisted Microsoft's edm namespace"""
+
+    xml_builder = xml_builder_factory()
+    xml_builder.namespaces['edm'] = 'http://schemas.microsoft.com/ado/2006/04/edm'
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
+
+    MetadataBuilder(xml).build()
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()
+
+
+@patch.object(Schema, 'from_etree')
+def test_whitelisted_edm_namespace_2007_05(mock_from_etree, xml_builder_factory):
+    """Test correct handling of whitelisted Microsoft's edm namespace"""
+
+    xml_builder = xml_builder_factory()
+    xml_builder.namespaces['edm'] = 'http://schemas.microsoft.com/ado/2007/05/edm'
+    xml_builder.add_schema('', '')
+    xml = xml_builder.serialize()
+
+    MetadataBuilder(xml).build()
+    assert Schema.from_etree is mock_from_etree
+    mock_from_etree.assert_called_once()
+
+
 def test_enum_parsing(schema):
     """Test correct parsing of enum"""
 
