@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Client can be created from local metadata - Jakub Filak
+- support all standard EDM schema versions - Jakub Filak
 
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing
