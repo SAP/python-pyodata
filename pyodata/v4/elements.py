@@ -1,8 +1,10 @@
 """ Repository of elements specific to the ODATA V4"""
 from typing import Optional, List
 
-from pyodata.exceptions import PyODataModelError
-from pyodata.model.elements import VariableDeclaration, StructType
+from pyodata.exceptions import PyODataModelError, PyODataException
+from pyodata.model.elements import VariableDeclaration, StructType, Identifier
+from pyodata.model.type_traits import TypTraits
+from pyodata.v4.type_traits import EnumTypTrait
 
 
 class NullProperty:
@@ -90,3 +92,74 @@ class NavigationTypeProperty(VariableDeclaration):
     @property
     def referential_constraints(self) -> List[ReferentialConstraint]:
         return self._referential_constraints
+
+
+class EnumMember:
+    """ Represents individual enum values """
+    def __init__(self, parent, name, value):
+        self._parent = parent
+        self._name = name
+        self._value = value
+
+    def __str__(self):
+        return f"{self._parent.name}\'{self._name}\'"
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def parent(self):
+        return self._parent
+
+
+class EnumType(Identifier):
+    """ Represents enum type """
+    def __init__(self, name, is_flags, underlying_type, namespace):
+        super(EnumType, self).__init__(name)
+        self._member = list()
+        self._underlying_type = underlying_type
+        self._traits = TypTraits()
+        self._namespace = namespace
+
+        if is_flags == 'True':
+            self._is_flags = True
+        else:
+            self._is_flags = False
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self._name})"
+
+    def __getattr__(self, item):
+        member = next(filter(lambda x: x.name == item, self._member), None)
+        if member is None:
+            raise PyODataException(f'EnumType {self} has no member {item}')
+
+        return member
+
+    def __getitem__(self, item):
+        # If the item is type string then we want to check for members with that name instead
+        if isinstance(item, str):
+            return self.__getattr__(item)
+
+        member = next(filter(lambda x: x.value == int(item), self._member), None)
+        if member is None:
+            raise PyODataException(f'EnumType {self} has no member with value {item}')
+
+        return member
+
+    @property
+    def is_flags(self):
+        return self._is_flags
+
+    @property
+    def traits(self):
+        return EnumTypTrait(self)
+
+    @property
+    def namespace(self):
+        return self._namespace

@@ -251,3 +251,22 @@ class GeoTypeTraits(TypTraits):
 
     def to_json(self, value: 'geojson.GeoJSON') -> str:
         return geojson.dumps(value)
+
+
+class EnumTypTrait(TypTraits):
+    """ EnumType type trait """
+    def __init__(self, enum_type):
+        self._enum_type = enum_type
+
+    def to_literal(self, value):
+        return f'{value.parent.namespace}.{value}'
+
+    def from_json(self, value):
+        return getattr(self._enum_type, value)
+
+    def from_literal(self, value):
+        # remove namespaces
+        enum_value = value.split('.')[-1]
+        # remove enum type
+        name = enum_value.split("'")[1]
+        return getattr(self._enum_type, name)

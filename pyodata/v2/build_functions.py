@@ -8,9 +8,9 @@ import logging
 from typing import List
 
 from pyodata.config import Config
-from pyodata.exceptions import PyODataParserError, PyODataModelError
-from pyodata.model.elements import EntityType, ComplexType, EnumType, NullType, build_element, \
-    EntitySet, FunctionImport, ExternalAnnotation, Annotation, Typ, Identifier, Types
+from pyodata.exceptions import PyODataModelError
+from pyodata.model.elements import EntityType, ComplexType, NullType, build_element, EntitySet, FunctionImport, \
+    ExternalAnnotation, Annotation, Typ, Identifier, Types
 from pyodata.policies import ParserError
 from pyodata.v2.elements import AssociationSetEndRole, Association, AssociationSet, NavigationTypeProperty, EndRole, \
     Schema, NullAssociation, ReferentialConstraint, PrincipalRole, DependentRole
@@ -36,15 +36,6 @@ def build_schema(config: Config, schema_nodes):
         namespace = schema_node.get('Namespace')
         decl = Schema.Declaration(namespace)
         schema._decls[namespace] = decl
-
-        for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
-            try:
-                etype = build_element(EnumType, config, type_node=enum_type, namespace=namespace)
-            except (PyODataParserError, AttributeError) as ex:
-                config.err_policy(ParserError.ENUM_TYPE).resolve(ex)
-                etype = NullType(enum_type.get('Name'))
-
-            decl.add_enum_type(etype)
 
         for complex_type in schema_node.xpath('edm:ComplexType', namespaces=config.namespaces):
             try:

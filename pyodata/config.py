@@ -22,7 +22,6 @@ class ODATAVersion(ABC):
     # Separate dictionary of all registered types (primitive, complex and collection variants) for each child
     Types: Dict[str, 'Typ'] = dict()
 
-
     @staticmethod
     @abstractmethod
     def primitive_types() -> List['Typ']:

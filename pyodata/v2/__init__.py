@@ -11,9 +11,8 @@ from pyodata.config import ODATAVersion
 
 from pyodata.v2.elements import NavigationTypeProperty, EndRole, Association, AssociationSetEndRole, AssociationSet, \
     ReferentialConstraint, Schema
-from pyodata.model.elements import StructTypeProperty, StructType, ComplexType, EntityType, \
-    EnumType, EntitySet, ExternalAnnotation, Annotation, ValueHelper, ValueHelperParameter, \
-    FunctionImport, Typ
+from pyodata.model.elements import StructTypeProperty, StructType, ComplexType, EntityType, EntitySet, \
+    ExternalAnnotation, Annotation, ValueHelper, ValueHelperParameter, FunctionImport, Typ
 
 
 import pyodata.v2.build_functions as build_functions_v2
@@ -36,7 +35,6 @@ class ODataV2(ODATAVersion):
             NavigationTypeProperty: build_functions_v2.build_navigation_type_property,
             ComplexType: build_functions.build_complex_type,
             EntityType: build_functions.build_entity_type,
-            EnumType: build_functions.build_enum_type,
             EntitySet: build_functions.build_entity_set,
             EndRole: build_functions_v2.build_end_role,
             ReferentialConstraint: build_functions_v2.build_referential_constraint,

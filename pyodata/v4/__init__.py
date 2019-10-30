@@ -4,9 +4,9 @@ from typing import List
 
 from pyodata.config import ODATAVersion
 from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
-from pyodata.model.elements import Typ, Schema, EnumType, ComplexType, StructType, StructTypeProperty, EntityType
+from pyodata.model.elements import Typ, Schema, ComplexType, StructType, StructTypeProperty, EntityType
 
-from pyodata.v4.elements import NavigationTypeProperty
+from pyodata.v4.elements import NavigationTypeProperty, EnumType
 from pyodata.v4.type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
 
@@ -23,7 +23,7 @@ class ODataV4(ODATAVersion):
             StructTypeProperty: build_functions.build_struct_type_property,
             StructType: build_functions.build_struct_type,
             NavigationTypeProperty: build_functions_v4.build_navigation_type_property,
-            EnumType: build_functions.build_enum_type,
+            EnumType: build_functions_v4.build_enum_type,
             ComplexType: build_functions.build_complex_type,
             EntityType: build_functions.build_entity_type,
             Schema: build_functions_v4.build_schema,

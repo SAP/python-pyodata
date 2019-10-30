@@ -7,7 +7,7 @@ import logging
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_string, StructType, StructTypeProperty, \
-    Types, EnumType, EnumMember, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
+    Types, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
     FunctionImport, metadata_attribute_get, EntityType, ComplexType, Annotation, build_element
 
 
@@ -95,56 +95,6 @@ def build_entity_type(config: Config, type_node, schema=None):
             raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
 
         etype._nav_properties[navp.name] = navp
-
-    return etype
-
-
-# pylint: disable=protected-access, too-many-locals
-def build_enum_type(config: Config, type_node, namespace):
-    ename = type_node.get('Name')
-    is_flags = type_node.get('IsFlags')
-
-    # namespace = kwargs['namespace']
-
-    underlying_type = type_node.get('UnderlyingType')
-
-    # https://docs.oasis-open.org/odata/odata-csdl-json/v4.01/csprd04/odata-csdl-json-v4.01-csprd04.html#sec_EnumerationType
-    if underlying_type is None:
-        underlying_type = 'Edm.Int32'
-
-    valid_types = {
-        'Edm.Byte': [0, 2 ** 8 - 1],
-        'Edm.Int16': [-2 ** 15, 2 ** 15 - 1],
-        'Edm.Int32': [-2 ** 31, 2 ** 31 - 1],
-        'Edm.Int64': [-2 ** 63, 2 ** 63 - 1],
-        'Edm.SByte': [-2 ** 7, 2 ** 7 - 1]
-    }
-
-    if underlying_type not in valid_types:
-        raise PyODataParserError(
-            f'Type {underlying_type} is not valid as underlying type for EnumType - must be one of {valid_types}')
-
-    mtype = Types.from_name(underlying_type, config)
-    etype = EnumType(ename, is_flags, mtype, namespace)
-
-    members = type_node.xpath('edm:Member', namespaces=config.namespaces)
-
-    next_value = 0
-    for member in members:
-        name = member.get('Name')
-        value = member.get('Value')
-
-        if value is not None:
-            next_value = int(value)
-
-        vtype = valid_types[underlying_type]
-        if not vtype[0] < next_value < vtype[1]:
-            raise PyODataParserError(f'Value {next_value} is out of range for type {underlying_type}')
-
-        emember = EnumMember(etype, name, next_value)
-        etype._member.append(emember)
-
-        next_value += 1
 
     return etype
 

@@ -35,7 +35,6 @@ def test_edmx(schema):
         'CarIDPic',
         'Customer',
         'Order',
-        'EnumTest'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -51,12 +50,6 @@ def test_edmx(schema):
         'CarIDPics',
         'Customers',
         'Orders',
-        'EnumTests'
-    }
-
-    assert set((enum_type.name for enum_type in schema.enum_types)) == {
-        'Country',
-        'Language'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -879,8 +872,6 @@ def test_null_type(xml_builder_factory):
             <Property Name="Key" Type="Edm.UnknownType" />
         </EntityType>
         
-        <EnumType Name="MasterEnum" UnderlyingType="Edm.String" />
-        
          <ComplexType Name="MasterComplex">
                 <Property Name="Width" Type="Edm.Double" />
                 <Property Name="Width" Type="Edm.Double" />
@@ -903,8 +894,6 @@ def test_null_type(xml_builder_factory):
     type_info = TypeInfo(namespace=None, name='MasterProperty', is_collection=False)
     assert isinstance(schema.get_type(type_info).proprty('Key').typ, NullType)
 
-    type_info = TypeInfo(namespace=None, name='MasterEnum', is_collection=False)
-    assert isinstance(schema.get_type(type_info), NullType)
 
     type_info = TypeInfo(namespace=None, name='MasterComplex', is_collection=False)
     assert isinstance(schema.get_type(type_info), NullType)
@@ -1173,77 +1162,6 @@ def test_whitelisted_edm_namespace_2007_05(mocked, xml_builder_factory):
 
     MetadataBuilder(xml).build()
     mocked.assert_called_once()
-
-
-def test_enum_parsing(schema):
-    """Test correct parsing of enum"""
-
-    country = schema.enum_type('Country').USA
-    assert str(country) == "Country'USA'"
-
-    country2 = schema.enum_type('Country')['USA']
-    assert str(country2) == "Country'USA'"
-
-    try:
-        schema.enum_type('Country').Cyprus
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member Cyprus'
-
-    c = schema.enum_type('Country')[1]
-    assert str(c) == "Country'China'"
-
-    try:
-        schema.enum_type('Country')[15]
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member with value {15}'
-
-    type_info = TypeInfo(namespace=None, name='Country', is_collection=False)
-
-    try:
-        schema.get_type(type_info)
-    except PyODataModelError as ex:
-        assert str(ex) == f'Neither primitive types nor types parsed from service metadata contain requested type {type_info[0]}'
-
-    language = schema.enum_type('Language')
-    assert language.is_flags is True
-
-    try:
-        schema.enum_type('ThisEnumDoesNotExist')
-    except KeyError as ex:
-        assert str(ex) == f'\'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace\''
-
-    try:
-        schema.enum_type('Country', 'WrongNamespace').USA
-    except KeyError as ex:
-        assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
-
-
-def test_unsupported_enum_underlying_type(xml_builder_factory):
-    """Test if parser will parse only allowed underlying types"""
-    xml_builder = xml_builder_factory()
-    xml_builder.add_schema('Test', '<EnumType Name="UnsupportedEnumType" UnderlyingType="Edm.Bool" />')
-    xml = xml_builder.serialize()
-
-    try:
-        MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
-        assert str(ex).startswith(f'Type Edm.Bool is not valid as underlying type for EnumType - must be one of')
-
-
-def test_enum_value_out_of_range(xml_builder_factory):
-    """Test if parser will check for values ot of range defined by underlying type"""
-    xml_builder = xml_builder_factory()
-    xml_builder.add_schema('Test', """
-        <EnumType Name="Num" UnderlyingType="Edm.Byte">
-            <Member Name="TooBig" Value="-130" />
-        </EnumType>
-        """)
-    xml = xml_builder.serialize()
-
-    try:
-        MetadataBuilder(xml).build()
-    except BaseException as ex:
-        assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
 
 
 @patch('logging.Logger.warning')

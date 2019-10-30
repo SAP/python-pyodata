@@ -148,6 +148,19 @@
               </Key>
               <Property Name="ID" Type="Edm.String" Nullable="false" />
             </EntityType>
+            <EntityType Name="EnumTest">
+                <Property Name="CountryOfOrigin" Type="Country"/>
+            </EntityType>
+            <EnumType Name="Country" UnderlyingType="Edm.Int32">
+                <Member Name="USA"/>
+                <Member Name="China"/>
+                <Member Name="Slovakia"/>
+            </EnumType>
+            <EnumType Name="Language" UnderlyingType="Edm.Int32" IsFlags="True">
+                <Member Name="English"/>
+                <Member Name="Czech"/>
+                <Member Name="Japanese"/>
+            </EnumType>
             <Function Name="GetFavoriteAirline" IsBound="true" EntitySetPath="person/Trips/PlanItems/Microsoft.OData.SampleService.Models.TripPin.Flight/Airline" IsComposable="true">
                 <Parameter Name="person" Type="Microsoft.OData.SampleService.Models.TripPin.Person" Nullable="false" />
                 <ReturnType Type="Microsoft.OData.SampleService.Models.TripPin.Airline" Nullable="false" />
@@ -173,6 +186,7 @@
                 <Parameter Name="tripId" Type="Edm.Int32" Nullable="false" />
             </Action>
             <EntityContainer Name="DefaultContainer">
+                <EntitySet Name="EnumTests" EntityType="Microsoft.OData.SampleService.Models.TripPin.EnumTest" />
                 <EntitySet Name="Photos" EntityType="Microsoft.OData.SampleService.Models.TripPin.Photo">
                     <Annotation Term="Org.OData.Core.V1.ResourcePath" String="Photos" />
                     <Annotation Term="Org.OData.Capabilities.V1.SearchRestrictions">
