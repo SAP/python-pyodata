@@ -659,7 +659,10 @@ class EntityType(StructType):
         return list(self._nav_properties.values())
 
     def nav_proprty(self, property_name):
-        return self._nav_properties[property_name]
+        try:
+            return self._nav_properties[property_name]
+        except KeyError as ex:
+            raise PyODataModelError(f'{self} does not contain navigation property {property_name}') from ex
 
 
 class EntitySet(Identifier):

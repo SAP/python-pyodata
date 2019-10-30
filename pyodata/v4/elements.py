@@ -1,8 +1,23 @@
 """ Repository of elements specific to the ODATA V4"""
 from typing import Optional, List
 
+import collections
+
+from pyodata.model import elements
 from pyodata.exceptions import PyODataModelError
-from pyodata.model.elements import VariableDeclaration, StructType
+from pyodata.model.elements import VariableDeclaration, StructType, TypeInfo
+
+PathInfo = collections.namedtuple('PathInfo', 'namespace type proprty')
+
+
+def to_path_info(value: str, et_info: TypeInfo):
+    """ Helper function for parsing Path attribute on NavigationPropertyBinding property """
+    if '/' in value:
+        parts = value.split('.')
+        entity_name, property_name = parts[-1].split('/')
+        return PathInfo('.'.join(parts[:-1]), entity_name, property_name)
+    else:
+        return PathInfo(et_info.namespace, et_info.name, value)
 
 
 class NullProperty:
@@ -90,3 +105,61 @@ class NavigationTypeProperty(VariableDeclaration):
     @property
     def referential_constraints(self) -> List[ReferentialConstraint]:
         return self._referential_constraints
+
+
+class NavigationPropertyBinding:
+    """ Describes which entity set of navigation property contains related entities
+        https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/csprd06/odata-csdl-xml-v4.01-csprd06.html#sec_NavigationPropertyBinding
+    """
+
+    def __init__(self, path_info: PathInfo, target_info: str):
+        self._path_info = path_info
+        self._target_info = target_info
+        self._path: Optional[NavigationTypeProperty] = None
+        self._target: Optional['EntitySet'] = None
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.path}, {self.target})"
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.path}, {self.target})"
+
+    @property
+    def path_info(self) -> PathInfo:
+        return self._path_info
+
+    @property
+    def target_info(self):
+        return self._target_info
+
+    @property
+    def path(self) -> Optional[NavigationTypeProperty]:
+        return self._path
+
+    @path.setter
+    def path(self, value: NavigationTypeProperty):
+        self._path = value
+
+    @property
+    def target(self) -> Optional['EntitySet']:
+        return self._target
+
+    @target.setter
+    def target(self, value: 'EntitySet'):
+        self._target = value
+
+
+class EntitySet(elements.EntitySet):
+    """ EntitySet complaint with OData V4
+        https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/csprd06/odata-csdl-xml-v4.01-csprd06.html#sec_EntitySet
+    """
+    def __init__(self, name, entity_type_info, addressable, creatable, updatable, deletable, searchable, countable,
+                 pageable, topable, req_filter, label, navigation_property_bindings):
+        super(EntitySet, self).__init__(name, entity_type_info, addressable, creatable, updatable, deletable,
+                                        searchable, countable, pageable, topable, req_filter, label)
+
+        self._navigation_property_bindings = navigation_property_bindings
+
+    @property
+    def navigation_property_bindings(self) -> List[NavigationPropertyBinding]:
+        return self._navigation_property_bindings
