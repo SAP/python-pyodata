@@ -12,11 +12,13 @@ class ParserError(Enum):
     """ Represents all the different errors the parser is able to deal with."""
     PROPERTY = auto()
     NAVIGATION_PROPERTY = auto()
+    NAVIGATION_PROPERTY_BIDING = auto()
     ANNOTATION = auto()
     ASSOCIATION = auto()
 
     ENUM_TYPE = auto()
     ENTITY_TYPE = auto()
+    ENTITY_SET = auto()
     COMPLEX_TYPE = auto()
     REFERENTIAL_CONSTRAINT = auto()
 

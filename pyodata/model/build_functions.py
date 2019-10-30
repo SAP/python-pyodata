@@ -10,6 +10,9 @@ from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_str
     Types, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
     FunctionImport, metadata_attribute_get, EntityType, ComplexType, Annotation, build_element
 
+from pyodata.v4 import ODataV4
+import pyodata.v4.elements as v4
+
 
 def modlog():
     return logging.getLogger("callbacks")
@@ -103,6 +106,10 @@ def build_entity_set(config, entity_set_node):
     name = entity_set_node.get('Name')
     et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
+    nav_prop_bins = []
+    for nav_prop_bin in entity_set_node.xpath('edm:NavigationPropertyBinding', namespaces=config.namespaces):
+        nav_prop_bins.append(build_element('NavigationPropertyBinding', config, node=nav_prop_bin, et_info=et_info))
+
     # TODO: create a class SAP attributes
     addressable = sap_attribute_get_bool(entity_set_node, 'addressable', True)
     creatable = sap_attribute_get_bool(entity_set_node, 'creatable', True)
@@ -114,6 +121,10 @@ def build_entity_set(config, entity_set_node):
     topable = sap_attribute_get_bool(entity_set_node, 'topable', pageable)
     req_filter = sap_attribute_get_bool(entity_set_node, 'requires-filter', False)
     label = sap_attribute_get_string(entity_set_node, 'label')
+
+    if config.odata_version == ODataV4:
+        return v4.EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
+                         topable, req_filter, label, nav_prop_bins)
 
     return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
                      topable, req_filter, label)

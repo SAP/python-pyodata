@@ -3,12 +3,14 @@ import datetime
 import geojson
 import pytest
 
-from pyodata.policies import PolicyIgnore
+from pyodata.policies import PolicyIgnore, ParserError
 from pyodata.model.builder import MetadataBuilder
 from pyodata.exceptions import PyODataModelError, PyODataException, PyODataParserError
-from pyodata.model.elements import Types, TypeInfo, NullType
+from pyodata.model.elements import Types, TypeInfo, Schema, NullType
 
 from pyodata.config import Config
+from tests.conftest import metadata
+from pyodata.v4.elements import NavigationTypeProperty, EntitySet, NavigationPropertyBinding
 from pyodata.v4 import ODataV4, NavigationTypeProperty
 
 
@@ -169,6 +171,69 @@ def test_referential_constraint(schema_v4):
     assert str(nav_property) == 'NavigationTypeProperty(Category)'
     assert repr(nav_property.referential_constraints[0]) == \
         'ReferentialConstraint(StructTypeProperty(CategoryID), StructTypeProperty(ID))'
+
+
+def test_navigation_property_binding(schema_v4: Schema):
+    """Test parsing of navigation property bindings on EntitySets"""
+    eset: EntitySet = schema_v4.entity_set('People')
+    assert str(eset) == 'EntitySet(People)'
+
+    nav_prop_biding: NavigationPropertyBinding = eset.navigation_property_bindings[0]
+    assert repr(nav_prop_biding) == "NavigationPropertyBinding(NavigationTypeProperty(Friends), EntitySet(People))"
+
+
+def test_invalid_property_binding_on_entity_set(xml_builder_factory):
+    """Test parsing of invalid property bindings on EntitySets"""
+    schema = """
+    <EntityType Name="Person">
+            <NavigationProperty Name="Friends" Type="Collection(MightySchema.Person)" Partner="Friends" />
+        </EntityType>
+        <EntityContainer Name="DefaultContainer">
+            <EntitySet Name="People" EntityType="{}">
+                    <NavigationPropertyBinding Path="{}" Target="{}" />
+            </EntitySet>
+        </EntityContainer>
+    """
+
+    etype, path, target = 'MightySchema.Person', 'Friends', 'People'
+
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('MightySchema', schema.format(etype, 'Mistake', target))
+    xml = xml_builder.serialize()
+
+    with pytest.raises(PyODataModelError) as ex_info:
+        MetadataBuilder(xml, Config(ODataV4)).build()
+    assert ex_info.value.args[0] == 'EntityType(Person) does not contain navigation property Mistake'
+
+    try:
+        MetadataBuilder(xml, Config(ODataV4, custom_error_policies={
+            ParserError.NAVIGATION_PROPERTY_BIDING: PolicyIgnore()
+        })).build()
+    except BaseException as ex:
+        raise pytest.fail(f'IgnorePolicy was supposed to silence "{ex}" but it did not.')
+
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('MightySchema', schema.format('Mistake', path, target))
+    xml = xml_builder.serialize()
+
+    with pytest.raises(KeyError) as ex_info:
+        MetadataBuilder(xml, Config(ODataV4)).build()
+    assert ex_info.value.args[0] == 'EntityType Mistake does not exist in any Schema Namespace'
+
+    try:
+        MetadataBuilder(xml, Config(ODataV4, custom_error_policies={
+            ParserError.ENTITY_SET: PolicyIgnore()
+        })).build()
+    except BaseException as ex:
+        raise pytest.fail(f'IgnorePolicy was supposed to silence "{ex}" but it did not.')
+
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('MightySchema', schema.format(etype, path, 'Mistake'))
+    xml = xml_builder.serialize()
+
+    with pytest.raises(KeyError) as ex_info:
+        MetadataBuilder(xml, Config(ODataV4)).build()
+    assert ex_info.value.args[0] == 'EntitySet Mistake does not exist in any Schema Namespace'
 
 
 def test_enum_parsing(schema_v4):

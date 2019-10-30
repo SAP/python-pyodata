@@ -7,7 +7,8 @@ from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.elements import ComplexType, Schema, NullType, build_element, EntityType, Types, StructTypeProperty
 from pyodata.policies import ParserError
-from pyodata.v4.elements import NavigationTypeProperty, NullProperty, ReferentialConstraint, EnumMember, EnumType
+from pyodata.v4.elements import NavigationTypeProperty, NullProperty, ReferentialConstraint,\
+    NavigationPropertyBinding, to_path_info, EntitySet, EnumMember, EnumType
 
 
 # pylint: disable=protected-access,too-many-locals,too-many-branches,too-many-statements
@@ -110,10 +111,33 @@ def build_schema(config: Config, schema_nodes):
                 ref_con.proprty = proprty
                 ref_con.referenced_proprty = referenced_proprty
 
-    # TODO: Then, process Associations nodes because they refer EntityTypes and they are referenced by AssociationSets.
-    # TODO: Then, process EntitySet, FunctionImport and AssociationSet nodes.
-    # TODO: Finally, process Annotation nodes when all Scheme nodes are completely processed.
+    # Process entity sets
+    for schema_node in schema_nodes:
+        namespace = schema_node.get('Namespace')
+        decl = schema._decls[namespace]
 
+        for entity_set in schema_node.xpath('edm:EntityContainer/edm:EntitySet', namespaces=config.namespaces):
+            try:
+                eset = build_element(EntitySet, config, entity_set_node=entity_set)
+                eset.entity_type = schema.entity_type(eset.entity_type_info[1], namespace=eset.entity_type_info[0])
+                decl.entity_sets[eset.name] = eset
+            except (PyODataParserError, KeyError) as ex:
+                config.err_policy(ParserError.ENTITY_SET).resolve(ex)
+
+    # After all entity sets are parsed resolve the individual bindings among them and entity types
+    for entity_set in schema.entity_sets:
+        for nav_prop_bin in entity_set.navigation_property_bindings:
+            path_info = nav_prop_bin.path_info
+            try:
+                nav_prop_bin.path = schema.entity_type(path_info.type,
+                                                       namespace=path_info.namespace).nav_proprty(path_info.proprty)
+                nav_prop_bin.target = schema.entity_set(nav_prop_bin.target_info)
+            except (PyODataModelError, KeyError) as ex:
+                config.err_policy(ParserError.NAVIGATION_PROPERTY_BIDING).resolve(ex)
+                nav_prop_bin.path = NullType(path_info.type)
+                nav_prop_bin.target = NullProperty(nav_prop_bin.target_info)
+
+    # TODO: Finally, process Annotation nodes when all Scheme nodes are completely processed.
     return schema
 
 
@@ -131,6 +155,10 @@ def build_navigation_type_property(config: Config, node):
         partner,
         node.get('contains_target'),
         ref_cons)
+
+
+def build_navigation_property_binding(config: Config, node, et_info):
+    return NavigationPropertyBinding(to_path_info(node.get('Path'), et_info), node.get('Target'))
 
 
 # pylint: disable=protected-access, too-many-locals
