@@ -5,7 +5,7 @@ import collections
 
 from pyodata.model import elements
 from pyodata.exceptions import PyODataModelError, PyODataException
-from pyodata.model.elements import VariableDeclaration, StructType, TypeInfo, Identifier
+from pyodata.model.elements import VariableDeclaration, StructType, TypeInfo, Annotation, Identifier
 from pyodata.model.type_traits import TypTraits
 from pyodata.v4.type_traits import EnumTypTrait
 
@@ -18,8 +18,8 @@ def to_path_info(value: str, et_info: TypeInfo):
         parts = value.split('.')
         entity_name, property_name = parts[-1].split('/')
         return PathInfo('.'.join(parts[:-1]), entity_name, property_name)
-    else:
-        return PathInfo(et_info.namespace, et_info.name, value)
+
+    return PathInfo(et_info.namespace, et_info.name, value)
 
 
 class NullProperty:
@@ -151,6 +151,7 @@ class NavigationPropertyBinding:
         self._target = value
 
 
+# pylint: disable=too-many-arguments
 class EntitySet(elements.EntitySet):
     """ EntitySet complaint with OData V4
         https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/csprd06/odata-csdl-xml-v4.01-csprd06.html#sec_EntitySet
@@ -165,6 +166,21 @@ class EntitySet(elements.EntitySet):
     @property
     def navigation_property_bindings(self) -> List[NavigationPropertyBinding]:
         return self._navigation_property_bindings
+
+
+class Unit(Annotation):
+
+    def __init__(self, target, unit_name: str):
+        super(Unit, self).__init__(target)
+        self._unit_name = unit_name
+
+    @staticmethod
+    def term() -> str:
+        return 'Org.OData.Measures.V1.Unit'
+
+    @property
+    def unit_name(self) -> str:
+        return self._unit_name
 
 
 class EnumMember:

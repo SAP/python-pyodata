@@ -4,14 +4,16 @@
 import copy
 import logging
 
+from pyodata.policies import ParserError
 from pyodata.config import Config
-from pyodata.exceptions import PyODataParserError
+from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_string, StructType, StructTypeProperty, \
     Types, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
-    FunctionImport, metadata_attribute_get, EntityType, ComplexType, Annotation, build_element
+    FunctionImport, metadata_attribute_get, EntityType, ComplexType, build_element
 
-from pyodata.v4 import ODataV4
-import pyodata.v4.elements as v4
+# pylint: disable=cyclic-import
+# When using `import xxx as yyy` it is not a problem and we need this dependency
+import pyodata.v4 as v4
 
 
 def modlog():
@@ -122,39 +124,15 @@ def build_entity_set(config, entity_set_node):
     req_filter = sap_attribute_get_bool(entity_set_node, 'requires-filter', False)
     label = sap_attribute_get_string(entity_set_node, 'label')
 
-    if config.odata_version == ODataV4:
-        return v4.EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
-                         topable, req_filter, label, nav_prop_bins)
+    if config.odata_version == v4.ODataV4:
+        return v4.EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable,
+                            pageable, topable, req_filter, label, nav_prop_bins)
 
     return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
                      topable, req_filter, label)
 
 
-def build_external_annotation(config, annotations_node):
-    target = annotations_node.get('Target')
-
-    if annotations_node.get('Qualifier'):
-        modlog().warning('Ignoring qualified Annotations of %s', target)
-        return
-
-    for annotation in annotations_node.xpath('edm:Annotation', namespaces=config.annotation_namespace):
-        annot = build_element(Annotation, config, target=target, annotation_node=annotation)
-        if annot is None:
-            continue
-        yield annot
-
-
-def build_annotation(config, target, annotation_node):
-    term = annotation_node.get('Term')
-
-    if term in config.sap_annotation_value_list:
-        return build_element(ValueHelper, config, target=target, annotation_node=annotation_node)
-
-    modlog().warning('Unsupported Annotation( %s )', term)
-    return None
-
-
-def build_value_helper(config, target, annotation_node):
+def build_value_helper(config, target, annotation_node, schema):
     label = None
     collection_path = None
     search_supported = False
@@ -179,7 +157,31 @@ def build_value_helper(config, target, annotation_node):
             param.value_helper = value_helper
             value_helper._parameters.append(param)
 
-    return value_helper
+    try:
+        try:
+            value_helper.entity_set = schema.entity_set(
+                value_helper.collection_path, namespace=value_helper.element_namespace)
+        except KeyError:
+            raise RuntimeError(f'Entity Set {value_helper.collection_path} '
+                               f'for {value_helper} does not exist')
+
+        try:
+            vh_type = schema.typ(value_helper.proprty_entity_type_name,
+                                 namespace=value_helper.element_namespace)
+        except KeyError:
+            raise RuntimeError(f'Target Type {value_helper.proprty_entity_type_name} '
+                               f'of {value_helper} does not exist')
+
+        try:
+            target_proprty = vh_type.proprty(value_helper.proprty_name)
+        except KeyError:
+            raise RuntimeError(f'Target Property {value_helper.proprty_name} '
+                               f'of {vh_type} as defined in {value_helper} does not exist')
+
+        value_helper.proprty = target_proprty
+        target_proprty.value_helper = value_helper
+    except (RuntimeError, PyODataModelError) as ex:
+        config.err_policy(ParserError.ANNOTATION).resolve(ex)
 
 
 def build_value_helper_parameter(config, value_help_parameter_node):

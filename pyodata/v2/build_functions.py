@@ -8,9 +8,9 @@ import logging
 from typing import List
 
 from pyodata.config import Config
-from pyodata.exceptions import PyODataModelError
-from pyodata.model.elements import EntityType, ComplexType, NullType, build_element, EntitySet, FunctionImport, \
-    ExternalAnnotation, Annotation, Typ, Identifier, Types
+from pyodata.exceptions import PyODataParserError, PyODataModelError
+from pyodata.model.elements import EntityType, ComplexType, NullType, build_element, EntitySet, FunctionImport, Typ, \
+    Identifier, Types, build_annotation
 from pyodata.policies import ParserError
 from pyodata.v2.elements import AssociationSetEndRole, Association, AssociationSet, NavigationTypeProperty, EndRole, \
     Schema, NullAssociation, ReferentialConstraint, PrincipalRole, DependentRole
@@ -197,40 +197,20 @@ def build_schema(config: Config, schema_nodes):
             else:
                 decl.association_sets[assoc_set.name] = assoc_set
 
-    # pylint: disable=too-many-nested-blocks
     # Finally, process Annotation nodes when all Scheme nodes are completely processed.
     for schema_node in schema_nodes:
         for annotation_group in schema_node.xpath('edm:Annotations', namespaces=config.annotation_namespace):
-            etree = build_element(ExternalAnnotation, config, annotations_node=annotation_group)
-            for annotation in etree:
-                if not annotation.element_namespace != schema.namespaces:
-                    modlog().warning('%s not in the namespaces %s', annotation, ','.join(schema.namespaces))
-                    continue
+            target = annotation_group.get('Target')
+            if annotation_group.get('Qualifier'):
+                modlog().warning('Ignoring qualified Annotations of %s', target)
+                continue
+
+            for annotation_node in annotation_group.xpath('edm:Annotation', namespaces=config.annotation_namespace):
 
                 try:
-                    if annotation.kind == Annotation.Kinds.ValueHelper:
-                        try:
-                            annotation.entity_set = schema.entity_set(
-                                annotation.collection_path, namespace=annotation.element_namespace)
-                        except KeyError:
-                            raise RuntimeError(f'Entity Set {annotation.collection_path} '
-                                               f'for {annotation} does not exist')
-
-                        try:
-                            vh_type = schema.typ(annotation.proprty_entity_type_name,
-                                                 namespace=annotation.element_namespace)
-                        except KeyError:
-                            raise RuntimeError(f'Target Type {annotation.proprty_entity_type_name} '
-                                               f'of {annotation} does not exist')
-
-                        try:
-                            target_proprty = vh_type.proprty(annotation.proprty_name)
-                        except KeyError:
-                            raise RuntimeError(f'Target Property {annotation.proprty_name} '
-                                               f'of {vh_type} as defined in {annotation} does not exist')
-                    annotation.proprty = target_proprty
-                    target_proprty.value_helper = annotation
-                except (RuntimeError, PyODataModelError) as ex:
+                    build_annotation(annotation_node.get('Term'), config, target=target,
+                                     annotation_node=annotation_node, schema=schema)
+                except PyODataParserError as ex:
                     config.err_policy(ParserError.ANNOTATION).resolve(ex)
     return schema
 

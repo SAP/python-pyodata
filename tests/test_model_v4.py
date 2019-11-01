@@ -6,13 +6,12 @@ import pytest
 from pyodata.policies import PolicyIgnore, ParserError
 from pyodata.model.builder import MetadataBuilder
 from pyodata.exceptions import PyODataModelError, PyODataException, PyODataParserError
-from pyodata.model.elements import Types, TypeInfo, Schema, NullType
+from pyodata.model.elements import Types, TypeInfo, Schema, NullType, EntityType
 
 from pyodata.config import Config
 from tests.conftest import metadata
-from pyodata.v4.elements import NavigationTypeProperty, EntitySet, NavigationPropertyBinding
+from pyodata.v4.elements import NavigationTypeProperty, EntitySet, NavigationPropertyBinding, Unit
 from pyodata.v4 import ODataV4, NavigationTypeProperty
-
 
 def test_type_traits():
     """Test traits"""
@@ -325,3 +324,14 @@ def test_enum_null_type(xml_builder_factory):
 
     type_info = TypeInfo(namespace=None, name='MasterEnum', is_collection=False)
     assert isinstance(schema.get_type(type_info), NullType)
+
+
+def test_type_definitions(schema_v4):
+
+    type_info = TypeInfo(namespace=None, name='Weight', is_collection=False)
+    weight = schema_v4.get_type(type_info)
+    assert isinstance(weight.annotation, Unit)
+    assert weight.annotation.unit_name == 'Kilograms'
+
+    entity: EntityType = schema_v4.entity_type('Person')
+    assert entity.proprty('Weight').typ == weight

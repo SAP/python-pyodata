@@ -2,6 +2,11 @@
 <edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
     <edmx:DataServices>
         <Schema Namespace="Microsoft.OData.SampleService.Models.TripPin" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+            <!-- http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part3-csdl/odata-v4.0-errata03-os-part3-csdl-complete.html#_Toc453752573 -->
+            <TypeDefinition Name="Weight" UnderlyingType="Edm.Int32">
+                <Annotation Term="Org.OData.Measures.V1.Unit" String="Kilograms" />
+            </TypeDefinition>
+
             <EnumType Name="PersonGender">
                 <Member Name="Male" Value="0" />
                 <Member Name="Female" Value="1" />
@@ -52,6 +57,7 @@
                 <Property Name="Emails" Type="Collection(Edm.String)" />
                 <Property Name="AddressInfo" Type="Collection(Microsoft.OData.SampleService.Models.TripPin.Location)" />
                 <Property Name="Gender" Type="Microsoft.OData.SampleService.Models.TripPin.PersonGender" />
+                <Property Name="Weight" Type="Microsoft.OData.SampleService.Models.TripPin.Weight" />
                 <Property Name="Concurrency" Type="Edm.Int64" Nullable="false">
                     <Annotation Term="Org.OData.Core.V1.Computed" Bool="true" />
                 </Property>

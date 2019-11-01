@@ -3,9 +3,11 @@
 import collections
 import itertools
 import logging
+from abc import abstractmethod
 from enum import Enum
 from typing import Union
 
+from pyodata.policies import ParserError
 from pyodata.config import Config
 from pyodata.exceptions import PyODataModelError, PyODataException, PyODataParserError
 
@@ -49,6 +51,40 @@ def build_element(element_name: Union[str, type], config: Config, **kwargs):
     raise PyODataParserError(f'{element_name} is unsupported in {config.odata_version.__name__}')
 
 
+def build_annotation(term: str, config: Config, **kwargs):
+    """
+    Similarly to build_element this function purpoas is to resolve build function for annotations. There are two
+    main differences:
+        1) This method accepts child of Annotation. Every child has to implement static method term() -> str
+
+        2) Annotation has to have specified target. This target is reference to type, property and so on, because of
+        that there is no repository of annotations in schema. Thus this method does return void, but it might have
+        side effect.
+    # http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part3-csdl/odata-v4.0-errata03-os-part3-csdl-complete.html#_Toc453752619
+
+    :param term: Term defines what does the annotation do. Specification advise clients to ignore unknown terms
+                 by default.
+    :param config: Config
+    :param kwargs: Any arguments that are to be passed to the build function e. g. etree, schema...
+
+    :return: void
+    """
+
+    annotations = config.odata_version.annotations()
+    try:
+        for annotation in annotations:
+            alias, element = term.rsplit('.', 1)
+            namespace = config.aliases.get(alias, '')
+
+            if term == annotation.term() or f'{namespace}.{element}' == annotation.term():
+                annotations[annotation](config, **kwargs)
+                return
+
+        raise PyODataParserError(f'Annotation with term {term} is unsupported in {config.odata_version.__name__}')
+    except PyODataException as ex:
+        config.err_policy(ParserError.ANNOTATION).resolve(ex)
+
+
 class NullType:
     def __init__(self, name):
         self.name = name
@@ -56,6 +92,15 @@ class NullType:
     def __getattr__(self, item):
         raise PyODataModelError(f'Cannot access this type. An error occurred during parsing type stated in '
                                 f'xml({self.name}) was not found, therefore it has been replaced with NullType.')
+
+
+class NullAnnotation:
+    def __init__(self, term):
+        self.term = term
+
+    def __getattr__(self, item):
+        raise PyODataModelError(f'Cannot access this annotation. An error occurred during parsing '
+                                f'annotation(term = {self.term}), therefore it has been replaced with NullAnnotation.')
 
 
 class Identifier:
@@ -110,7 +155,7 @@ class Types:
             o_version.Types[collection_name] = collection_typ
 
     @staticmethod
-    def from_name(name, config: Config):
+    def from_name(name, config: Config) -> 'Typ':
         o_version = config.odata_version
 
         # build types hierarchy on first use (lazy creation)
@@ -160,6 +205,7 @@ class Typ(Identifier):
         self._null_value = null_value
         self._kind = kind if kind is not None else Typ.Kinds.Primitive  # no way how to us enum value for parameter default value
         self._traits = traits
+        self._annotation = None
 
     @property
     def null_value(self):
@@ -176,6 +222,19 @@ class Typ(Identifier):
     @property
     def kind(self):
         return self._kind
+
+    @property
+    def annotation(self) -> 'Annotation':
+        return self._annotation
+
+    @annotation.setter
+    def annotation(self, value: 'Annotation'):
+        self._annotation = value
+
+    # pylint: disable=no-member
+    @Identifier.name.setter
+    def name(self, value: str):
+        self._name = value
 
 
 class Collection(Typ):
@@ -297,6 +356,7 @@ class Schema:
             self.function_imports = dict()
             self.associations = dict()
             self.association_sets = dict()
+            self.type_definitions: [str, Typ] = dict()
 
         def list_entity_types(self):
             return list(self.entity_types.values())
@@ -318,6 +378,9 @@ class Schema:
 
         def list_association_sets(self):
             return list(self.association_sets.values())
+
+        def list_type_definitions(self):
+            return list(self.type_definitions.values())
 
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
@@ -346,6 +409,10 @@ class Schema:
         def add_enum_type(self, etype):
             """Add new enum type to the type repository"""
             self.enum_types[etype.name] = etype
+
+        def add_type_definition(self, tdefinition: Typ):
+            """Add new type definition to the type repository"""
+            self.type_definitions[tdefinition.name] = tdefinition
 
     class Declarations(dict):
 
@@ -430,6 +497,21 @@ class Schema:
 
         raise KeyError(f'EnumType {type_name} does not exist in any Schema Namespace')
 
+    def type_definition(self, name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace].type_definitions[name]
+            except KeyError:
+                raise KeyError(f'EnumType {name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl.type_definitions[name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'EnumType {name} does not exist in any Schema Namespace')
+
     def get_type(self, type_info):
 
         # construct search name based on collection information
@@ -438,6 +520,12 @@ class Schema:
         # first look for type in primitive types
         try:
             return Types.from_name(search_name, self.config)
+        except KeyError:
+            pass
+
+        # then look for type in type definitions
+        try:
+            return self.type_definition(search_name, type_info.namespace)
         except KeyError:
             pass
 
@@ -800,18 +888,21 @@ class StructTypeProperty(VariableDeclaration):
         self._value_helper = value
 
 
-class Annotation():
-    Kinds = Enum('Kinds', 'ValueHelper')
+class Annotation:
 
-    def __init__(self, kind, target, qualifier=None):
+    def __init__(self, target, qualifier=None):
         super(Annotation, self).__init__()
 
-        self._kind = kind
         self._element_namespace, self._element = target.split('.')
         self._qualifier = qualifier
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, self.target)
+
+    @staticmethod
+    @abstractmethod
+    def term() -> str:
+        pass
 
     @property
     def element_namespace(self):
@@ -825,22 +916,13 @@ class Annotation():
     def target(self):
         return '{0}.{1}'.format(self._element_namespace, self._element)
 
-    @property
-    def kind(self):
-        return self._kind
-
-
-# pylint: disable=too-few-public-methods
-class ExternalAnnotation():
-    pass
-
 
 class ValueHelper(Annotation):
     def __init__(self, target, collection_path, label, search_supported):
 
         # pylint: disable=unused-argument
 
-        super(ValueHelper, self).__init__(Annotation.Kinds.ValueHelper, target)
+        super(ValueHelper, self).__init__(target)
 
         self._entity_type_name, self._proprty_name = self.element.split('/')
         self._proprty = None
@@ -853,6 +935,10 @@ class ValueHelper(Annotation):
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, self.element)
+
+    @staticmethod
+    def term() -> str:
+        return 'com.sap.vocabularies.Common.v1.ValueList'
 
     @property
     def proprty_name(self):
