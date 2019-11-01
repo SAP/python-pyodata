@@ -1,6 +1,5 @@
 """Metadata Builder Implementation"""
 
-import collections
 import io
 from lxml import etree
 
@@ -22,9 +21,6 @@ SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly': ValueHelperParameter.Direction.DisplayOnly,
     'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly
 }
-
-
-SAP_ANNOTATION_VALUE_LIST = ['com.sap.vocabularies.Common.v1.ValueList']
 
 
 # pylint: disable=protected-access
@@ -99,7 +95,6 @@ class MetadataBuilder:
         self._config.namespaces = namespaces
 
         self._config._sap_value_helper_directions = SAP_VALUE_HELPER_DIRECTIONS
-        self._config._sap_annotation_value_list = SAP_ANNOTATION_VALUE_LIST
         self._config._annotation_namespaces = ANNOTATION_NAMESPACES
 
         self.update_alias(self.get_aliases(xml, self._config), self._config)
@@ -111,7 +106,8 @@ class MetadataBuilder:
     def get_aliases(edmx, config: Config):
         """Get all aliases"""
 
-        aliases = collections.defaultdict(set)
+        # aliases = collections.defaultdict(set)
+        aliases = {}
         edm_root = edmx.xpath('/edmx:Edmx', namespaces=config.namespaces)
         if edm_root:
             edm_ref_includes = edm_root[0].xpath('edmx:Reference/edmx:Include', namespaces=config.annotation_namespace)
@@ -119,23 +115,23 @@ class MetadataBuilder:
                 namespace = ref_incl.get('Namespace')
                 alias = ref_incl.get('Alias')
                 if namespace is not None and alias is not None:
-                    aliases[namespace].add(alias)
+                    aliases[alias] = namespace
+                    # aliases[namespace].add(alias)
 
         return aliases
 
     @staticmethod
     def update_alias(aliases, config: Config):
         """Update config with aliases"""
-
-        namespace, suffix = config.sap_annotation_value_list[0].rsplit('.', 1)
-        config._sap_annotation_value_list.extend([alias + '.' + suffix for alias in aliases[namespace]])
-
+        config.aliases = aliases
         helper_direction_keys = list(config.sap_value_helper_directions.keys())
+
         for direction_key in helper_direction_keys:
             namespace, suffix = direction_key.rsplit('.', 1)
-            for alias in aliases[namespace]:
-                config._sap_value_helper_directions[alias + '.' + suffix] = \
-                    config.sap_value_helper_directions[direction_key]
+            for alias, alias_namespace in aliases.items():
+                if alias_namespace == namespace:
+                    config._sap_value_helper_directions[alias + '.' + suffix] = \
+                        config.sap_value_helper_directions[direction_key]
 
 
 def schema_from_xml(metadata_xml, namespaces=None):

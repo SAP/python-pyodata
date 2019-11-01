@@ -55,6 +55,10 @@ def test_odata_version_statelessness():
         def primitive_types() -> List[Typ]:
             return []
 
+        @staticmethod
+        def annotations():
+            pass
+
     with pytest.raises(RuntimeError) as typ_ex_info:
         EmptyODATA()
 

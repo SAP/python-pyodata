@@ -11,8 +11,8 @@ from pyodata.config import ODATAVersion
 
 from pyodata.v2.elements import NavigationTypeProperty, EndRole, Association, AssociationSetEndRole, AssociationSet, \
     ReferentialConstraint, Schema
-from pyodata.model.elements import StructTypeProperty, StructType, ComplexType, EntityType, EntitySet, \
-    ExternalAnnotation, Annotation, ValueHelper, ValueHelperParameter, FunctionImport, Typ
+from pyodata.model.elements import StructTypeProperty, StructType, ComplexType, EntityType, EntitySet, ValueHelper, \
+    ValueHelperParameter, FunctionImport, Typ
 
 
 import pyodata.v2.build_functions as build_functions_v2
@@ -41,9 +41,6 @@ class ODataV2(ODATAVersion):
             Association: build_functions_v2.build_association,
             AssociationSetEndRole: build_functions_v2.build_association_set_end_role,
             AssociationSet: build_functions_v2.build_association_set,
-            ExternalAnnotation: build_functions.build_external_annotation,
-            Annotation: build_functions.build_annotation,
-            ValueHelper: build_functions.build_value_helper,
             ValueHelperParameter: build_functions.build_value_helper_parameter,
             FunctionImport: build_functions.build_function_import,
             Schema: build_functions_v2.build_schema
@@ -69,3 +66,9 @@ class ODataV2(ODATAVersion):
             Typ('Edm.Time', 'time\'PT00H00M\''),
             Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\'')
         ]
+
+    @staticmethod
+    def annotations():
+        return {
+            ValueHelper: build_functions.build_value_helper
+        }

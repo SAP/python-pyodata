@@ -7,7 +7,7 @@ from pyodata.policies import PolicyFatal, ParserError, ErrorPolicy
 
 # pylint: disable=cyclic-import
 if TYPE_CHECKING:
-    from pyodata.model.elements import Typ  # noqa
+    from pyodata.model.elements import Typ, Annotation  # noqa
 
 
 class ODATAVersion(ABC):
@@ -22,7 +22,6 @@ class ODATAVersion(ABC):
     # Separate dictionary of all registered types (primitive, complex and collection variants) for each child
     Types: Dict[str, 'Typ'] = dict()
 
-
     @staticmethod
     @abstractmethod
     def primitive_types() -> List['Typ']:
@@ -32,6 +31,11 @@ class ODATAVersion(ABC):
     @abstractmethod
     def build_functions() -> Dict[type, Callable]:
         """ Here we define which elements are supported and what is their python representation"""
+
+    @staticmethod
+    @abstractmethod
+    def annotations() -> Dict['Annotation', Callable]:
+        """ Here we define which annotations are supported and what is their python representation"""
 
 
 class Config:
@@ -74,8 +78,8 @@ class Config:
         self._odata_version = odata_version
 
         self._sap_value_helper_directions = None
-        self._sap_annotation_value_list = None
         self._annotation_namespaces = None
+        self._aliases: Dict[str, str] = dict()
 
     def err_policy(self, error: ParserError) -> ErrorPolicy:
         """ Returns error policy for given error. If custom error policy fo error is set, then returns that."""
@@ -112,8 +116,12 @@ class Config:
         return self._sap_value_helper_directions
 
     @property
-    def sap_annotation_value_list(self):
-        return self._sap_annotation_value_list
+    def aliases(self) -> Dict[str, str]:
+        return self._aliases
+
+    @aliases.setter
+    def aliases(self, value: Dict[str, str]):
+        self._aliases = value
 
     @property
     def annotation_namespace(self):

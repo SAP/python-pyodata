@@ -6,7 +6,7 @@ from pyodata.config import ODATAVersion
 from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
 from pyodata.model.elements import Typ, Schema, EnumType, ComplexType, StructType, StructTypeProperty, EntityType
 
-from pyodata.v4.elements import NavigationTypeProperty, NavigationPropertyBinding, EntitySet
+from pyodata.v4.elements import NavigationTypeProperty, NavigationPropertyBinding, EntitySet, Unit
 from pyodata.v4.type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
 
@@ -28,6 +28,7 @@ class ODataV4(ODATAVersion):
             ComplexType: build_functions.build_complex_type,
             EntityType: build_functions.build_entity_type,
             EntitySet: build_functions.build_entity_set,
+            Typ: build_functions_v4.build_type_definition,
             Schema: build_functions_v4.build_schema,
         }
 
@@ -70,3 +71,9 @@ class ODataV4(ODATAVersion):
             Typ('Edm.GeographyMultiLineString', '', GeoTypeTraits()),
             Typ('Edm.GeographyMultiPolygon', '', GeoTypeTraits()),
         ]
+
+    @staticmethod
+    def annotations():
+        return {
+            Unit: build_functions_v4.build_unit_annotation
+        }

@@ -1,15 +1,18 @@
 """ Repository of build functions specific to the ODATA V4"""
 
-# pylint: disable=missing-docstring
+# pylint: disable=unused-argument, missing-docstring,invalid-name
+# All methods by design of 'build_element' accept config, but no all have to use it
+
 import itertools
+import copy
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
-from pyodata.model.elements import ComplexType, Schema, EnumType, NullType, build_element, EntityType, Types,\
-    StructTypeProperty
+from pyodata.model.elements import ComplexType, Schema, EnumType, NullType, build_element, EntityType, Types, \
+    StructTypeProperty, build_annotation, Typ
 from pyodata.policies import ParserError
-from pyodata.v4.elements import NavigationTypeProperty, NullProperty, ReferentialConstraint, NavigationPropertyBinding, \
-    to_path_info, EntitySet
+from pyodata.v4.elements import NavigationTypeProperty, NullProperty, ReferentialConstraint, \
+    NavigationPropertyBinding, to_path_info, EntitySet, Unit
 
 
 # pylint: disable=protected-access,too-many-locals,too-many-branches,too-many-statements
@@ -28,6 +31,9 @@ def build_schema(config: Config, schema_nodes):
         namespace = schema_node.get('Namespace')
         decl = Schema.Declaration(namespace)
         schema._decls[namespace] = decl
+
+        for type_def in schema_node.xpath('edm:TypeDefinition', namespaces=config.namespaces):
+            decl.add_type_definition(build_element(Typ, config, node=type_def))
 
         for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
             try:
@@ -154,3 +160,18 @@ def build_navigation_type_property(config: Config, node):
 def build_navigation_property_binding(config: Config, node, et_info):
     return NavigationPropertyBinding(to_path_info(node.get('Path'), et_info), node.get('Target'))
 
+
+def build_unit_annotation(config: Config, target: Typ, annotation_node):
+    target.annotation = Unit(f'self.{target.name}', annotation_node.get('String'))
+
+
+def build_type_definition(config: Config, node):
+    typ = copy.deepcopy(Types.from_name(node.get('UnderlyingType'), config))
+    typ.name = node.get('Name')
+
+    annotation_nodes = node.xpath('edm:Annotation', namespaces=config.namespaces)
+    if annotation_nodes:
+        annotation_node = annotation_nodes[0]
+        build_annotation(annotation_node.get('Term'), config, target=typ, annotation_node=annotation_node)
+
+    return typ
