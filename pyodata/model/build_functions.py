@@ -6,10 +6,10 @@ import logging
 
 from pyodata.policies import ParserError
 from pyodata.config import Config
-from pyodata.exceptions import PyODataParserError, PyODataModelError
+from pyodata.exceptions import PyODataParserError, PyODataModelError, PyODataException
 from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_string, StructType, StructTypeProperty, \
     Types, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
-    FunctionImport, metadata_attribute_get, EntityType, ComplexType, build_element
+    FunctionImport, metadata_attribute_get, EntityType, ComplexType, build_element, NullType
 
 # pylint: disable=cyclic-import
 # When using `import xxx as yyy` it is not a problem and we need this dependency
@@ -83,28 +83,37 @@ def build_struct_type(config: Config, type_node, typ, schema=None):
 
 
 def build_complex_type(config: Config, type_node, schema=None):
-    return build_element(StructType, config, type_node=type_node, typ=ComplexType, schema=schema)
+    try:
+        return build_element(StructType, config, type_node=type_node, typ=ComplexType, schema=schema)
+    except (PyODataException, KeyError, AttributeError) as ex:
+        config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
+        return NullType(type_node.get('Name'))
 
 
 # pylint: disable=protected-access
 def build_entity_type(config: Config, type_node, schema=None):
-    etype = build_element(StructType, config, type_node=type_node, typ=EntityType, schema=schema)
+    try:
+        etype = build_element(StructType, config, type_node=type_node, typ=EntityType, schema=schema)
 
-    for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
-        etype._key.append(etype.proprty(proprty.get('Name')))
+        for proprty in type_node.xpath('edm:Key/edm:PropertyRef', namespaces=config.namespaces):
+            etype._key.append(etype.proprty(proprty.get('Name')))
 
-    for proprty in type_node.xpath('edm:NavigationProperty', namespaces=config.namespaces):
-        navp = build_element('NavigationTypeProperty', config, node=proprty)
+        for proprty in type_node.xpath('edm:NavigationProperty', namespaces=config.namespaces):
+            navp = build_element('NavigationTypeProperty', config, node=proprty)
 
-        if navp.name in etype._nav_properties:
-            raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
+            if navp.name in etype._nav_properties:
+                raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
 
-        etype._nav_properties[navp.name] = navp
+            etype._nav_properties[navp.name] = navp
 
-    return etype
+        return etype
+    except (KeyError, AttributeError) as ex:
+        config.err_policy(ParserError.ENTITY_TYPE).resolve(ex)
+        return NullType(type_node.get('Name'))
 
 
 def build_entity_set(config, entity_set_node):
+    # pylint: disable=too-many-locals
     name = entity_set_node.get('Name')
     et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
 
@@ -133,6 +142,7 @@ def build_entity_set(config, entity_set_node):
 
 
 def build_value_helper(config, target, annotation_node, schema):
+    # pylint: disable=too-many-locals
     label = None
     collection_path = None
     search_supported = False
