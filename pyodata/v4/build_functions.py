@@ -36,31 +36,13 @@ def build_schema(config: Config, schema_nodes):
             decl.add_type_definition(build_element(Typ, config, node=type_def))
 
         for enum_type in schema_node.xpath('edm:EnumType', namespaces=config.namespaces):
-            try:
-                etype = build_element(EnumType, config, type_node=enum_type, namespace=namespace)
-            except (PyODataParserError, AttributeError) as ex:
-                config.err_policy(ParserError.ENUM_TYPE).resolve(ex)
-                etype = NullType(enum_type.get('Name'))
-
-            decl.add_enum_type(etype)
+            decl.add_enum_type(build_element(EnumType, config, type_node=enum_type, namespace=namespace))
 
         for complex_type in schema_node.xpath('edm:ComplexType', namespaces=config.namespaces):
-            try:
-                ctype = build_element(ComplexType, config, type_node=complex_type, schema=schema)
-            except (KeyError, AttributeError) as ex:
-                config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
-                ctype = NullType(complex_type.get('Name'))
-
-            decl.add_complex_type(ctype)
+            decl.add_complex_type(build_element(ComplexType, config, type_node=complex_type, schema=schema))
 
         for entity_type in schema_node.xpath('edm:EntityType', namespaces=config.namespaces):
-            try:
-                etype = build_element(EntityType, config, type_node=entity_type, schema=schema)
-            except (KeyError, AttributeError) as ex:
-                config.err_policy(ParserError.ENTITY_TYPE).resolve(ex)
-                etype = NullType(entity_type.get('Name'))
-
-            decl.add_entity_type(etype)
+            decl.add_entity_type(build_element(EntityType, config, type_node=entity_type, schema=schema))
 
     # resolve types of properties
     for stype in itertools.chain(schema.entity_types, schema.complex_types):
