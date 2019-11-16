@@ -4,7 +4,11 @@ import sys
 from argparse import ArgumentParser
 
 import pyodata
-from pyodata.v2.model import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError, Config
+from pyodata.policies import PolicyFatal, PolicyWarning, PolicyIgnore, ParserError
+from pyodata.config import Config
+
+from pyodata.v2 import ODataV2
+from pyodata.v4 import ODataV4
 
 import requests
 
@@ -42,7 +46,10 @@ def print_out_metadata_info(args, client):
             print(f' + {prop.name}({prop.typ.name})')
 
         for prop in es.entity_type.nav_proprties:
-            print(f' + {prop.name}({prop.to_role.entity_type_name})')
+            if client.schema.config.odata_version == ODataV2:
+                print(f' + {prop.name}({prop.to_role.entity_type_name})')
+            else:
+                print(f' + {prop.name}({prop.partner.name})')
 
     for fs in client.schema.function_imports:
         print(f'{fs.http_method} {fs.name}')
@@ -90,6 +97,7 @@ def _parse_args(argv):
                         help='Specify metadata parser default error handler')
     parser.add_argument('--custom-error-policy', action='append', type=str,
                         help='Specify metadata parser custom error handlers in the form: TARGET=POLICY')
+    parser.add_argument('--version', default=2, choices=[2, 4], type=int)
 
     parser.set_defaults(func=print_out_metadata_info)
 
@@ -145,9 +153,15 @@ def _main(argv):
 
     def get_config():
         if config is None:
-            return Config()
+            version = ODataV4
+            if args.version == 2:
+                version = ODataV2
+
+            return Config(odata_version=version)
 
         return config
+
+    config = get_config()
 
     if args.default_error_policy:
         config = get_config()

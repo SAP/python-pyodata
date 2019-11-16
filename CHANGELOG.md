@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Support for navigation property in OData v4 - Martin Miksik
 - Support for EntitySet in OData v4 - Martin Miksik
 - Support for TypeDefinition in OData v4 - Martin Miksik
+- Support for TypeDefinition in OData v4 - Martin Miksik
+- Add V4 to pyodata cmd interface - Martin Miksik
 
 ### Changed
 - Implementation and naming schema of `from_etree` - Martin Miksik
