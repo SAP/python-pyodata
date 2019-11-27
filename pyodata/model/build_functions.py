@@ -11,10 +11,6 @@ from pyodata.model.elements import sap_attribute_get_bool, sap_attribute_get_str
     Types, EntitySet, ValueHelper, ValueHelperParameter, FunctionImportParameter, \
     FunctionImport, metadata_attribute_get, EntityType, ComplexType, build_element, NullType
 
-# pylint: disable=cyclic-import
-# When using `import xxx as yyy` it is not a problem and we need this dependency
-import pyodata.v4 as v4
-
 
 def modlog():
     return logging.getLogger("callbacks")
@@ -112,14 +108,10 @@ def build_entity_type(config: Config, type_node, schema=None):
         return NullType(type_node.get('Name'))
 
 
-def build_entity_set(config, entity_set_node):
+def build_entity_set(config, entity_set_node, builder=None):
     # pylint: disable=too-many-locals
     name = entity_set_node.get('Name')
     et_info = Types.parse_type_name(entity_set_node.get('EntityType'))
-
-    nav_prop_bins = []
-    for nav_prop_bin in entity_set_node.xpath('edm:NavigationPropertyBinding', namespaces=config.namespaces):
-        nav_prop_bins.append(build_element('NavigationPropertyBinding', config, node=nav_prop_bin, et_info=et_info))
 
     # TODO: create a class SAP attributes
     addressable = sap_attribute_get_bool(entity_set_node, 'addressable', True)
@@ -133,12 +125,12 @@ def build_entity_set(config, entity_set_node):
     req_filter = sap_attribute_get_bool(entity_set_node, 'requires-filter', False)
     label = sap_attribute_get_string(entity_set_node, 'label')
 
-    if config.odata_version == v4.ODataV4:
-        return v4.EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable,
-                            pageable, topable, req_filter, label, nav_prop_bins)
+    if builder:
+        return builder(config, entity_set_node, name, et_info, addressable, creatable, updatable, deletable, searchable,
+                       countable, pageable, topable, req_filter, label)
 
-    return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
-                     topable, req_filter, label)
+    return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable,
+                     pageable, topable, req_filter, label)
 
 
 def build_value_helper(config, target, annotation_node, schema):

@@ -8,6 +8,7 @@ import copy
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
+from pyodata.model.build_functions import build_entity_set
 from pyodata.model.elements import ComplexType, Schema, NullType, build_element, EntityType, Types, \
     StructTypeProperty, build_annotation, Typ
 from pyodata.policies import ParserError
@@ -164,6 +165,23 @@ def build_type_definition(config: Config, node):
         build_annotation(annotation_node.get('Term'), config, target=typ, annotation_node=annotation_node)
 
     return typ
+
+
+# pylint: disable=too-many-arguments
+def build_entity_set_v4(config, entity_set_node, name, et_info, addressable, creatable, updatable, deletable,
+                        searchable, countable, pageable, topable, req_filter, label):
+    nav_prop_bins = []
+    for nav_prop_bin in entity_set_node.xpath('edm:NavigationPropertyBinding', namespaces=config.namespaces):
+        nav_prop_bins.append(build_element(NavigationPropertyBinding, config, node=nav_prop_bin, et_info=et_info))
+
+    return EntitySet(name, et_info, addressable, creatable, updatable, deletable, searchable, countable, pageable,
+                     topable, req_filter, label, nav_prop_bins)
+
+
+def build_entity_set_with_v4_builder(config, entity_set_node):
+    """Adapter inserting the V4 specific builder"""
+
+    return build_entity_set(config, entity_set_node, builder=build_entity_set_v4)
 
 
 # pylint: disable=protected-access, too-many-locals

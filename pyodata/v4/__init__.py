@@ -2,16 +2,17 @@
 
 from typing import List
 
-from pyodata.config import ODATAVersion
-from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
+from pyodata.version import ODATAVersion
 from pyodata.model.elements import Typ, Schema, ComplexType, StructType, StructTypeProperty, EntityType
+from pyodata.model.build_functions import build_entity_type, build_complex_type, build_struct_type_property, \
+    build_struct_type
+from pyodata.model.type_traits import EdmBooleanTypTraits, EdmIntTypTraits
 
-from pyodata.v4.elements import NavigationTypeProperty, NavigationPropertyBinding, EntitySet, Unit, EnumType
-from pyodata.v4.type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
+from .elements import NavigationTypeProperty, NavigationPropertyBinding, EntitySet, Unit, EnumType
+from .build_functions import build_unit_annotation, build_type_definition, build_schema, \
+    build_navigation_type_property, build_navigation_property_binding, build_entity_set_with_v4_builder, build_enum_type
+from .type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
-
-import pyodata.v4.build_functions as build_functions_v4
-import pyodata.model.build_functions as build_functions
 
 
 class ODataV4(ODATAVersion):
@@ -20,16 +21,16 @@ class ODataV4(ODATAVersion):
     @staticmethod
     def build_functions():
         return {
-            StructTypeProperty: build_functions.build_struct_type_property,
-            StructType: build_functions.build_struct_type,
-            NavigationTypeProperty: build_functions_v4.build_navigation_type_property,
-            NavigationPropertyBinding: build_functions_v4.build_navigation_property_binding,
-            EnumType: build_functions_v4.build_enum_type,
-            ComplexType: build_functions.build_complex_type,
-            EntityType: build_functions.build_entity_type,
-            EntitySet: build_functions.build_entity_set,
-            Typ: build_functions_v4.build_type_definition,
-            Schema: build_functions_v4.build_schema,
+            StructTypeProperty: build_struct_type_property,
+            StructType: build_struct_type,
+            NavigationTypeProperty: build_navigation_type_property,
+            NavigationPropertyBinding: build_navigation_property_binding,
+            EnumType: build_enum_type,
+            ComplexType: build_complex_type,
+            EntityType: build_entity_type,
+            EntitySet: build_entity_set_with_v4_builder,
+            Typ: build_type_definition,
+            Schema: build_schema,
         }
 
     @staticmethod
@@ -75,5 +76,5 @@ class ODataV4(ODATAVersion):
     @staticmethod
     def annotations():
         return {
-            Unit: build_functions_v4.build_unit_annotation
+            Unit: build_unit_annotation
         }

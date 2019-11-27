@@ -6,7 +6,6 @@ from lxml import etree
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.elements import ValueHelperParameter, Schema, build_element
-import pyodata.v2 as v2
 
 
 ANNOTATION_NAMESPACES = {
@@ -40,11 +39,8 @@ class MetadataBuilder:
         'http://docs.oasis-open.org/odata/ns/edm'
     ]
 
-    def __init__(self, xml, config=None):
+    def __init__(self, xml, config):
         self._xml = xml
-
-        if config is None:
-            config = Config(v2.ODataV2)
         self._config = config
 
     # pylint: disable=missing-docstring
@@ -132,16 +128,3 @@ class MetadataBuilder:
                 if alias_namespace == namespace:
                     config._sap_value_helper_directions[alias + '.' + suffix] = \
                         config.sap_value_helper_directions[direction_key]
-
-
-def schema_from_xml(metadata_xml, namespaces=None):
-    """Parses XML data and returns Schema representing OData Metadata"""
-
-    meta = MetadataBuilder(
-        metadata_xml,
-        config=Config(
-            v2.ODataV2,
-            xml_namespaces=namespaces,
-        ))
-
-    return meta.build()

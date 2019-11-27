@@ -625,7 +625,7 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
     with pytest.raises(RuntimeError) as e_info:
         metadata.build()
@@ -677,7 +677,7 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
     try:
         metadata.build()
@@ -737,7 +737,7 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
     with pytest.raises(RuntimeError) as typ_ex_info:
         metadata.build()
@@ -808,7 +808,7 @@ def test_namespace_with_periods(xml_builder_factory):
         """
     )
 
-    schema = MetadataBuilder(xml_builder.serialize()).build()
+    schema = MetadataBuilder(xml_builder.serialize(), Config(ODataV2)).build()
 
     db_entity = schema.entity_type('Database')
 
@@ -982,7 +982,7 @@ def test_missing_association_for_navigation_property(xml_builder_factory):
            </EntityType>
        """)
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
     with pytest.raises(KeyError) as typ_ex_info:
         metadata.build()
@@ -1039,7 +1039,7 @@ def test_missing_data_service(xml_builder_factory):
     xml = xml_builder.serialize()
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element DataServices'
 
@@ -1052,7 +1052,7 @@ def test_missing_schema(xml_builder_factory):
     xml = xml_builder.serialize()
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element Schema'
 
@@ -1067,7 +1067,7 @@ def test_namespace_whitelist(mock_build_element: MagicMock, xml_builder_factory)
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    assert MetadataBuilder(xml).build() == 'Mocked'
+    assert MetadataBuilder(xml, Config(ODataV2)).build() == 'Mocked'
 
 
 @patch('pyodata.model.builder.build_element', return_value='Mocked')
@@ -1091,7 +1091,7 @@ def test_unsupported_edmx_n(mock_build_element, xml_builder_factory):
     assert schema == 'Mocked'
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
 
@@ -1119,7 +1119,7 @@ def test_unsupported_schema_n(mock_build_element, xml_builder_factory):
     assert schema == 'Mocked'
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
 
@@ -1135,10 +1135,10 @@ def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    assert MetadataBuilder(xml).build() == 'Mocked'
+    assert MetadataBuilder(xml, Config(ODataV2)).build() == 'Mocked'
 
 
-@patch('pyodata.v2.build_functions_v2.build_schema')
+@patch('pyodata.v2.build_schema')
 def test_whitelisted_edm_namespace_2006_04(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
@@ -1147,11 +1147,11 @@ def test_whitelisted_edm_namespace_2006_04(mocked, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
+    MetadataBuilder(xml, Config(ODataV2)).build()
     mocked.assert_called_once()
 
 
-@patch('pyodata.v2.build_functions_v2.build_schema')
+@patch('pyodata.v2.build_schema')
 def test_whitelisted_edm_namespace_2007_05(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
@@ -1160,7 +1160,7 @@ def test_whitelisted_edm_namespace_2007_05(mocked, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
+    MetadataBuilder(xml, Config(ODataV2)).build()
     mocked.assert_called_once()
 
 
@@ -1208,7 +1208,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml = xml_builder.serialize()
 
     with pytest.raises(RuntimeError) as typ_ex_info:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
                                         'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
@@ -1230,7 +1230,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml = xml_builder.serialize()
 
     with pytest.raises(RuntimeError) as typ_ex_info:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
                                         'existing ValueListProperty --- of EntityType(DataEntity)'

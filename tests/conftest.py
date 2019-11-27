@@ -4,7 +4,8 @@ import os
 import pytest
 
 from pyodata.config import Config
-from pyodata.model.builder import schema_from_xml, MetadataBuilder
+from pyodata.model.builder import MetadataBuilder
+from pyodata.v2 import ODataV2
 from pyodata.v4 import ODataV4
 
 
@@ -124,7 +125,12 @@ def schema(metadata_v2):
 
     # pylint: disable=redefined-outer-name
 
-    return schema_from_xml(metadata_v2)
+    meta = MetadataBuilder(
+        metadata_v2,
+        config=Config(ODataV2)
+    )
+
+    return meta.build()
 
 
 @pytest.fixture

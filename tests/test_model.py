@@ -1,7 +1,8 @@
 from typing import List
 import pytest
 
-from pyodata.config import Config, ODATAVersion
+from pyodata.config import Config
+from pyodata.version import ODATAVersion
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.builder import MetadataBuilder
 from pyodata.model.elements import Schema, Types, Typ

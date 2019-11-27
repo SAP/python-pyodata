@@ -3,20 +3,20 @@
 import logging
 from typing import List
 
-from pyodata.v2.type_traits import EdmDateTimeTypTraits
 
-from pyodata.model.type_traits import EdmBooleanTypTraits, EdmPrefixedTypTraits, EdmIntTypTraits, \
-    EdmLongIntTypTraits, EdmStringTypTraits
-from pyodata.config import ODATAVersion
-
-from pyodata.v2.elements import NavigationTypeProperty, EndRole, Association, AssociationSetEndRole, AssociationSet, \
-    ReferentialConstraint, Schema
+from pyodata.version import ODATAVersion
 from pyodata.model.elements import StructTypeProperty, StructType, ComplexType, EntityType, EntitySet, ValueHelper, \
     ValueHelperParameter, FunctionImport, Typ
+from pyodata.model.build_functions import build_value_helper, build_entity_type, build_complex_type, \
+    build_value_helper_parameter, build_entity_set, build_struct_type_property, build_struct_type, build_function_import
+from pyodata.model.type_traits import EdmBooleanTypTraits, EdmPrefixedTypTraits, EdmIntTypTraits, \
+    EdmLongIntTypTraits, EdmStringTypTraits
 
-
-import pyodata.v2.build_functions as build_functions_v2
-import pyodata.model.build_functions as build_functions
+from .elements import NavigationTypeProperty, EndRole, Association, AssociationSetEndRole, AssociationSet, \
+    ReferentialConstraint, Schema
+from .build_functions import build_association_set, build_end_role, build_association, build_schema, \
+    build_navigation_type_property, build_referential_constraint, build_association_set_end_role
+from .type_traits import EdmDateTimeTypTraits
 
 
 def modlog():
@@ -30,20 +30,20 @@ class ODataV2(ODATAVersion):
     @staticmethod
     def build_functions():
         return {
-            StructTypeProperty: build_functions.build_struct_type_property,
-            StructType: build_functions.build_struct_type,
-            NavigationTypeProperty: build_functions_v2.build_navigation_type_property,
-            ComplexType: build_functions.build_complex_type,
-            EntityType: build_functions.build_entity_type,
-            EntitySet: build_functions.build_entity_set,
-            EndRole: build_functions_v2.build_end_role,
-            ReferentialConstraint: build_functions_v2.build_referential_constraint,
-            Association: build_functions_v2.build_association,
-            AssociationSetEndRole: build_functions_v2.build_association_set_end_role,
-            AssociationSet: build_functions_v2.build_association_set,
-            ValueHelperParameter: build_functions.build_value_helper_parameter,
-            FunctionImport: build_functions.build_function_import,
-            Schema: build_functions_v2.build_schema
+            StructTypeProperty: build_struct_type_property,
+            StructType: build_struct_type,
+            NavigationTypeProperty: build_navigation_type_property,
+            ComplexType: build_complex_type,
+            EntityType: build_entity_type,
+            EntitySet: build_entity_set,
+            EndRole: build_end_role,
+            ReferentialConstraint: build_referential_constraint,
+            Association: build_association,
+            AssociationSetEndRole: build_association_set_end_role,
+            AssociationSet: build_association_set,
+            ValueHelperParameter: build_value_helper_parameter,
+            FunctionImport: build_function_import,
+            Schema: build_schema
         }
 
     @staticmethod
@@ -70,5 +70,5 @@ class ODataV2(ODATAVersion):
     @staticmethod
     def annotations():
         return {
-            ValueHelper: build_functions.build_value_helper
+            ValueHelper: build_value_helper
         }

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - make sure configured error policies are applied for Annotations referencing
   unknown type/member - Martin Miksik
 - Race condition in `test_types_repository_separation` - Martin Miksik
+- Import error while using python version prior to 3.7 - Martin Miksik
 
 ## [1.3.0]
 
