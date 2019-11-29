@@ -1,1 +1,2 @@
 lxml>=3.7.3
+backports-datetime-fromisoformat>=1.0

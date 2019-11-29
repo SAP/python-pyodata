@@ -1,5 +1,6 @@
 """ Type traits for types specific to the ODATA V4"""
 
+import sys
 import datetime
 
 # In case you want to use geojson types. You have to install pip package 'geojson'
@@ -13,6 +14,10 @@ except ImportError:
 
 from pyodata.exceptions import PyODataModelError, PyODataException
 from pyodata.model.type_traits import TypTraits
+
+if sys.version_info < (3, 7):
+    from backports.datetime_fromisoformat import MonkeyPatch
+    MonkeyPatch.patch_fromisoformat()
 
 
 class EdmDoubleQuotesEncapsulatedTypTraits(TypTraits):
@@ -217,6 +222,13 @@ class EdmDateTimeOffsetTypTraits(EdmDoubleQuotesEncapsulatedTypTraits):
     def from_literal(self, value: str):
 
         value = super().from_literal(value)
+
+        if sys.version_info < (3, 7):
+            if value[len(value) - 3] == ':':
+                value = value[:len(value) - 3] + value[-2:]
+
+            if value[len(value) - 1] == 'Z':
+                value = value[:len(value) - 1] + "+0000"
 
         try:
             value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f%z')
