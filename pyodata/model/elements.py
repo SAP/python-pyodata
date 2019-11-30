@@ -293,7 +293,7 @@ class VariableDeclaration(Identifier):
             self._max_length = int(max_length)
 
         if not precision:
-            self._precision = 0
+            self._precision = None
         else:
             self._precision = int(precision)
         if not scale:
@@ -337,7 +337,7 @@ class VariableDeclaration(Identifier):
         return self._scale
 
     def _check_scale_value(self):
-        if self._scale > self._precision:
+        if self._precision and self._scale > self._precision:
             raise PyODataModelError('Scale value ({}) must be less than or equal to precision value ({})'
                                     .format(self._scale, self._precision))
 

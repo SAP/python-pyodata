@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Implementation and naming schema of `from_etree` - Martin Miksik
-- Build functions of struct types now handle invalid metadata independently. - Martin Miksik 
+- Build functions of struct types now handle invalid metadata independently. - Martin Miksik
+- Default value of precision if non is provided in metadata - Martin Miksik 
 
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing
