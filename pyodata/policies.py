@@ -17,6 +17,7 @@ class ParserError(Enum):
     ANNOTATION = auto()
     ASSOCIATION = auto()
 
+    TYPE_DEFINITION = auto()
     ENUM_TYPE = auto()
     ENTITY_TYPE = auto()
     ENTITY_SET = auto()

@@ -156,13 +156,17 @@ def build_unit_annotation(config: Config, target: Typ, annotation_node):
 
 
 def build_type_definition(config: Config, node):
-    typ = copy.deepcopy(Types.from_name(node.get('UnderlyingType'), config))
-    typ.name = node.get('Name')
+    try:
+        typ = copy.deepcopy(Types.from_name(node.get('UnderlyingType'), config))
+        typ.name = node.get('Name')
 
-    annotation_nodes = node.xpath('edm:Annotation', namespaces=config.namespaces)
-    if annotation_nodes:
-        annotation_node = annotation_nodes[0]
-        build_annotation(annotation_node.get('Term'), config, target=typ, annotation_node=annotation_node)
+        annotation_nodes = node.xpath('edm:Annotation', namespaces=config.namespaces)
+        if annotation_nodes:
+            annotation_node = annotation_nodes[0]
+            build_annotation(annotation_node.get('Term'), config, target=typ, annotation_node=annotation_node)
+    except KeyError as ex:
+        config.err_policy(ParserError.TYPE_DEFINITION).resolve(ex)
+        typ = NullType(node.get('Name'))
 
     return typ
 
