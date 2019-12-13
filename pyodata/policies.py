@@ -6,6 +6,7 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from typing import TypeVar
 
 
 class ParserError(Enum):
@@ -21,6 +22,9 @@ class ParserError(Enum):
     ENTITY_SET = auto()
     COMPLEX_TYPE = auto()
     REFERENTIAL_CONSTRAINT = auto()
+
+
+ErrorPolicyType = TypeVar("ErrorPolicyType", bound="ErrorPolicy")
 
 
 class ErrorPolicy(ABC):

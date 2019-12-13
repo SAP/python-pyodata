@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Race condition in `test_types_repository_separation` - Martin Miksik
 - Import error while using python version prior to 3.7 - Martin Miksik
 - Parsing datetime containing timezone information for python 3.6 and lower - Martin Miksik
+- Type hinting for ErrorPolicy's children - Martin Miksik
 
 ## [1.3.0]
 

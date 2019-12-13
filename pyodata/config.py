@@ -1,7 +1,7 @@
 """ Contains definition of configuration class for PyOData"""
 
 from typing import Type, Dict
-from pyodata.policies import PolicyFatal, ParserError, ErrorPolicy
+from pyodata.policies import PolicyFatal, ParserError, ErrorPolicyType
 import pyodata.version
 
 
@@ -14,8 +14,8 @@ class Config:
 
     def __init__(self,
                  odata_version: Type[pyodata.version.ODATAVersion],
-                 custom_error_policies=None,
-                 default_error_policy=None,
+                 custom_error_policies: Dict[ParserError, ErrorPolicyType] = None,
+                 default_error_policy: ErrorPolicyType = None,
                  xml_namespaces=None
                  ):
 
@@ -48,19 +48,19 @@ class Config:
         self._annotation_namespaces = None
         self._aliases: Dict[str, str] = dict()
 
-    def err_policy(self, error: ParserError) -> ErrorPolicy:
+    def err_policy(self, error: ParserError) -> ErrorPolicyType:
         """ Returns error policy for given error. If custom error policy fo error is set, then returns that."""
         if self._custom_error_policy is None:
             return self._default_error_policy
 
         return self._custom_error_policy.get(error, self._default_error_policy)
 
-    def set_default_error_policy(self, policy: ErrorPolicy):
+    def set_default_error_policy(self, policy: ErrorPolicyType):
         """ Sets default error policy as well as resets custom error policies"""
         self._custom_error_policy = None
         self._default_error_policy = policy
 
-    def set_custom_error_policy(self, policies: Dict[ParserError, Type[ErrorPolicy]]):
+    def set_custom_error_policy(self, policies: Dict[ParserError, ErrorPolicyType]):
         """ Sets custom error policy. It should be called only after setting default error policy, otherwise
             it has no effect. See implementation of "set_default_error_policy" for more details.
         """
