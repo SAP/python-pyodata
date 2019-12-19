@@ -91,7 +91,7 @@ def build_schema(config: Config, schema_nodes):
 
                     # Check if the role was defined in the current association
                     if principal_role.name not in role_names:
-                        raise RuntimeError(
+                        raise PyODataParserError(
                             'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
 
                     # Check if principal role properties exist
@@ -103,14 +103,14 @@ def build_schema(config: Config, schema_nodes):
 
                     # Check if the role was defined in the current association
                     if dependent_role.name not in role_names:
-                        raise RuntimeError(
+                        raise PyODataParserError(
                             'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
 
                     # Check if dependent role properties exist
                     role_name = dependent_role.name
                     entity_type_name = assoc.end_by_role(role_name).entity_type_name
                     schema.check_role_property_names(dependent_role, entity_type_name, namespace)
-            except (PyODataModelError, RuntimeError) as ex:
+            except (PyODataModelError, PyODataParserError) as ex:
                 config.err_policy(ParserError.ASSOCIATION).resolve(ex)
                 decl.associations[assoc.name] = NullAssociation(assoc.name)
             else:
@@ -179,7 +179,7 @@ def build_schema(config: Config, schema_nodes):
                     if assoc_set.association_type.end_by_role(end.role) is None:
                         raise PyODataModelError('Role {} is not defined in association {}'
                                                 .format(end.role, assoc_set.association_type_name))
-            except (PyODataModelError, KeyError) as ex:
+            except PyODataModelError as ex:
                 config.err_policy(ParserError.ASSOCIATION).resolve(ex)
                 decl.association_sets[assoc_set.name] = NullAssociation(assoc_set.name)
             else:
@@ -224,15 +224,15 @@ def build_association(config: Config, association_node):
     for end in association_node.xpath('edm:End', namespaces=config.namespaces):
         end_role = build_element(EndRole, config, end_role_node=end)
         if end_role.entity_type_info is None:
-            raise RuntimeError('End type is not specified in the association {}'.format(name))
+            raise PyODataParserError('End type is not specified in the association {}'.format(name))
         association._end_roles.append(end_role)
 
     if len(association._end_roles) != 2:
-        raise RuntimeError('Association {} does not have two end roles'.format(name))
+        raise PyODataParserError('Association {} does not have two end roles'.format(name))
 
     refer = association_node.xpath('edm:ReferentialConstraint', namespaces=config.namespaces)
     if len(refer) > 1:
-        raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
+        raise PyODataParserError('In association {} is defined more than one referential constraint'.format(name))
 
     if not refer:
         referential_constraint = None
@@ -269,32 +269,32 @@ def build_association_set(config: Config, association_set_node):
 def build_referential_constraint(config: Config, referential_constraint_node):
     principal = referential_constraint_node.xpath('edm:Principal', namespaces=config.namespaces)
     if len(principal) != 1:
-        raise RuntimeError('Referential constraint must contain exactly one principal element')
+        raise PyODataParserError('Referential constraint must contain exactly one principal element')
 
     principal_name = principal[0].get('Role')
     if principal_name is None:
-        raise RuntimeError('Principal role name was not specified')
+        raise PyODataParserError('Principal role name was not specified')
 
     principal_refs = []
     for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
         principal_refs.append(property_ref.get('Name'))
     if not principal_refs:
-        raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
+        raise PyODataParserError('In role {} should be at least one principal property defined'.format(principal_name))
 
     dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=config.namespaces)
     if len(dependent) != 1:
-        raise RuntimeError('Referential constraint must contain exactly one dependent element')
+        raise PyODataParserError('Referential constraint must contain exactly one dependent element')
 
     dependent_name = dependent[0].get('Role')
     if dependent_name is None:
-        raise RuntimeError('Dependent role name was not specified')
+        raise PyODataParserError('Dependent role name was not specified')
 
     dependent_refs = []
     for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
         dependent_refs.append(property_ref.get('Name'))
     if len(principal_refs) != len(dependent_refs):
-        raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
-                           .format(principal_name, dependent_name))
+        raise PyODataParserError('Number of properties should be equal for the principal {} and the dependent {}'
+                                 .format(principal_name, dependent_name))
 
     return ReferentialConstraint(
         PrincipalRole(principal_name, principal_refs), DependentRole(dependent_name, dependent_refs))

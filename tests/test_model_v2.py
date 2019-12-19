@@ -136,11 +136,11 @@ def test_edmx(schema):
     assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
 
     # Error handling in the method typ - without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.typ('FooBar')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema'
     # Error handling in the method typ - with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -154,17 +154,17 @@ def test_schema_entity_sets(schema):
     assert schema.entity_set('Cities', namespace='EXAMPLE_SRV') is not None
 
     # without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in any Schema Namespace'
 
     # with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='BLAH')
-    assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
+    assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
 
     # with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -234,17 +234,17 @@ def test_edmx_associations(schema):
     assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
 
     # error handling: without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in any Schema Namespace'
 
     # error handling: with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='BLAH')
     assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
 
     # error handling: with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -627,9 +627,9 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(RuntimeError) as e_info:
+    with pytest.raises(PyODataModelError) as e_info:
         metadata.build()
-    assert str(e_info.value) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+    assert str(e_info.value) == 'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES'
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
@@ -637,8 +637,8 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
 
     metadata.build()
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+                          'PyODataModelError',
+                          'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES'
                           )
 
 
@@ -679,11 +679,9 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    try:
+    with pytest.raises(PyODataParserError) as e_info:
         metadata.build()
-        assert 'Expected' == 'RuntimeError'
-    except RuntimeError as ex:
-        assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+    assert str(e_info.value) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
@@ -691,7 +689,7 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
 
     metadata.build()
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataParserError',
                           'Target Type Dict of ValueHelper(Dict/Value) does not exist'
                           )
 
@@ -739,7 +737,7 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
 
     metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataParserError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Target Property NoExisting of EntityType(Dict) as defined in ' \
                                         'ValueHelper(Dict/NoExisting) does not exist'
@@ -759,10 +757,9 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
     metadata.build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataParserError',
                           'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting)'
-                          ' does not exist'
-                          )
+                          ' does not exist')
 
 
 def test_namespace_with_periods(xml_builder_factory):
@@ -984,7 +981,7 @@ def test_missing_association_for_navigation_property(xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Association Followers does not exist in namespace EXAMPLE_SRV'
 
@@ -1002,7 +999,7 @@ def test_edmx_association_end_by_role():
     assert association.end_by_role(end_from.role) == end_from
     assert association.end_by_role(end_to.role) == end_to
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         association.end_by_role('Blah')
     assert typ_ex_info.value.args[0] == 'Association FooBar has no End with Role Blah'
 
@@ -1207,7 +1204,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml_builder.add_schema('EXAMPLE_SRV', schema.format('---', value_list_property))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         MetadataBuilder(xml, Config(ODataV2)).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
@@ -1219,7 +1216,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     )).build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataModelError',
                           'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to '
                           'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
                           )
@@ -1229,7 +1226,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, '---'))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         MetadataBuilder(xml, Config(ODataV2)).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
@@ -1241,7 +1238,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     )).build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataModelError',
                           'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non '
                           'existing ValueListProperty --- of EntityType(DataEntity)'
                           )

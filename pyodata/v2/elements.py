@@ -150,7 +150,7 @@ class Association:
         try:
             return next((item for item in self._end_roles if item.role == end_role))
         except StopIteration:
-            raise KeyError('Association {} has no End with Role {}'.format(self._name, end_role))
+            raise PyODataModelError('Association {} has no End with Role {}'.format(self._name, end_role))
 
     @property
     def referential_constraint(self):
@@ -212,7 +212,7 @@ class AssociationSet:
     @association_type.setter
     def association_type(self, value):
         if self._association_type is not None:
-            raise RuntimeError('Cannot replace {} of {} with {}'.format(self._association_type, self, value))
+            raise PyODataModelError('Cannot replace {} of {} with {}'.format(self._association_type, self, value))
         self._association_type = value
 
     @property
@@ -231,13 +231,13 @@ class AssociationSet:
         try:
             return next((end for end in self._end_roles if end.role == end_role))
         except StopIteration:
-            raise KeyError('Association set {} has no End with Role {}'.format(self._name, end_role))
+            raise PyODataModelError('Association set {} has no End with Role {}'.format(self._name, end_role))
 
     def end_by_entity_set(self, entity_set):
         try:
             return next((end for end in self._end_roles if end.entity_set_name == entity_set))
         except StopIteration:
-            raise KeyError('Association set {} has no End with Entity Set {}'.format(self._name, entity_set))
+            raise PyODataModelError('Association set {} has no End with Entity Set {}'.format(self._name, entity_set))
 
 
 class ReferentialConstraintRole:
@@ -282,7 +282,8 @@ class Schema(model.elements.Schema):
             try:
                 return self._decls[namespace].associations[association_name]
             except KeyError:
-                raise KeyError('Association {} does not exist in namespace {}'.format(association_name, namespace))
+                raise PyODataModelError('Association {} does not exist in namespace {}'
+                                        .format(association_name, namespace))
         for decl in list(self._decls.values()):
             try:
                 return decl.associations[association_name]
@@ -298,13 +299,13 @@ class Schema(model.elements.Schema):
             for association_set in list(self._decls[namespace].association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
-            raise KeyError('Association Set for Association {} does not exist in Schema Namespace {}'.format(
+            raise PyODataModelError('Association Set for Association {} does not exist in Schema Namespace {}'.format(
                 association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
-        raise KeyError('Association Set for Association {} does not exist in any Schema Namespace'.format(
+        raise PyODataModelError('Association Set for Association {} does not exist in any Schema Namespace'.format(
             association_name))
 
     def association_set(self, set_name, namespace=None):
@@ -312,7 +313,7 @@ class Schema(model.elements.Schema):
             try:
                 return self._decls[namespace].association_sets[set_name]
             except KeyError:
-                raise KeyError('Association set {} does not exist in namespace {}'.format(set_name, namespace))
+                raise PyODataModelError('Association set {} does not exist in namespace {}'.format(set_name, namespace))
         for decl in list(self._decls.values()):
             try:
                 return decl.association_sets[set_name]

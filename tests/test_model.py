@@ -3,7 +3,7 @@ import pytest
 
 from pyodata.config import Config
 from pyodata.version import ODATAVersion
-from pyodata.exceptions import PyODataParserError
+from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.builder import MetadataBuilder
 from pyodata.model.elements import Schema, Types, Typ
 from pyodata.v2 import ODataV2
@@ -37,10 +37,11 @@ def test_supported_primitive_types():
             ]
 
     config = Config(EmptyODATA)
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         Types.from_name('UnsupportedType', config)
 
-    assert typ_ex_info.value.args[0] == f'Requested primitive type is not supported in this version of ODATA'
+    assert typ_ex_info.value.args[0] == f'Requested primitive type UnsupportedType ' \
+                                        f'is not supported in this version of ODATA'
 
     assert Types.from_name('Edm.Binary', config).name == 'Edm.Binary'
 

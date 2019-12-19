@@ -111,7 +111,7 @@ def build_schema(config: Config, schema_nodes):
                 eset = build_element(EntitySet, config, entity_set_node=entity_set)
                 eset.entity_type = schema.entity_type(eset.entity_type_info[1], namespace=eset.entity_type_info[0])
                 decl.entity_sets[eset.name] = eset
-            except (PyODataParserError, KeyError) as ex:
+            except (PyODataModelError, PyODataParserError) as ex:
                 config.err_policy(ParserError.ENTITY_SET).resolve(ex)
 
     # After all entity sets are parsed resolve the individual bindings among them and entity types
@@ -122,7 +122,7 @@ def build_schema(config: Config, schema_nodes):
                 nav_prop_bin.path = schema.entity_type(path_info.type,
                                                        namespace=path_info.namespace).nav_proprty(path_info.proprty)
                 nav_prop_bin.target = schema.entity_set(nav_prop_bin.target_info)
-            except (PyODataModelError, KeyError) as ex:
+            except PyODataModelError as ex:
                 config.err_policy(ParserError.NAVIGATION_PROPERTY_BIDING).resolve(ex)
                 nav_prop_bin.path = NullType(path_info.type)
                 nav_prop_bin.target = NullProperty(nav_prop_bin.target_info)
@@ -164,7 +164,7 @@ def build_type_definition(config: Config, node):
         if annotation_nodes:
             annotation_node = annotation_nodes[0]
             build_annotation(annotation_node.get('Term'), config, target=typ, annotation_node=annotation_node)
-    except KeyError as ex:
+    except PyODataModelError as ex:
         config.err_policy(ParserError.TYPE_DEFINITION).resolve(ex)
         typ = NullType(node.get('Name'))
 

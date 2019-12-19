@@ -175,7 +175,7 @@ class Types:
         try:
             return o_version.Types[search_name]
         except KeyError:
-            raise KeyError('Requested primitive type is not supported in this version of ODATA')
+            raise PyODataModelError(f'Requested primitive type {search_name} is not supported in this version of ODATA')
 
     @staticmethod
     def parse_type_name(type_name):
@@ -313,10 +313,10 @@ class VariableDeclaration(Identifier):
     @typ.setter
     def typ(self, value):
         if self._typ is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._typ, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} by {2}'.format(self._typ, self, value))
 
         if value.name != self._type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._typ = value
 
@@ -420,7 +420,7 @@ class Schema:
             try:
                 return super(Schema.Declarations, self).__getitem__(key)
             except KeyError:
-                raise KeyError('There is no Schema Namespace {}'.format(key))
+                raise PyODataModelError('There is no Schema Namespace {}'.format(key))
 
     def __init__(self, config: Config):
         super(Schema, self).__init__()
@@ -446,18 +446,19 @@ class Schema:
         for type_space in (self.entity_type, self.complex_type, self.enum_type):
             try:
                 return type_space(type_name, namespace=namespace)
-            except KeyError:
+            except PyODataModelError:
                 pass
 
-        raise KeyError('Type {} does not exist in Schema{}'
-                       .format(type_name, ' Namespace ' + namespace if namespace else ''))
+        raise PyODataModelError('Type {} does not exist in Schema{}'
+                                .format(type_name, ' Namespace ' + namespace if namespace else ''))
 
     def entity_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].entity_types[type_name]
             except KeyError:
-                raise KeyError('EntityType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
+                raise PyODataModelError('EntityType {} does not exist in Schema Namespace {}'
+                                        .format(type_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -465,14 +466,15 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
+        raise PyODataModelError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
 
     def complex_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].complex_types[type_name]
             except KeyError:
-                raise KeyError('ComplexType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
+                raise PyODataModelError('ComplexType {} does not exist in Schema Namespace {}'
+                                        .format(type_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -480,14 +482,14 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
+        raise PyODataModelError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
 
     def enum_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].enum_types[type_name]
             except KeyError:
-                raise KeyError(f'EnumType {type_name} does not exist in Schema Namespace {namespace}')
+                raise PyODataModelError(f'EnumType {type_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
@@ -495,14 +497,14 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError(f'EnumType {type_name} does not exist in any Schema Namespace')
+        raise PyODataModelError(f'EnumType {type_name} does not exist in any Schema Namespace')
 
     def type_definition(self, name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].type_definitions[name]
             except KeyError:
-                raise KeyError(f'EnumType {name} does not exist in Schema Namespace {namespace}')
+                raise PyODataModelError(f'EnumType {name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
@@ -510,7 +512,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError(f'EnumType {name} does not exist in any Schema Namespace')
+        raise PyODataModelError(f'EnumType {name} does not exist in any Schema Namespace')
 
     def get_type(self, type_info):
 
@@ -520,31 +522,31 @@ class Schema:
         # first look for type in primitive types
         try:
             return Types.from_name(search_name, self.config)
-        except KeyError:
+        except PyODataModelError:
             pass
 
         # then look for type in type definitions
         try:
             return self.type_definition(search_name, type_info.namespace)
-        except KeyError:
+        except PyODataModelError:
             pass
 
         # then look for type in entity types
         try:
             return self.entity_type(search_name, type_info.namespace)
-        except KeyError:
+        except PyODataModelError:
             pass
 
         # then look for type in complex types
         try:
             return self.complex_type(search_name, type_info.namespace)
-        except KeyError:
+        except PyODataModelError:
             pass
 
         # then look for type in enum types
         try:
             return self.enum_type(search_name, type_info.namespace)
-        except KeyError:
+        except PyODataModelError:
             pass
 
         raise PyODataModelError(
@@ -568,7 +570,8 @@ class Schema:
             try:
                 return self._decls[namespace].entity_sets[set_name]
             except KeyError:
-                raise KeyError('EntitySet {} does not exist in Schema Namespace {}'.format(set_name, namespace))
+                raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
+                                        .format(set_name, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -576,7 +579,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('EntitySet {} does not exist in any Schema Namespace'.format(set_name))
+        raise PyODataModelError('EntitySet {} does not exist in any Schema Namespace'.format(set_name))
 
     @property
     def entity_sets(self):
@@ -587,8 +590,8 @@ class Schema:
             try:
                 return self._decls[namespace].function_imports[function_import]
             except KeyError:
-                raise KeyError('FunctionImport {} does not exist in Schema Namespace {}'
-                               .format(function_import, namespace))
+                raise PyODataModelError('FunctionImport {} does not exist in Schema Namespace {}'
+                                        .format(function_import, namespace))
 
         for decl in list(self._decls.values()):
             try:
@@ -596,7 +599,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('FunctionImport {} does not exist in any Schema Namespace'.format(function_import))
+        raise PyODataModelError('FunctionImport {} does not exist in any Schema Namespace'.format(function_import))
 
     @property
     def function_imports(self):
@@ -633,7 +636,10 @@ class StructType(Typ):
         return self._is_value_list
 
     def proprty(self, property_name):
-        return self._properties[property_name]
+        try:
+            return self._properties[property_name]
+        except KeyError:
+            raise PyODataModelError(f'Property {property_name} not found on {self}')
 
     def proprties(self):
         return list(self._properties.values())
@@ -713,10 +719,10 @@ class EntitySet(Identifier):
     @entity_type.setter
     def entity_type(self, value):
         if self._entity_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
 
         if value.name != self.entity_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._entity_type = value
 
@@ -802,7 +808,7 @@ class StructTypeProperty(VariableDeclaration):
     def struct_type(self, value):
 
         if self._struct_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._struct_type, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._struct_type, self, value))
 
         self._struct_type = value
 
@@ -812,8 +818,8 @@ class StructTypeProperty(VariableDeclaration):
             except KeyError:
                 # TODO: resolve EntityType of text property
                 if '/' not in self._text_proprty_name:
-                    raise RuntimeError('The attribute sap:text of {1} is set to non existing Property \'{0}\''
-                                       .format(self._text_proprty_name, self))
+                    raise PyODataModelError('The attribute sap:text of {1} is set to non existing Property \'{0}\''
+                                            .format(self._text_proprty_name, self))
 
     @property
     def text_proprty_name(self):
@@ -883,7 +889,8 @@ class StructTypeProperty(VariableDeclaration):
     def value_helper(self, value):
         # Value Help property must not be changed
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace value helper {0} of {1} by {2}'.format(self._value_helper, self, value))
+            raise PyODataModelError('Cannot replace value helper {0} of {1} by {2}'
+                                    .format(self._value_helper, self, value))
 
         self._value_helper = value
 
@@ -955,10 +962,10 @@ class ValueHelper(Annotation):
     @proprty.setter
     def proprty(self, value):
         if self._proprty is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
 
         if value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name:
-            raise RuntimeError('{0} cannot be an annotation of {1}'.format(self, value))
+            raise PyODataModelError('{0} cannot be an annotation of {1}'.format(self, value))
 
         self._proprty = value
 
@@ -967,8 +974,8 @@ class ValueHelper(Annotation):
                 etype = self._proprty.struct_type
                 try:
                     param.local_property = etype.proprty(param.local_property_name)
-                except KeyError:
-                    raise RuntimeError('{0} of {1} points to an non existing LocalDataProperty {2} of {3}'.format(
+                except PyODataModelError:
+                    raise PyODataModelError('{0} of {1} points to an non existing LocalDataProperty {2} of {3}'.format(
                         param, self, param.local_property_name, etype))
 
     @property
@@ -982,10 +989,10 @@ class ValueHelper(Annotation):
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._entity_set, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} with {2}'.format(self._entity_set, self, value))
 
         if value.name != self.collection_path:
-            raise RuntimeError('{0} cannot be assigned to {1}'.format(self, value))
+            raise PyODataModelError('{0} cannot be assigned to {1}'.format(self, value))
 
         self._entity_set = value
 
@@ -994,8 +1001,8 @@ class ValueHelper(Annotation):
                 etype = self._entity_set.entity_type
                 try:
                     param.list_property = etype.proprty(param.list_property_name)
-                except KeyError:
-                    raise RuntimeError('{0} of {1} points to an non existing ValueListProperty {2} of {3}'.format(
+                except PyODataModelError:
+                    raise PyODataModelError('{0} of {1} points to an non existing ValueListProperty {2} of {3}'.format(
                         param, self, param.list_property_name, etype))
 
     @property
@@ -1011,14 +1018,14 @@ class ValueHelper(Annotation):
             if prm.local_property.name == name:
                 return prm
 
-        raise KeyError('{0} has no local property {1}'.format(self, name))
+        raise PyODataModelError('{0} has no local property {1}'.format(self, name))
 
     def list_property_param(self, name):
         for prm in self._parameters:
             if prm.list_property.name == name:
                 return prm
 
-        raise KeyError('{0} has no list property {1}'.format(self, name))
+        raise PyODataModelError('{0} has no list property {1}'.format(self, name))
 
 
 class ValueHelperParameter():
@@ -1049,7 +1056,7 @@ class ValueHelperParameter():
     @value_helper.setter
     def value_helper(self, value):
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._value_helper, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} with {2}'.format(self._value_helper, self, value))
 
         self._value_helper = value
 
@@ -1068,7 +1075,7 @@ class ValueHelperParameter():
     @local_property.setter
     def local_property(self, value):
         if self._local_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._local_property, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} with {2}'.format(self._local_property, self, value))
 
         self._local_property = value
 
@@ -1083,7 +1090,7 @@ class ValueHelperParameter():
     @list_property.setter
     def list_property(self, value):
         if self._list_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._list_property, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} with {2}'.format(self._list_property, self, value))
 
         self._list_property = value
 
@@ -1109,10 +1116,10 @@ class FunctionImport(Identifier):
     @return_type.setter
     def return_type(self, value):
         if self._return_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._return_type, self, value))
+            raise PyODataModelError('Cannot replace {0} of {1} by {2}'.format(self._return_type, self, value))
 
         if value.name != self.return_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._return_type = value
 

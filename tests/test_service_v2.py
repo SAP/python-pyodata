@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import patch
 
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException, HttpError, ExpressionError
+from pyodata.exceptions import PyODataException, HttpError, ExpressionError, PyODataModelError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
 from tests.conftest import assert_request_contains_header
@@ -1323,9 +1323,9 @@ def test_get_entity_set_query_filter_property_error(service):
 
     request = service.entity_sets.MasterEntities.get_entities()
 
-    with pytest.raises(KeyError) as e_info:
+    with pytest.raises(PyODataModelError) as e_info:
         assert not request.Foo == 'bar'
-    assert e_info.value.args[0] == 'Foo'
+    assert e_info.value.args[0] == 'Property Foo not found on EntityType(MasterEntity)'
 
 
 @responses.activate

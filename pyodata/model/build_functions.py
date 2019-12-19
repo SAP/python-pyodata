@@ -64,7 +64,7 @@ def build_struct_type(config: Config, type_node, typ, schema=None):
         stp = build_element(StructTypeProperty, config, entity_type_property_node=proprty)
 
         if stp.name in stype._properties:
-            raise KeyError('{0} already has property {1}'.format(stype, stp.name))
+            raise PyODataParserError('{0} already has property {1}'.format(stype, stp.name))
 
         stype._properties[stp.name] = stp
 
@@ -81,7 +81,7 @@ def build_struct_type(config: Config, type_node, typ, schema=None):
 def build_complex_type(config: Config, type_node, schema=None):
     try:
         return build_element(StructType, config, type_node=type_node, typ=ComplexType, schema=schema)
-    except (PyODataException, KeyError, AttributeError) as ex:
+    except PyODataException as ex:
         config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
         return NullType(type_node.get('Name'))
 
@@ -98,12 +98,12 @@ def build_entity_type(config: Config, type_node, schema=None):
             navp = build_element('NavigationTypeProperty', config, node=proprty)
 
             if navp.name in etype._nav_properties:
-                raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
+                raise PyODataParserError('{0} already has navigation property {1}'.format(etype, navp.name))
 
             etype._nav_properties[navp.name] = navp
 
         return etype
-    except (KeyError, AttributeError) as ex:
+    except (PyODataParserError, AttributeError) as ex:
         config.err_policy(ParserError.ENTITY_TYPE).resolve(ex)
         return NullType(type_node.get('Name'))
 
@@ -160,29 +160,24 @@ def build_value_helper(config, target, annotation_node, schema):
             value_helper._parameters.append(param)
 
     try:
-        try:
-            value_helper.entity_set = schema.entity_set(
-                value_helper.collection_path, namespace=value_helper.element_namespace)
-        except KeyError:
-            raise RuntimeError(f'Entity Set {value_helper.collection_path} '
-                               f'for {value_helper} does not exist')
-
+        value_helper.entity_set = schema.entity_set(
+            value_helper.collection_path, namespace=value_helper.element_namespace)
         try:
             vh_type = schema.typ(value_helper.proprty_entity_type_name,
                                  namespace=value_helper.element_namespace)
-        except KeyError:
-            raise RuntimeError(f'Target Type {value_helper.proprty_entity_type_name} '
-                               f'of {value_helper} does not exist')
+        except PyODataModelError:
+            raise PyODataParserError(f'Target Type {value_helper.proprty_entity_type_name} '
+                                     f'of {value_helper} does not exist')
 
         try:
             target_proprty = vh_type.proprty(value_helper.proprty_name)
-        except KeyError:
-            raise RuntimeError(f'Target Property {value_helper.proprty_name} '
-                               f'of {vh_type} as defined in {value_helper} does not exist')
+        except PyODataModelError:
+            raise PyODataParserError(f'Target Property {value_helper.proprty_name} '
+                                     f'of {vh_type} as defined in {value_helper} does not exist')
 
         value_helper.proprty = target_proprty
         target_proprty.value_helper = value_helper
-    except (RuntimeError, PyODataModelError) as ex:
+    except (PyODataModelError, PyODataParserError) as ex:
         config.err_policy(ParserError.ANNOTATION).resolve(ex)
 
 

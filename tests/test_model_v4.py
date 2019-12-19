@@ -215,7 +215,7 @@ def test_invalid_property_binding_on_entity_set(xml_builder_factory):
     xml_builder.add_schema('MightySchema', schema.format('Mistake', path, target))
     xml = xml_builder.serialize()
 
-    with pytest.raises(KeyError) as ex_info:
+    with pytest.raises(PyODataModelError) as ex_info:
         MetadataBuilder(xml, Config(ODataV4)).build()
     assert ex_info.value.args[0] == 'EntityType Mistake does not exist in any Schema Namespace'
 
@@ -230,7 +230,7 @@ def test_invalid_property_binding_on_entity_set(xml_builder_factory):
     xml_builder.add_schema('MightySchema', schema.format(etype, path, 'Mistake'))
     xml = xml_builder.serialize()
 
-    with pytest.raises(KeyError) as ex_info:
+    with pytest.raises(PyODataModelError) as ex_info:
         MetadataBuilder(xml, Config(ODataV4)).build()
     assert ex_info.value.args[0] == 'EntitySet Mistake does not exist in any Schema Namespace'
 
@@ -269,13 +269,13 @@ def test_enum_parsing(schema_v4):
 
     try:
         schema_v4.enum_type('ThisEnumDoesNotExist')
-    except KeyError as ex:
-        assert str(ex) == f'\'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace\''
+    except PyODataModelError as ex:
+        assert str(ex) == f'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace'
 
     try:
         schema_v4.enum_type('Country', 'WrongNamespace').USA
-    except KeyError as ex:
-        assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
+    except PyODataModelError as ex:
+        assert str(ex) == 'There is no Schema Namespace WrongNamespace'
 
 
 def test_unsupported_enum_underlying_type(xml_builder_factory):

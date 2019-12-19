@@ -18,7 +18,7 @@ import requests
 
 from pyodata.model import elements
 from pyodata.v2 import elements as elements_v2
-from pyodata.exceptions import HttpError, PyODataException, ExpressionError
+from pyodata.exceptions import HttpError, PyODataException, ExpressionError, PyODataModelError
 
 LOGGER_NAME = 'pyodata.service'
 
@@ -457,11 +457,11 @@ class EntityCreateRequest(ODataHttpRequest):
         for key, val in entity.items():
             try:
                 val = entity_type.proprty(key).typ.traits.to_json(val)
-            except KeyError:
+            except PyODataModelError:
                 try:
                     nav_prop = entity_type.nav_proprty(key)
                     val = EntityCreateRequest._build_values(nav_prop.typ, val)
-                except KeyError:
+                except PyODataModelError:
                     raise PyODataException('Property {} is not declared in {} entity type'.format(
                         key, entity_type.name))
 
