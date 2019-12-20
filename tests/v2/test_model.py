@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 import pytest
 
-from tests.conftest import assert_logging_policy
+from tests.v2.conftest import assert_logging_policy
 from pyodata.config import Config
 from pyodata.model.builder import MetadataBuilder
 from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, Schema, StructTypeProperty
@@ -1229,8 +1229,8 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     with pytest.raises(PyODataModelError) as typ_ex_info:
         MetadataBuilder(xml, Config(ODataV2)).build()
 
-    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
-                                        'existing ValueListProperty --- of EntityType(DataEntity)'
+    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to ' \
+                                        'an non existing ValueListProperty --- of EntityType(DataEntity)'
 
     MetadataBuilder(xml, Config(
         ODataV2,

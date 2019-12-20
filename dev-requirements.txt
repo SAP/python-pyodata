@@ -8,3 +8,4 @@ pytest-cov
 codecov
 flake8
 sphinx
+jinja2

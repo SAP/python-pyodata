@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+    <edmx:DataServices>
+        <Schema Namespace="SampleService.Models"
+                xmlns="http://docs.oasis-open.org/odata/ns/edm">
+            {% for element in schema_elements %}
+                {{ element }}
+            {% endfor %}
+            <EntityContainer Name="DefaultContainer">
+                {% for element in entity_container %}
+                    {{ element }}
+                {% endfor %}
+            </EntityContainer>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

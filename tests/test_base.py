@@ -5,11 +5,11 @@ from pyodata.config import Config
 from pyodata.version import ODATAVersion
 from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.builder import MetadataBuilder
-from pyodata.model.elements import Schema, Types, Typ
+from pyodata.model.elements import Schema, Types, Typ, build_element
 from pyodata.v2 import ODataV2
 
 
-def test_from_etree_mixin(metadata_v2):
+def test_build_element():
     """Test FromEtreeMixin class"""
 
     class EmptyODATA(ODATAVersion):
@@ -18,12 +18,14 @@ def test_from_etree_mixin(metadata_v2):
             return {}
 
     config = Config(EmptyODATA)
-    builder = MetadataBuilder(metadata_v2, config=config)
+
+    class TestElement:
+        pass
 
     with pytest.raises(PyODataParserError) as typ_ex_info:
-        builder.build()
+        build_element(TestElement, config)
 
-    assert typ_ex_info.value.args[0] == f'{Schema.__name__} is unsupported in {config.odata_version.__name__}'
+    assert typ_ex_info.value.args[0] == f'{TestElement.__name__} is unsupported in {config.odata_version.__name__}'
 
 
 def test_supported_primitive_types():

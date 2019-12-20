@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add V4 to pyodata cmd interface - Martin Miksik
 - Permissive parsing for TypeDefinition
 - Changes all manually raised exception to be child of PyODataException - Martin Miksik
+- More comprehensive tests for ODATA V4 - Martin Miksik
 
 ### Changed
 - Implementation and naming schema of `from_etree` - Martin Miksik

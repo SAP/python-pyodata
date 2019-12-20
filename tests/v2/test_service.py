@@ -10,7 +10,7 @@ import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError, PyODataModelError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
-from tests.conftest import assert_request_contains_header
+from tests.v2.conftest import assert_request_contains_header
 
 
 URL_ROOT = 'http://odatapy.example.com'
