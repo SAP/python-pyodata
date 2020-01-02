@@ -1,10 +1,11 @@
 import pytest
 from lxml import etree
 
-from pyodata.model.elements import build_element, TypeInfo, Typ, ComplexType, EntityType, StructTypeProperty
+from pyodata.model.elements import build_element, TypeInfo, Typ, ComplexType, EntityType, StructTypeProperty, \
+    IdentifierInfo
 from pyodata.model.type_traits import EdmIntTypTraits, EdmBooleanTypTraits
 from pyodata.v4 import NavigationTypeProperty, NavigationPropertyBinding
-from pyodata.v4.elements import PathInfo, Unit, EntitySet, EnumType
+from pyodata.v4.elements import Unit, EntitySet, EnumType
 
 
 class TestSchema:
@@ -73,15 +74,17 @@ def test_build_navigation_property_binding(config):
     et_info = TypeInfo('SampleService', 'Person', False)
     node = etree.fromstring('<NavigationPropertyBinding Path="Friends" Target="People" />')
     navigation_property_binding = build_element(NavigationPropertyBinding, config, node=node, et_info=et_info)
-    assert navigation_property_binding.path_info == PathInfo('SampleService', 'Person', 'Friends')
-    assert navigation_property_binding.target_info == 'People'
+    assert navigation_property_binding.path_info == IdentifierInfo(None, 'Friends')
+    assert navigation_property_binding.target_info == IdentifierInfo(None, 'People')
 
     node = etree.fromstring(
         '<NavigationPropertyBinding Path="SampleService.Flight/Airline" Target="Airlines" />'
     )
     navigation_property_binding = build_element(NavigationPropertyBinding, config, node=node, et_info=et_info)
-    assert navigation_property_binding.path_info == PathInfo('SampleService', 'Flight', 'Airline')
-    assert navigation_property_binding.target_info == 'Airlines'
+    assert navigation_property_binding.path_info == [
+        IdentifierInfo('SampleService', 'Flight'),
+        IdentifierInfo(None, 'Airline')]
+    assert navigation_property_binding.target_info == IdentifierInfo(None, 'Airlines')
 
 
 def test_build_unit_annotation(config):
@@ -122,7 +125,7 @@ def test_build_entity_set_with_v4_builder(config, inline_namespaces):
     entity_set = build_element(EntitySet, config, entity_set_node=entity_set_node)
     assert entity_set.name == 'People'
     assert entity_set.entity_type_info == TypeInfo('SampleService', 'Person', False)
-    assert entity_set.navigation_property_bindings[0].path_info == PathInfo('SampleService', 'Person', 'Friends')
+    assert entity_set.navigation_property_bindings[0].path_info == IdentifierInfo(None, 'Friends')
 
 
 def test_build_enum_type(config, inline_namespaces):

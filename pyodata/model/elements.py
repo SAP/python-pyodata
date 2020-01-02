@@ -121,12 +121,19 @@ class Identifier:
 
     @staticmethod
     def parse(value):
-        parts = value.split('.')
+        segments = value.split('/')
+        path = []
+        for segment in segments:
+            parts = segment.split('.')
 
-        if len(parts) == 1:
-            return IdentifierInfo(None, value)
+            if len(parts) == 1:
+                path.append(IdentifierInfo(None, parts[-1]))
+            else:
+                path.append(IdentifierInfo('.'.join(parts[:-1]), parts[-1]))
 
-        return IdentifierInfo('.'.join(parts[:-1]), parts[-1])
+        if len(path) == 1:
+            return path[0]
+        return path
 
 
 class Types:

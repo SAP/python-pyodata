@@ -10,10 +10,10 @@ from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError, PyODataModelError
 from pyodata.model.build_functions import build_entity_set
 from pyodata.model.elements import ComplexType, Schema, NullType, build_element, EntityType, Types, \
-    StructTypeProperty, build_annotation, Typ
+    StructTypeProperty, build_annotation, Typ, Identifier
 from pyodata.policies import ParserError
 from pyodata.v4.elements import NavigationTypeProperty, NullProperty, ReferentialConstraint, \
-    NavigationPropertyBinding, to_path_info, EntitySet, Unit, EnumMember, EnumType
+    NavigationPropertyBinding, EntitySet, Unit, EnumMember, EnumType
 
 
 # pylint: disable=protected-access,too-many-locals,too-many-branches,too-many-statements
@@ -115,16 +115,29 @@ def build_schema(config: Config, schema_nodes):
                 config.err_policy(ParserError.ENTITY_SET).resolve(ex)
 
     # After all entity sets are parsed resolve the individual bindings among them and entity types
+    entity_set: EntitySet
     for entity_set in schema.entity_sets:
+        nav_prop_bin: NavigationPropertyBinding
         for nav_prop_bin in entity_set.navigation_property_bindings:
-            path_info = nav_prop_bin.path_info
             try:
-                nav_prop_bin.path = schema.entity_type(path_info.type,
-                                                       namespace=path_info.namespace).nav_proprty(path_info.proprty)
-                nav_prop_bin.target = schema.entity_set(nav_prop_bin.target_info)
+                identifiers = nav_prop_bin.path_info
+                entity_identifier = identifiers[0] if isinstance(identifiers, list) else entity_set.entity_type_info
+                entity = schema.entity_type(entity_identifier.name, namespace=entity_identifier.namespace)
+                name = identifiers[-1].name if isinstance(identifiers, list) else identifiers.name
+                nav_prop_bin.path = entity.nav_proprty(name)
+
+                identifiers = nav_prop_bin.target_info
+                if isinstance(identifiers, list):
+                    name = identifiers[-1].name
+                    namespace = identifiers[-1].namespace
+                else:
+                    name = identifiers.name
+                    namespace = identifiers.namespace
+
+                nav_prop_bin.target = schema.entity_set(name, namespace)
             except PyODataModelError as ex:
                 config.err_policy(ParserError.NAVIGATION_PROPERTY_BIDING).resolve(ex)
-                nav_prop_bin.path = NullType(path_info.type)
+                nav_prop_bin.path = NullType(nav_prop_bin.path_info[-1].name)
                 nav_prop_bin.target = NullProperty(nav_prop_bin.target_info)
 
     # TODO: Finally, process Annotation nodes when all Scheme nodes are completely processed.
@@ -148,7 +161,9 @@ def build_navigation_type_property(config: Config, node):
 
 
 def build_navigation_property_binding(config: Config, node, et_info):
-    return NavigationPropertyBinding(to_path_info(node.get('Path'), et_info), node.get('Target'))
+    # return NavigationPropertyBinding(to_path_info(node.get('Path'), et_info), node.get('Target'))
+
+    return NavigationPropertyBinding(Identifier.parse(node.get('Path')), Identifier.parse(node.get('Target')))
 
 
 def build_unit_annotation(config: Config, target: Typ, annotation_node):

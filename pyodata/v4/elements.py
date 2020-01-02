@@ -1,25 +1,11 @@
 """ Repository of elements specific to the ODATA V4"""
 from typing import Optional, List
 
-import collections
-
 from pyodata.model import elements
 from pyodata.exceptions import PyODataModelError, PyODataException
-from pyodata.model.elements import VariableDeclaration, StructType, TypeInfo, Annotation, Identifier
+from pyodata.model.elements import VariableDeclaration, StructType, Annotation, Identifier, IdentifierInfo
 from pyodata.model.type_traits import TypTraits
 from pyodata.v4.type_traits import EnumTypTrait
-
-PathInfo = collections.namedtuple('PathInfo', 'namespace type proprty')
-
-
-def to_path_info(value: str, et_info: TypeInfo):
-    """ Helper function for parsing Path attribute on NavigationPropertyBinding property """
-    if '/' in value:
-        parts = value.split('.')
-        entity_name, property_name = parts[-1].split('/')
-        return PathInfo('.'.join(parts[:-1]), entity_name, property_name)
-
-    return PathInfo(et_info.namespace, et_info.name, value)
 
 
 class NullProperty:
@@ -114,7 +100,7 @@ class NavigationPropertyBinding:
         https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/csprd06/odata-csdl-xml-v4.01-csprd06.html#sec_NavigationPropertyBinding
     """
 
-    def __init__(self, path_info: PathInfo, target_info: str):
+    def __init__(self, path_info: [IdentifierInfo], target_info: str):
         self._path_info = path_info
         self._target_info = target_info
         self._path: Optional[NavigationTypeProperty] = None
@@ -127,7 +113,7 @@ class NavigationPropertyBinding:
         return f"{self.__class__.__name__}({self.path}, {self.target})"
 
     @property
-    def path_info(self) -> PathInfo:
+    def path_info(self) -> [IdentifierInfo]:
         return self._path_info
 
     @property
