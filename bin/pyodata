@@ -49,8 +49,10 @@ def print_out_metadata_info(args, client):
             if client.schema.config.odata_version == ODataV2:
                 print(f' + {prop.name}({prop.to_role.entity_type_name})')
             else:
-                print(f' + {prop.name}({prop.partner.name})')
-
+                if prop.partner:
+                    print(f' + {prop.name}({prop.partner.name})')
+                else:
+                    print(f' + {prop.name}')
     for fs in client.schema.function_imports:
         print(f'{fs.http_method} {fs.name}')
 
