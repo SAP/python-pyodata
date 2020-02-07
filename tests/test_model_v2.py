@@ -487,6 +487,32 @@ def test_traits_datetime():
     assert testdate.second == 0
     assert testdate.microsecond == 0
 
+    # parsing the lowest value
+    with pytest.raises(OverflowError):
+        typ.traits.from_json("/Date(-62135596800001)/")
+
+    testdate = typ.traits.from_json("/Date(-62135596800000)/")
+    assert testdate.year == 1
+    assert testdate.month == 1
+    assert testdate.day == 1
+    assert testdate.hour == 0
+    assert testdate.minute == 0
+    assert testdate.second == 0
+    assert testdate.microsecond == 0
+
+    # parsing the highest value
+    with pytest.raises(OverflowError):
+        typ.traits.from_json("/Date(253402300800000)/")
+
+    testdate = typ.traits.from_json("/Date(253402300799999)/")
+    assert testdate.year == 9999
+    assert testdate.month == 12
+    assert testdate.day == 31
+    assert testdate.hour == 23
+    assert testdate.minute == 59
+    assert testdate.second == 59
+    assert testdate.microsecond == 999000
+
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
         typ.traits.from_json("xyz")
