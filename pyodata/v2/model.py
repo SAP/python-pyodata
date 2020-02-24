@@ -186,8 +186,9 @@ class Types:
             Types.register_type(Typ('Edm.Byte', '0'))
             Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
             Types.register_type(Typ('Edm.Decimal', '0.0M'))
-            Types.register_type(Typ('Edm.Double', '0.0d'))
-            Types.register_type(Typ('Edm.Single', '0.0f'))
+            Types.register_type(Typ('Edm.Double', '0.0d', EdmFPNumTypTraits.edm_double()))
+            Types.register_type(Typ('Edm.Single', '0.0f', EdmFPNumTypTraits.edm_single()))
+            Types.register_type(Typ('Edm.Float', '0.0d', EdmFPNumTypTraits.edm_float()))
             Types.register_type(
                 Typ('Edm.Guid', 'guid\'00000000-0000-0000-0000-000000000000\'', EdmPrefixedTypTraits('guid')))
             Types.register_type(Typ('Edm.Int16', '0', EdmIntTypTraits()))
@@ -486,6 +487,49 @@ class EdmLongIntTypTraits(TypTraits):
             return int(value[:-1])
 
         return int(value)
+
+    def from_literal(self, value):
+        return self.from_json(value)
+
+
+class EdmFPNumTypTraits(TypTraits):
+    """Edm Floating Point Number traits"""
+
+    def __init__(self, precision, suffix, conversion):
+        self.precision = precision
+        self.suffix = suffix
+        self.conversion = conversion
+
+    def __repr__(self):
+        parent = super(EdmFPNumTypTraits, self).__repr__()
+
+        return f'{parent}({self.precision},{self.suffix})'
+
+    @staticmethod
+    def edm_float():
+        return EdmFPNumTypTraits(7, 'd', '{:E}')
+
+    @staticmethod
+    def edm_double():
+        return EdmFPNumTypTraits(15, 'd', '{:E}')
+
+    @staticmethod
+    def edm_single():
+        return EdmFPNumTypTraits(7, 'f', '{:f}')
+
+    # pylint: disable=no-self-use
+    def to_literal(self, value):
+        return self.conversion.format(value)
+
+    def to_json(self, value):
+        return self.to_literal(value)
+
+    # pylint: disable=no-self-use
+    def from_json(self, value):
+        if not isinstance(value, str) or value[-1] != self.suffix:
+            return float(value)
+
+        return float(value[:-1])
 
     def from_literal(self, value):
         return self.from_json(value)
