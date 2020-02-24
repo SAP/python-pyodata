@@ -556,7 +556,7 @@ def test_function_import_entity(service):
         json={'d': {
             'Sensor': 'Sensor-address',
             'Date': "/Date(1516614510000)/",
-            'Value': 456.8
+            'Value': '456.8d'
         }},
         status=200)
 
@@ -578,7 +578,7 @@ def test_update_entity(service):
         json={'d': {
             'Sensor': 'Sensor-address',
             'Date': "/Date(1714138400000)/",
-            'Value': 34
+            'Value': '34.0d'
         }},
         status=204)
 
@@ -588,11 +588,11 @@ def test_update_entity(service):
 
     assert isinstance(request, pyodata.v2.service.EntityModifyRequest)
 
-    request.set(Value=34)
+    request.set(Value=34.0)
     # Tests if update entity correctly calls 'to_json' method
     request.set(Date=datetime.datetime(2017, 12, 24, 19, 0))
 
-    assert request._values['Value'] == 34
+    assert request._values['Value'] == '3.400000E+01'
     assert request._values['Date'] == '/Date(1514142000000)/'
 
     # If preformatted datetime is passed (e. g. you already replaced datetime instance with string which is
@@ -1145,7 +1145,7 @@ def test_batch_request(service):
                      b'HTTP/1.1 204 Updated\n'
                      b'Content-Type: application/json\n'
                      b'\n'
-                     b"{b'd': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': 34}}"
+                     b"{b'd': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': '34.0d'}}"
                      b'\n'
                      b'--changeset_1--\n'
                      b'\n'
@@ -1166,7 +1166,7 @@ def test_batch_request(service):
 
     temp_request = service.entity_sets.TemperatureMeasurements.update_entity(
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0)).set(Value=34)
+        Date=datetime.datetime(2017, 12, 24, 18, 0)).set(Value=34.0)
 
     batch.add_request(employee_request)
 
@@ -1465,7 +1465,7 @@ def test_create_entity_with_datetime(service):
         json={'d': {
             'Sensor': 'Sensor1',
             'Date': '/Date(1514138400000)/',
-            'Value': '34'
+            'Value': '34.0d'
         }},
         status=201)
 
@@ -1474,7 +1474,7 @@ def test_create_entity_with_datetime(service):
     request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
         'Sensor': 'Sensor1',
         'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=MyUTCOffsetTimezone(-18000)),
-        'Value': 34
+        'Value': 34.0
     })
 
     assert request._values['Date'] == '/Date(1514138400000)/'
@@ -1496,14 +1496,14 @@ def test_parsing_of_datetime_before_unix_time(service):
         json={'d': {
             'Sensor': 'Sensor1',
             'Date': '/Date(-777877200000)/',
-            'Value': '34'
+            'Value': '34.0d'
         }},
         status=201)
 
     request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
         'Sensor': 'Sensor1',
         'Date': datetime.datetime(1945, 5, 8, 19, 0),
-        'Value': 34
+        'Value': 34.0
     })
 
     assert request._values['Date'] == '/Date(-777877200000)/'

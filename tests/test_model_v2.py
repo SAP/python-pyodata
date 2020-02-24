@@ -398,6 +398,35 @@ def test_traits():
     assert typ.traits.from_literal('0L') == 0
     assert typ.traits.from_json('0L') == 0
 
+    typ = Types.from_name('Edm.Double')
+    assert repr(typ.traits) == 'EdmFPNumTypTraits(15,d)'
+    assert typ.traits.from_literal('1E+10d') == 10.0**10
+    assert typ.traits.from_literal('1E+10') == 10.0**10
+    assert typ.traits.from_literal('2.029d') == 2.029
+    assert typ.traits.from_literal('2.0d') == 2.0
+    assert typ.traits.from_json('2.0d') == 2.0
+    assert typ.traits.to_literal(10.0**10) == '1.000000E+10'
+    assert typ.traits.to_literal(2.029) == '2.029000E+00'
+    assert typ.traits.to_literal(2.0) == '2.000000E+00'
+    assert typ.traits.to_json(2.0) == '2.000000E+00'
+
+    typ = Types.from_name('Edm.Single')
+    assert repr(typ.traits) == 'EdmFPNumTypTraits(7,f)'
+    assert typ.traits.from_literal('2.029f') == 2.029
+    assert typ.traits.from_literal('2.029') == 2.029
+    assert typ.traits.from_json('2.029f') == 2.029
+    assert typ.traits.to_literal(2.029) == '2.029000'
+    assert typ.traits.to_json(2.029) == '2.029000'
+
+    typ = Types.from_name('Edm.Float')
+    assert repr(typ.traits) == 'EdmFPNumTypTraits(7,d)'
+    assert typ.traits.from_literal('2.029d') == 2.029
+    assert typ.traits.from_literal('2.029') == 2.029
+    assert typ.traits.from_json('2.029d') == 2.029
+    assert typ.traits.from_json('3.76000000E+04') == 3.76*10**4
+    assert typ.traits.to_literal(2.029) == '2.029000E+00'
+    assert typ.traits.to_json(2.029) == '2.029000E+00'
+
     # GUIDs
     typ = Types.from_name('Edm.Guid')
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
