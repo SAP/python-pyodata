@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Permissive parsing for TypeDefinition
 - Changes all manually raised exception to be child of PyODataException - Martin Miksik
 - More comprehensive tests for ODATA V4 - Martin Miksik
+- Majority of variables and functions in Service V2 are now type annotated - Martin Miksik
 
 ### Changed
 - Implementation and naming schema of `from_etree` - Martin Miksik
