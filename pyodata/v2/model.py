@@ -414,7 +414,10 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
                 try:
                     value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
                 except ValueError:
-                    raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
+                    try:
+                        value = datetime.datetime.strptime(value[0:-1], '%Y-%m-%dT%H:%M:%S.%f')
+                    except ValueError:
+                        raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
         return value
 
