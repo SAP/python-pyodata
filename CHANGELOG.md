@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.4.0]
+
 ### Added
 - Client can be created from local metadata - Jakub Filak
 - support all standard EDM schema versions - Jakub Filak
