@@ -1,4 +1,4 @@
-requests==2.20.0
+requests==2.23.0
 pytest>=2.7.0
 responses>=0.8.1
 setuptools>=38.2.4
