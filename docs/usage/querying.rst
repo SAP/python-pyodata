@@ -86,3 +86,15 @@ Print a count of all orders associated with Employee 1:
 
     count = northwind.entity_sets.Employees.get_entity(1).nav('Orders').get_entities().count().execute()
     print(count)
+
+
+Use non-standard OData URL Query parameters
+-------------------------------------------
+
+Sometimes services implement extension to OData model and require addition URL
+query parameters. In such a case, you can enrich HTTP request made by pyodata with
+these parameters by the method `custom(name: str, value: str)`.
+
+.. code-block:: python
+
+    employee = northwind.entity_sets.Employees.get_entity(1).custom('sap-client', '100').execute()
