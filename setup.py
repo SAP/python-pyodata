@@ -46,7 +46,7 @@ setup(
         "flake8",
         "setuptools>=38.2.4",
         "setuptools-scm>=1.15.6",
-        "requests==2.20.0",
+        "requests==2.23.0",
         "responses>=0.8.1",
         "pylint",
         "pytest>=2.7.0",
