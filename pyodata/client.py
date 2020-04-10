@@ -8,6 +8,9 @@ from pyodata.model.builder import MetadataBuilder
 from pyodata.exceptions import PyODataException, HttpError
 from pyodata.v2.service import Service
 from pyodata.v2 import ODataV2
+from pyodata.v4 import ODataV4
+
+import pyodata.v4 as v4
 
 
 def _fetch_metadata(connection, url, logger):
@@ -62,11 +65,14 @@ class Client:
             config.namespaces = namespaces
 
         # create model instance from received metadata
-        logger.info('Creating OData Schema (version: %d)', config.odata_version)
+        logger.info('Creating OData Schema (version: %s)', str(config.odata_version))
         schema = MetadataBuilder(metadata, config=config).build()
 
         # create service instance based on model we have
-        logger.info('Creating OData Service (version: %d)', config.odata_version)
+        logger.info('Creating OData Service (version: %s)', str(config.odata_version))
+
         service = Service(url, schema, connection)
+        if config.odata_version == ODataV4:
+            return v4.Service(url, schema, connection)
 
         return service

@@ -92,7 +92,10 @@ def build_schema(config: Config, schema_nodes):
             for ref_con in nav_prop.referential_constraints:
                 try:
                     proprty = stype.proprty(ref_con.proprty_name)
-                    referenced_proprty = nav_prop.typ.proprty(ref_con.referenced_proprty_name)
+                    if nav_prop.typ.is_collection:
+                        referenced_proprty = nav_prop.typ.item_type.proprty(ref_con.referenced_proprty_name)
+                    else:
+                        referenced_proprty = nav_prop.typ.proprty(ref_con.referenced_proprty_name)
                 except PyODataModelError as ex:
                     config.err_policy(ParserError.REFERENTIAL_CONSTRAINT).resolve(ex)
                     proprty = NullProperty(ref_con.proprty_name)

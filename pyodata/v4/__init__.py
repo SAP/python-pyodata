@@ -13,6 +13,7 @@ from .build_functions import build_unit_annotation, build_type_definition, build
     build_navigation_type_property, build_navigation_property_binding, build_entity_set_with_v4_builder, build_enum_type
 from .type_traits import EdmDateTypTraits, GeoTypeTraits, EdmDoubleQuotesEncapsulatedTypTraits, \
     EdmTimeOfDay, EdmDateTimeOffsetTypTraits, EdmDuration
+from .service import Service  # noqa
 
 
 class ODataV4(ODATAVersion):

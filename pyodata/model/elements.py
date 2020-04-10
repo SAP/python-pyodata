@@ -273,12 +273,18 @@ class Collection(Typ):
 
         return [self._item_type.traits.to_literal(v) for v in value]
 
+    def to_json(self, value):
+        return self.to_literal(value)
+
     # pylint: disable=no-self-use
     def from_json(self, value):
         if not isinstance(value, list):
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
         return [self._item_type.traits.from_json(v) for v in value]
+
+    def from_literal(self, value):
+        return self.from_json(value)
 
 
 class VariableDeclaration(Identifier):

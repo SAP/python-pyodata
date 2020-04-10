@@ -18,11 +18,11 @@ import requests
 
 from pyodata.model.elements import EntityType, StructTypeProperty, EntitySet, VariableDeclaration, FunctionImport
 from pyodata.model import elements
-from pyodata.v2 import elements as elements_v2
+# from pyodata.v4 import elements as elements_v4
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, PyODataModelError
 
 LOGGER_NAME = 'pyodata.service'
-JSON_OBEJCT = Any
+JSON_OBJECT = Any
 
 
 def urljoin(*path: str) -> str:
@@ -139,7 +139,7 @@ class ODataHttpResponse:
             response.read(len(data))  # the len here will give a 'big enough' value to read the whole content
         )
 
-    def json(self) -> Optional[JSON_OBEJCT]:
+    def json(self) -> Optional[JSON_OBJECT]:
         """Return response as decoded json"""
         # TODO: see implementation in python requests, our simple
         # approach can bring issues with encoding
@@ -716,19 +716,20 @@ class EntityProxy:
        named values), and links (references to other entities).
     """
 
-    # pylint: disable=too-many-branches,too-many-nested-blocks
+    # pylint: disable=too-many-branches,too-many-nested-blocks, unused-argument
 
     def __init__(self, service: 'Service', entity_set: Union[EntitySet, 'EntitySetProxy', None],
                  entity_type: EntityType, proprties: Optional[Any] = None, entity_key: Optional[EntityKey] = None):
+        # Mark V4 changes
         self._logger = logging.getLogger(LOGGER_NAME)
         self._service = service
         self._entity_set = entity_set
+
         self._entity_type = entity_type
         self._key_props = entity_type.key_proprties
         self._cache: Dict[str, Any] = dict()
-        self._entity_key = entity_key
-
-        self._logger.debug('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
+        self._entity_key = None  # entity_key
+        # self._logger.debug('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
 
         # cache values of individual properties if provided
         if proprties is not None:
@@ -744,38 +745,38 @@ class EntityProxy:
                             type_proprty.typ.null_value)
 
             # then, assign all navigation properties
-            for prop in self._entity_type.nav_proprties:
+            # for prop in self._entity_type.nav_proprties:
 
-                if prop.name in proprties:
+                # if prop.name in proprties:
 
                     # entity type of navigation property
-                    prop_etype = prop.to_role.entity_type
+                    # prop_etype = prop.to_role.entity_type
 
                     # cache value according to multiplicity
-                    if prop.to_role.multiplicity in \
-                            [elements_v2.EndRole.MULTIPLICITY_ONE,
-                             elements_v2.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
-
-                        # cache None in case we receive nothing (null) instead of entity data
-                        if proprties[prop.name] is None:
-                            self._cache[prop.name] = None
-                        else:
-                            self._cache[prop.name] = EntityProxy(service, None, prop_etype, proprties[prop.name])
-
-                    elif prop.to_role.multiplicity == elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE:
-                        # default value is empty array
-                        self._cache[prop.name] = []
-
-                        # if there are no entities available, received data consists of
-                        # metadata properties only.
-                        if 'results' in proprties[prop.name]:
-
-                            # available entities are serialized in results array
-                            for entity in proprties[prop.name]['results']:
-                                self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
-                    else:
-                        raise PyODataException('Unknown multiplicity {0} of association role {1}'
-                                               .format(prop.to_role.multiplicity, prop.to_role.name))
+                    # if prop.to_role.multiplicity in \
+                    #         [elements_v4.EndRole.MULTIPLICITY_ONE,
+                    #          elements_v4.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
+                    #
+                    #     # cache None in case we receive nothing (null) instead of entity data
+                    #     if proprties[prop.name] is None:
+                    #         self._cache[prop.name] = None
+                    #     else:
+                    #         self._cache[prop.name] = EntityProxy(service, None, prop_etype, proprties[prop.name])
+                    #
+                    # elif prop.to_role.multiplicity == elements_v4.EndRole.MULTIPLICITY_ZERO_OR_MORE:
+                    #     # default value is empty array
+                    #     self._cache[prop.name] = []
+                    #
+                    #     # if there are no entities available, received data consists of
+                    #     # metadata properties only.
+                    #     if 'results' in proprties[prop.name]:
+                    #
+                    #         # available entities are serialized in results array
+                    #         for entity in proprties[prop.name]['results']:
+                    #             self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
+                    # else:
+                    #     raise PyODataException('Unknown multiplicity {0} of association role {1}'
+                    #                            .format(prop.to_role.multiplicity, prop.to_role.name))
 
         # build entity key if not provided
         if self._entity_key is None:
@@ -794,6 +795,11 @@ class EntityProxy:
 
     def __repr__(self) -> str:
         return self._entity_key.to_key_string()
+        # entity_key = self._entity_key
+        # if entity_key is None:
+        #     raise PyODataException('Entity key is None')
+
+        # return entity_key.to_key_string()
 
     def __getattr__(self, attr: str) -> Any:
         try:
@@ -832,9 +838,9 @@ class EntityProxy:
         if not navigation_entity_set:
             raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
 
-        roles = navigation_property.association.end_roles
-        if all((role.multiplicity != elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
-            return NavEntityProxy(self, nav_property, navigation_entity_set.entity_type, {})
+        # roles = navigation_property.association.end_roles
+        # if all((role.multiplicity != elements_v4.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        #     return NavEntityProxy(self, nav_property, navigation_entity_set.entity_type, {})
 
         return EntitySetProxy(
             self._service,
@@ -844,8 +850,7 @@ class EntityProxy:
 
     def get_path(self) -> str:
         """Returns this entity's relative path - e.g. EntitySet(KEY)"""
-
-        return self._entity_set._name + self._entity_key.to_key_string()  # pylint: disable=protected-access
+        return str(self._entity_set._name + self._entity_key.to_key_string())  # pylint: disable=protected-access
 
     def get_proprty(self, name: str, connection: Optional[requests.Session] = None) -> ODataHttpRequest:
         """Returns value of the property"""
@@ -886,7 +891,7 @@ class EntityProxy:
                                             connection=connection)
 
     @property
-    def entity_set(self) -> EntitySet:
+    def entity_set(self) -> Optional[Union['EntitySet', 'EntitySetProxy']]:
         """Entity set related to this entity"""
 
         return self._entity_set
@@ -906,7 +911,7 @@ class EntityProxy:
 
         return urljoin(service_url, entity_path)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: 'EntityProxy') -> bool:
         """Returns true if the self and the other contains the same data"""
         # pylint: disable=W0212
         return self._cache == other._cache
@@ -1043,9 +1048,9 @@ class EntitySetProxy:
             raise PyODataException(
                 'No association set for role {} {}'.format(navigation_property.to_role, association_set.end_roles))
 
-        roles = navigation_property.association.end_roles
-        if all((role.multiplicity != elements_v2.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
-            return self._get_nav_entity(key, nav_property, navigation_entity_set)
+        # roles = navigation_property.association.end_roles
+        # if all((role.multiplicity != elements_v4.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        #     return self._get_nav_entity(key, nav_property, navigation_entity_set)
 
         return EntitySetProxy(
             self._service,
@@ -1057,7 +1062,8 @@ class EntitySetProxy:
                         navigation_entity_set: EntitySet) -> NavEntityGetRequest:
         """Get entity based on provided key of the master and Navigation property name"""
 
-        def get_entity_handler(parent, nav_property, navigation_entity_set, response) -> NavEntityProxy:
+        def get_entity_handler(parent: EntityProxy, nav_property: str, navigation_entity_set: EntitySet,
+                               response: requests.Response) -> NavEntityProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
@@ -1082,10 +1088,10 @@ class EntitySetProxy:
             self,
             nav_property)
 
-    def get_entity(self, key=None, **args):
+    def get_entity(self, key=None, **args) -> EntityGetRequest:
         """Get entity based on provided key properties"""
 
-        def get_entity_handler(response):
+        def get_entity_handler(response: requests.Response) -> EntityProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
@@ -1108,7 +1114,7 @@ class EntitySetProxy:
     def get_entities(self):
         """Get all entities"""
 
-        def get_entities_handler(response):
+        def get_entities_handler(response: requests.Response) -> Union[List[EntityProxy], int]:
             """Gets entity set from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
@@ -1133,27 +1139,27 @@ class EntitySetProxy:
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
                                    self._parent_last_segment + entity_set_name, self._entity_set.entity_type)
 
-    def create_entity(self, return_code=requests.codes.created):
+    def create_entity(self, return_code: int = requests.codes.created) -> EntityCreateRequest:
         """Creates a new entity in the given entity-set."""
 
-        def create_entity_handler(response):
+        def create_entity_handler(response: requests.Response) -> EntityProxy:
             """Gets newly created entity encoded in HTTP Response"""
 
             if response.status_code != return_code:
                 raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
-
-            entity_props = response.json()['d']
+            # Mark ODataV4 changes
+            entity_props = response.json()
 
             return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props)
 
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, **kwargs):
+    def update_entity(self, key=None, **kwargs) -> EntityModifyRequest:
         """Updates an existing entity in the given entity-set."""
 
-        def update_entity_handler(response):
+        def update_entity_handler(response: requests.Response) -> None:
             """Gets modified entity encoded in HTTP Response"""
 
             if response.status_code != 204:
@@ -1296,7 +1302,7 @@ class FunctionContainer:
 class Service:
     """OData service"""
 
-    def __init__(self, url: str, schema: elements_v2.Schema, connection: requests.Session):
+    def __init__(self, url: str, schema: elements.Schema, connection: requests.Session):
         self._url = url
         self._schema = schema
         self._connection = connection
@@ -1304,7 +1310,7 @@ class Service:
         self._function_container = FunctionContainer(self)
 
     @property
-    def schema(self) -> elements_v2.Schema:
+    def schema(self) -> elements.Schema:
         """Parsed metadata"""
 
         return self._schema
@@ -1343,7 +1349,7 @@ class Service:
         return conn.get(urljoin(self._url, path))
 
     def http_get_odata(self, path: str, handler: Callable[[requests.Response], Any],
-                       connection: Optional[requests.Session] = None):
+                       connection: Optional[requests.Session] = None) -> ODataHttpRequest:
         """HTTP GET request proxy for the passed path in the service"""
 
         conn = connection
@@ -1364,7 +1370,7 @@ class Service:
 
             logging.getLogger(LOGGER_NAME).debug('Batch handler called for batch %s', batch.id)
 
-            result = []
+            result: List[Any] = []
             for part, req in zip(parts, batch.requests):
                 logging.getLogger(LOGGER_NAME).debug('Batch handler is processing part %s for request %s', part, req)
 
@@ -1384,7 +1390,7 @@ class Service:
     def create_changeset(self, changeset_id=None):
         """Create instance of OData changeset"""
 
-        def changeset_handler(changeset: 'Changeset', parts: List[str]):
+        def changeset_handler(changeset: 'Changeset', parts: List[str]) -> List[ODataHttpResponse]:
             """Gets changeset response from HTTP response"""
 
             logging.getLogger(LOGGER_NAME).debug('Changeset handler called for changeset %s', changeset.id)

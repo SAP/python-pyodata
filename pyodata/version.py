@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Callable, TYPE_CHECKING
 
 # pylint: disable=cyclic-import
+
 if TYPE_CHECKING:
     from pyodata.model.elements import Typ, Annotation  # noqa
 
@@ -34,3 +35,6 @@ class ODATAVersion(ABC):
     @abstractmethod
     def annotations() -> Dict['Annotation', Callable]:
         """ Here we define which annotations are supported and what is their python representation"""
+    #
+    # @staticmethod
+    # def init_service(url: str, schema: 'Schema', connection: requests.Session) -> Service

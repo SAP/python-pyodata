@@ -70,7 +70,7 @@ build_olingo:
 	$(DOCKER_BIN) build -t $(DOCKER_NAME) $(TESTS_OLINGO_SERVER)
 
 run_olingo:
-	$(DOCKER_BIN) run -it -p 8888:8080 --name $(DOCKER_NAME) $(DOCKER_NAME):latest
+	$(DOCKER_BIN) run -d -it -p 8888:8080 --name $(DOCKER_NAME) $(DOCKER_NAME):latest
 
 stop_olingo:
 	$(DOCKER_BIN) stop $(DOCKER_NAME)
