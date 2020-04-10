@@ -12,6 +12,28 @@ class PyODataModelError(PyODataException):
     """Raised when model error occurs"""
 
 
+class PyODataRuntimeError(PyODataException):
+    """ Raised when an error accures after initial state is set.
+        e. g. when trying to set entity type for EntitySet for the second time
+    """
+
+
+class PyODataValueError(PyODataException):
+    """ Raised when an value is invalid
+        e. g. malformated input, value is out of range, entity has two properties with same name etc
+    """
+
+
+class PyODataKeyError(PyODataException):
+    """ Raised when nonexistent element is requested
+        e. g. property, entity set etc...
+    """
+
+
+class PyODataTypeError(PyODataException):
+    """ Raised when type error occurs"""
+
+
 class PyODataParserError(PyODataException):
     """Raised when parser error occurs"""
 

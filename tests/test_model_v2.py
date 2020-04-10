@@ -1,5 +1,6 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
+import logging
 import os
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -7,7 +8,8 @@ import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
     PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation
-from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
+from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError, PyODataKeyError, \
+    PyODataValueError, PyODataTypeError
 from tests.conftest import assert_logging_policy
 
 
@@ -138,11 +140,11 @@ def test_edmx(schema):
     assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
 
     # Error handling in the method typ - without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.typ('FooBar')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema'
     # Error handling in the method typ - with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -156,17 +158,17 @@ def test_schema_entity_sets(schema):
     assert schema.entity_set('Cities', namespace='EXAMPLE_SRV') is not None
 
     # without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.entity_set('FooBar')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in any Schema Namespace'
 
     # with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='BLAH')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
 
     # with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -236,17 +238,17 @@ def test_edmx_associations(schema):
     assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
 
     # error handling: without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in any Schema Namespace'
 
     # error handling: with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='BLAH')
     assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
 
     # error handling: with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -432,7 +434,7 @@ def test_traits():
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
     assert typ.traits.to_literal('000-0000') == "guid'000-0000'"
     assert typ.traits.from_literal("guid'1234-56'") == '1234-56'
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataValueError) as e_info:
         typ.traits.from_literal("'1234-56'")
     assert str(e_info.value).startswith("Malformed value '1234-56' for primitive")
 
@@ -453,7 +455,7 @@ def test_traits_datetime():
     assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44'"
 
     # serialization of invalid value
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataTypeError) as e_info:
         typ.traits.to_literal('xyz')
     assert str(e_info.value).startswith('Cannot convert value of type')
 
@@ -483,11 +485,11 @@ def test_traits_datetime():
     assert testdate.microsecond == 0
 
     # parsing invalid value
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataValueError) as e_info:
         typ.traits.from_literal('xyz')
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataValueError) as e_info:
         typ.traits.from_literal("datetime'xyz'")
     assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
@@ -543,11 +545,11 @@ def test_traits_datetime():
     assert testdate.microsecond == 999000
 
     # parsing invalid value
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataValueError) as e_info:
         typ.traits.from_json("xyz")
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
-    with pytest.raises(PyODataModelError) as e_info:
+    with pytest.raises(PyODataValueError) as e_info:
         typ.traits.from_json("/Date(xyz)/")
     assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
@@ -641,8 +643,7 @@ def test_complex_serializer(schema):
     assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
 
 
-@patch('logging.Logger.warning')
-def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
+def test_annot_v_l_missing_e_s(caplog, xml_builder_factory):
     """Test correct handling of annotations whose entity set does not exist"""
 
     xml_builder = xml_builder_factory()
@@ -676,23 +677,21 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize())
 
-    with pytest.raises(RuntimeError) as e_info:
+    with pytest.raises(PyODataKeyError) as e_info:
         metadata.build()
-    assert str(e_info.value) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+    assert 'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES' in str(e_info.value)
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
     })
 
-    metadata.build()
-    assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
-                          )
+    with caplog.at_level(logging.WARNING):
+        metadata.build()
+
+    assert 'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES' in caplog.text
 
 
-@patch('logging.Logger.warning')
-def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
+def test_annot_v_l_missing_e_t(caplog, xml_builder_factory):
     """Test correct handling of annotations whose target type does not exist"""
 
     xml_builder = xml_builder_factory()
@@ -728,21 +727,18 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize())
 
-    try:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         metadata.build()
-        assert 'Expected' == 'RuntimeError'
-    except RuntimeError as ex:
-        assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+    assert 'Type Dict does not exist in Schema Namespace MISSING_ET' in typ_ex_info.value.args[0]
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
     })
 
-    metadata.build()
-    assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'Target Type Dict of ValueHelper(Dict/Value) does not exist'
-                          )
+    with caplog.at_level(logging.WARNING):
+        metadata.build()
+    assert '  Type Dict does not exist in Schema Namespace MISSING_ET' in caplog.text
+    caplog.clear()
 
 
 @patch('pyodata.v2.model.PolicyIgnore.resolve')
@@ -788,7 +784,7 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
 
     metadata = MetadataBuilder(xml_builder.serialize())
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Target Property NoExisting of EntityType(Dict) as defined in ' \
                                         'ValueHelper(Dict/NoExisting) does not exist'
@@ -808,7 +804,7 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
     metadata.build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataKeyError',
                           'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting)'
                           ' does not exist'
                           )
@@ -952,7 +948,7 @@ def test_null_type(xml_builder_factory):
     type_info = TypeInfo(namespace=None, name='MasterEntity', is_collection=False)
     assert isinstance(schema.get_type(type_info), NullType)
 
-    with pytest.raises(PyODataModelError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.get_type(type_info).Any
     assert typ_ex_info.value.args[0] == f'Cannot access this type. An error occurred during parsing type ' \
                           f'stated in xml({schema.get_type(type_info).name}) was not found, therefore it has been ' \
@@ -988,7 +984,7 @@ def test_faulty_association(xml_builder_factory):
     schema = metadata.build()
     assert isinstance(schema.associations[0], NullAssociation)
 
-    with pytest.raises(PyODataModelError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.associations[0].Any
     assert typ_ex_info.value.args[0] == 'Cannot access this association. An error occurred during parsing ' \
                                         'association metadata due to that annotation has been omitted.'
@@ -1014,7 +1010,7 @@ def test_faulty_association_set(xml_builder_factory):
     schema = metadata.build()
     assert isinstance(schema.association_set('toDataEntitySet'), NullAssociation)
 
-    with pytest.raises(PyODataModelError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.association_set('toDataEntitySet').Any
     assert typ_ex_info.value.args[0] == 'Cannot access this association. An error occurred during parsing ' \
                                         'association metadata due to that annotation has been omitted.'
@@ -1033,7 +1029,7 @@ def test_missing_association_for_navigation_property(xml_builder_factory):
 
     metadata = MetadataBuilder(xml_builder.serialize())
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Association Followers does not exist in namespace EXAMPLE_SRV'
 
@@ -1051,7 +1047,7 @@ def test_edmx_association_end_by_role():
     assert association.end_by_role(end_from.role) == end_from
     assert association.end_by_role(end_to.role) == end_to
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         association.end_by_role('Blah')
     assert typ_ex_info.value.args[0] == 'Association FooBar has no End with Role Blah'
 
@@ -1229,38 +1225,36 @@ def test_enum_parsing(schema):
     country2 = schema.enum_type('Country')['USA']
     assert str(country2) == "Country'USA'"
 
-    try:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.enum_type('Country').Cyprus
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member Cyprus'
+    assert typ_ex_info.value.args[0] == f'EnumType EnumType(Country) has no member Cyprus'
 
     c = schema.enum_type('Country')[1]
     assert str(c) == "Country'China'"
 
-    try:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.enum_type('Country')[15]
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member with value {15}'
+    assert typ_ex_info.value.args[0] == f'EnumType EnumType(Country) has no member with value {15}'
 
-    type_info = TypeInfo(namespace=None, name='Country', is_collection=False)
+    type_info = TypeInfo(namespace=None, name='unknown_enum', is_collection=False)
 
-    try:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         schema.get_type(type_info)
-    except PyODataModelError as ex:
-        assert str(ex) == f'Neither primitive types nor types parsed from service metadata contain requested type {type_info[0]}'
+    assert typ_ex_info.value.args[0] == f'Neither primitive types nor types parsed from service ' \
+                                        f'metadata contain requested type {type_info[1]}'
 
     language = schema.enum_type('Language')
     assert language.is_flags is True
 
     try:
         schema.enum_type('ThisEnumDoesNotExist')
-    except KeyError as ex:
-        assert str(ex) == f'\'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace\''
+    except PyODataKeyError as ex:
+        assert str(ex) == f'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace'
 
     try:
-        schema.enum_type('Country', 'WrongNamespace').USA
-    except KeyError as ex:
-        assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
+        schema.enum_type('Country', 'EXAMPLE_SRV_SETS').USA
+    except PyODataKeyError as ex:
+        assert str(ex) == 'EnumType Country does not exist in Schema Namespace EXAMPLE_SRV_SETS'
 
 
 def test_unsupported_enum_underlying_type(xml_builder_factory):
@@ -1271,7 +1265,7 @@ def test_unsupported_enum_underlying_type(xml_builder_factory):
 
     try:
         MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
+    except PyODataException as ex:
         assert str(ex).startswith(f'Type Edm.Bool is not valid as underlying type for EnumType - must be one of')
 
 
@@ -1287,12 +1281,12 @@ def test_enum_value_out_of_range(xml_builder_factory):
 
     try:
         MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
+    except PyODataException as ex:
         assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
 
 
-@patch('logging.Logger.warning')
-def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_factory):
+# @patch('logging.Logger.warning')
+def test_missing_property_referenced_in_annotation(caplog, xml_builder_factory):
     """Test that correct behavior when non existing property is referenced in annotation"""
 
     local_data_property = 'DataType'
@@ -1334,52 +1328,50 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml_builder.add_schema('EXAMPLE_SRV', schema.format('---', value_list_property))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         MetadataBuilder(xml).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
                                         'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
 
-    MetadataBuilder(xml, Config(
-        default_error_policy=PolicyWarning()
-    )).build()
+    with caplog.at_level(logging.WARNING):
+        MetadataBuilder(xml, Config(
+            default_error_policy=PolicyWarning()
+        )).build()
 
-    assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to '
-                          'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
-                          )
+    assert 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
+           'an non existing LocalDataProperty --- of EntityType(MasterEntity)' in caplog.text
+    caplog.clear()
 
     # Test case 2. -> LocalDataProperty is valid and ValueListProperty is faulty
     xml_builder = xml_builder_factory()
     xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, '---'))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataKeyError) as typ_ex_info:
         MetadataBuilder(xml).build()
 
-    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
-                                        'existing ValueListProperty --- of EntityType(DataEntity)'
+    assert 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non existing ' \
+           'ValueListProperty --- of EntityType(DataEntity)' in typ_ex_info.value.args[0]
 
-    MetadataBuilder(xml, Config(
-        default_error_policy=PolicyWarning()
-    )).build()
+    with caplog.at_level(logging.WARNING):
+        MetadataBuilder(xml, Config(
+            default_error_policy=PolicyWarning()
+        )).build()
 
-    assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non '
-                          'existing ValueListProperty --- of EntityType(DataEntity)'
-                          )
+    assert 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an' \
+               ' non existing ValueListProperty --- of EntityType(DataEntity)' in caplog.text
+    caplog.clear()
 
     # Test case 3. -> LocalDataProperty is valid and ValueListProperty is also valid
     xml_builder = xml_builder_factory()
     xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, value_list_property))
     xml = xml_builder.serialize()
 
-    mock_warning.reset_mock()
+    with caplog.at_level(logging.WARNING):
+        MetadataBuilder(xml, Config(
+            default_error_policy=PolicyWarning()
+        )).build()
 
-    MetadataBuilder(xml, Config(
-        default_error_policy=PolicyWarning()
-    )).build()
-
-    assert mock_warning.called is False
+    assert caplog.text == ''
+    caplog.clear()

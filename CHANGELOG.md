@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - support for Edm.Float - Jakub Filak
 
+### Changed
+- replace python builtin exceptions(e. g. RuntimeError) with custom ones 
+
 
 ## [1.4.0]
 
