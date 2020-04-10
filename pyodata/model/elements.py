@@ -5,7 +5,7 @@ import itertools
 import logging
 from abc import abstractmethod
 from enum import Enum
-from typing import Union
+from typing import Union, Dict
 
 from pyodata.policies import ParserError
 from pyodata.config import Config
@@ -104,7 +104,7 @@ class NullAnnotation:
 
 
 class Identifier:
-    def __init__(self, name):
+    def __init__(self, name: str):
         super(Identifier, self).__init__()
 
         self._name = name
@@ -638,7 +638,7 @@ class StructType(Typ):
         self._label = label
         self._is_value_list = is_value_list
         self._key = list()
-        self._properties = dict()
+        self._properties: Dict[str, 'StructTypeProperty'] = dict()
 
     @property
     def label(self):
@@ -648,7 +648,7 @@ class StructType(Typ):
     def is_value_list(self):
         return self._is_value_list
 
-    def proprty(self, property_name):
+    def proprty(self, property_name: str) -> 'StructTypeProperty':
         try:
             return self._properties[property_name]
         except KeyError:

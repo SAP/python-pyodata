@@ -793,7 +793,11 @@ class EntityProxy:
                 pass
 
     def __repr__(self) -> str:
-        return self._entity_key.to_key_string()
+        entity_key = self._entity_key
+        if entity_key is None:
+            raise PyODataException('Entity key is None')
+
+        return entity_key.to_key_string()
 
     def __getattr__(self, attr: str) -> Any:
         try:
@@ -844,8 +848,7 @@ class EntityProxy:
 
     def get_path(self) -> str:
         """Returns this entity's relative path - e.g. EntitySet(KEY)"""
-
-        return self._entity_set._name + self._entity_key.to_key_string()  # pylint: disable=protected-access
+        return str(self._entity_set._name + self._entity_key.to_key_string())  # pylint: disable=protected-access
 
     def get_proprty(self, name: str, connection: Optional[requests.Session] = None) -> ODataHttpRequest:
         """Returns value of the property"""
@@ -886,7 +889,7 @@ class EntityProxy:
                                             connection=connection)
 
     @property
-    def entity_set(self) -> EntitySet:
+    def entity_set(self) -> Optional[Union['EntitySet', 'EntitySetProxy']]:
         """Entity set related to this entity"""
 
         return self._entity_set
@@ -906,7 +909,7 @@ class EntityProxy:
 
         return urljoin(service_url, entity_path)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: 'EntityProxy') -> bool:
         """Returns true if the self and the other contains the same data"""
         # pylint: disable=W0212
         return self._cache == other._cache
@@ -1057,7 +1060,8 @@ class EntitySetProxy:
                         navigation_entity_set: EntitySet) -> NavEntityGetRequest:
         """Get entity based on provided key of the master and Navigation property name"""
 
-        def get_entity_handler(parent, nav_property, navigation_entity_set, response) -> NavEntityProxy:
+        def get_entity_handler(parent: EntityProxy, nav_property: str, navigation_entity_set: EntitySet,
+                               response: requests.Response) -> NavEntityProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
@@ -1082,10 +1086,10 @@ class EntitySetProxy:
             self,
             nav_property)
 
-    def get_entity(self, key=None, **args):
+    def get_entity(self, key=None, **args) -> EntityGetRequest:
         """Get entity based on provided key properties"""
 
-        def get_entity_handler(response):
+        def get_entity_handler(response: requests.Response) -> EntityProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
@@ -1108,7 +1112,7 @@ class EntitySetProxy:
     def get_entities(self):
         """Get all entities"""
 
-        def get_entities_handler(response):
+        def get_entities_handler(response: requests.Response) -> Union[List[EntityProxy], int]:
             """Gets entity set from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
@@ -1133,10 +1137,10 @@ class EntitySetProxy:
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
                                    self._parent_last_segment + entity_set_name, self._entity_set.entity_type)
 
-    def create_entity(self, return_code=requests.codes.created):
+    def create_entity(self, return_code: int = requests.codes.created) -> EntityCreateRequest:
         """Creates a new entity in the given entity-set."""
 
-        def create_entity_handler(response):
+        def create_entity_handler(response: requests.Response) -> EntityProxy:
             """Gets newly created entity encoded in HTTP Response"""
 
             if response.status_code != return_code:
@@ -1150,10 +1154,10 @@ class EntitySetProxy:
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, **kwargs):
+    def update_entity(self, key=None, **kwargs) -> EntityModifyRequest:
         """Updates an existing entity in the given entity-set."""
 
-        def update_entity_handler(response):
+        def update_entity_handler(response: requests.Response) -> None:
             """Gets modified entity encoded in HTTP Response"""
 
             if response.status_code != 204:
@@ -1343,7 +1347,7 @@ class Service:
         return conn.get(urljoin(self._url, path))
 
     def http_get_odata(self, path: str, handler: Callable[[requests.Response], Any],
-                       connection: Optional[requests.Session] = None):
+                       connection: Optional[requests.Session] = None) -> ODataHttpRequest:
         """HTTP GET request proxy for the passed path in the service"""
 
         conn = connection
@@ -1364,7 +1368,7 @@ class Service:
 
             logging.getLogger(LOGGER_NAME).debug('Batch handler called for batch %s', batch.id)
 
-            result = []
+            result: List[Any] = []
             for part, req in zip(parts, batch.requests):
                 logging.getLogger(LOGGER_NAME).debug('Batch handler is processing part %s for request %s', part, req)
 
@@ -1384,7 +1388,7 @@ class Service:
     def create_changeset(self, changeset_id=None):
         """Create instance of OData changeset"""
 
-        def changeset_handler(changeset: 'Changeset', parts: List[str]):
+        def changeset_handler(changeset: 'Changeset', parts: List[str]) -> List[ODataHttpResponse]:
             """Gets changeset response from HTTP response"""
 
             logging.getLogger(LOGGER_NAME).debug('Changeset handler called for changeset %s', changeset.id)
