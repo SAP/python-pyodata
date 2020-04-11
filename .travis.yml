@@ -19,7 +19,7 @@ env:
 # command to install dependencies
 install:
   - pip install .
-  - pip install -q lxml==LXML_VERSION
+  - pip install -q lxml==$LXML_VERSION
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
   - pip install bandit
