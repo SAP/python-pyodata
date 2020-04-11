@@ -5,10 +5,21 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+  
+env:
+  - LXML_VERSION=3.7.3
+  - LXML_VERSION=3.8.0
+  - LXML_VERSION=4.0.0
+  - LXML_VERSION=4.1.1  
+  - LXML_VERSION=4.2.6
+  - LXML_VERSION=4.3.5
+  - LXML_VERSION=4.4.3
+  - LXML_VERSION=4.5.0
 
 # command to install dependencies
 install:
   - pip install .
+  - pip install -q lxml==LXML_VERSION
   - pip install -r dev-requirements.txt
   - pip install -r requirements.txt
   - pip install bandit
