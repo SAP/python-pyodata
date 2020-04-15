@@ -1,0 +1,17 @@
+internal error:
+- unimplemented handlers
+- unimplemented if/else branch
+- type mismatch when resolving odata metadata references (
+
+service error:
+- invalid metadata
+-- unknown reference target (ValueHelper annotation, Assocition role, ...)
+-- redefinition of something
+-- malformed metadata (e.g. missing Navigation role XML nodes)
+- runtime
+-- malformed http responses
+-- malformed odata values
+
+programmer error:
+- request unknown type / property
+- assigns invalid data
