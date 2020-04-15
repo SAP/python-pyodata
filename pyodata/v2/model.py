@@ -35,6 +35,8 @@ class NullAssociation:
         self.name = name
 
     def __getattr__(self, item):
+        # TODO: inappropriate message - nobody can resolve "this" - replace with something meaningful
+        # ANNOT_EX: fatal invalid metadata
         raise PyODataModelError('Cannot access this association. An error occurred during parsing '
                                 'association metadata due to that annotation has been omitted.')
 
@@ -44,6 +46,8 @@ class NullType:
         self.name = name
 
     def __getattr__(self, item):
+        # TODO: inappropriate message - nobody can resolve "this" - replace with something meaningful
+        # ANNOT_EX: fatal invalid metadata
         raise PyODataModelError(f'Cannot access this type. An error occurred during parsing '
                                 f'type stated in xml({self.name}) was not found, therefore it has been replaced with NullType.')
 
@@ -271,6 +275,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
+            # ANNOT_EX: fatal runtime error on caller side
             raise PyODataException('Cannot encode value {} without complex type information'.format(value))
 
         result = {}
@@ -285,6 +290,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataException('Cannot decode value {} without complex type information'.format(value))
 
         result = {}
@@ -299,6 +305,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataException('Cannot decode value {} without complex type information'.format(value))
 
         result = {}
@@ -343,6 +350,7 @@ class EdmPrefixedTypTraits(TypTraits):
     def from_literal(self, value):
         matches = re.match("^{}'(.*)'$".format(self._prefix), value)
         if not matches:
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataModelError(
                 "Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
         return matches.group(1)
@@ -375,6 +383,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         """
 
         if not isinstance(value, datetime.datetime):
+            # ANNOT_EX: fatal runtime error on programmer side
             raise PyODataModelError(
                 'Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
 
@@ -396,6 +405,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         matches = re.match(r"^/Date\((.*)\)/$", value)
         if not matches:
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataModelError(
                 "Malformed value {0} for primitive Edm type. Expected format is /Date(value)/".format(value))
         value = matches.group(1)
@@ -404,6 +414,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
             value = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(milliseconds=int(value))
         except ValueError:
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
         return value
@@ -424,6 +435,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
                 try:
                     value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
                 except ValueError:
+                    # ANNOT_EX: fatal runtime error on service side
                     raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
         return value
@@ -468,9 +480,11 @@ class EdmIntTypTraits(TypTraits):
 
     # pylint: disable=no-self-use
     def from_json(self, value):
+        # ANNOT_EX: potential ValueError: fatal runtime error on service side
         return int(value)
 
     def from_literal(self, value):
+        # ANNOT_EX: potential ValueError: fatal runtime error on service side
         return int(value)
 
 
@@ -484,8 +498,10 @@ class EdmLongIntTypTraits(TypTraits):
     # pylint: disable=no-self-use
     def from_json(self, value):
         if value[-1] == 'L':
+            # ANNOT_EX: potential ValueError: fatal runtime error on service side
             return int(value[:-1])
 
+        # ANNOT_EX: potential ValueError: fatal runtime error on service side
         return int(value)
 
     def from_literal(self, value):
@@ -626,6 +642,7 @@ class Collection(Typ):
     # pylint: disable=no-self-use
     def to_literal(self, value):
         if not isinstance(value, list):
+            # ANNOT_EX: fatal runtime error on programmer side
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
         return [self._item_type.traits.to_literal(v) for v in value]
@@ -633,6 +650,7 @@ class Collection(Typ):
     # pylint: disable=no-self-use
     def from_json(self, value):
         if not isinstance(value, list):
+            # ANNOT_EX: fatal runtime error on service side
             raise PyODataException('Bad format: invalid list value {}'.format(value))
 
         return [self._item_type.traits.from_json(v) for v in value]
@@ -677,9 +695,11 @@ class VariableDeclaration(Identifier):
     @typ.setter
     def typ(self, value):
         if self._typ is not None:
+            # ANNOT_EX: fatal model building error - most probably invalid metadat
             raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._typ, self, value))
 
         if value.name != self._type_info[1]:
+            # ANNOT_EX: fatal model building error - most probably invalid metadata
             raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._typ = value
@@ -702,6 +722,7 @@ class VariableDeclaration(Identifier):
 
     def _check_scale_value(self):
         if self._scale > self._precision:
+            # ANNOT_EX: fatal model building error - most probably invalid metadata
             raise PyODataModelError('Scale value ({}) must be less than or equal to precision value ({})'
                                     .format(self._scale, self._precision))
 
@@ -776,6 +797,7 @@ class Schema:
             try:
                 return super(Schema.Declarations, self).__getitem__(key)
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('There is no Schema Namespace {}'.format(key))
 
     def __init__(self, config: Config):
@@ -805,6 +827,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('Type {} does not exist in Schema{}'
                        .format(type_name, ' Namespace ' + namespace if namespace else ''))
 
@@ -813,6 +836,7 @@ class Schema:
             try:
                 return self._decls[namespace].entity_types[type_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('EntityType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
 
         for decl in list(self._decls.values()):
@@ -821,6 +845,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
 
     def complex_type(self, type_name, namespace=None):
@@ -828,6 +853,7 @@ class Schema:
             try:
                 return self._decls[namespace].complex_types[type_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('ComplexType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
 
         for decl in list(self._decls.values()):
@@ -836,6 +862,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
 
     def enum_type(self, type_name, namespace=None):
@@ -843,6 +870,7 @@ class Schema:
             try:
                 return self._decls[namespace].enum_types[type_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError(f'EnumType {type_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
@@ -851,6 +879,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError(f'EnumType {type_name} does not exist in any Schema Namespace')
 
     def get_type(self, type_info):
@@ -882,6 +911,7 @@ class Schema:
         except KeyError:
             pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise PyODataModelError(
             'Neither primitive types nor types parsed from service metadata contain requested type {}'
             .format(type_info.name))
@@ -903,6 +933,7 @@ class Schema:
             try:
                 return self._decls[namespace].entity_sets[set_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('EntitySet {} does not exist in Schema Namespace {}'.format(set_name, namespace))
 
         for decl in list(self._decls.values()):
@@ -911,6 +942,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('EntitySet {} does not exist in any Schema Namespace'.format(set_name))
 
     @property
@@ -922,6 +954,7 @@ class Schema:
             try:
                 return self._decls[namespace].function_imports[function_import]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('FunctionImport {} does not exist in Schema Namespace {}'
                                .format(function_import, namespace))
 
@@ -931,6 +964,7 @@ class Schema:
             except KeyError:
                 pass
 
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('FunctionImport {} does not exist in any Schema Namespace'.format(function_import))
 
     @property
@@ -942,6 +976,7 @@ class Schema:
             try:
                 return self._decls[namespace].associations[association_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('Association {} does not exist in namespace {}'.format(association_name, namespace))
         for decl in list(self._decls.values()):
             try:
@@ -958,12 +993,14 @@ class Schema:
             for association_set in list(self._decls[namespace].association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
+            # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
             raise KeyError('Association Set for Association {} does not exist in Schema Namespace {}'.format(
                 association_name, namespace))
         for decl in list(self._decls.values()):
             for association_set in list(decl.association_sets.values()):
                 if association_set.association_type.name == association_name:
                     return association_set
+        # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
         raise KeyError('Association Set for Association {} does not exist in any Schema Namespace'.format(
             association_name))
 
@@ -972,6 +1009,7 @@ class Schema:
             try:
                 return self._decls[namespace].association_sets[set_name]
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise KeyError('Association set {} does not exist in namespace {}'.format(set_name, namespace))
         for decl in list(self._decls.values()):
             try:
@@ -988,16 +1026,23 @@ class Schema:
             try:
                 entity_type = self.entity_type(entity_type_name, namespace)
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise PyODataModelError('EntityType {} does not exist in Schema Namespace {}'
                                         .format(entity_type_name, namespace))
             try:
                 entity_type.proprty(proprty)
             except KeyError:
+                # ANNOT_EX: fatal model usage error - programmer error or invalid service metadata
                 raise PyODataModelError('Property {} does not exist in {}'.format(proprty, entity_type.name))
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
     def from_etree(schema_nodes, config: Config):
+        # ANNOT_EX: any PyODataModel exception linked to Model raised in this
+        #       method should be reported as invalid service metadata
+        # ANNOT_EX: any lxml exception should in this
+        #       method should be reported as invalid service metadata
+
         schema = Schema(config)
 
         # Parse Schema nodes by parts to get over the problem of not-yet known
@@ -1075,6 +1120,7 @@ class Schema:
 
                             end_role.entity_type = etype
                         except KeyError:
+                            # ANNOT_EX: invalid metadata error
                             raise PyODataModelError(
                                 f'EntityType {end_role.entity_type_info.name} does not exist in Schema '
                                 f'Namespace {end_role.entity_type_info.namespace}')
@@ -1085,6 +1131,7 @@ class Schema:
 
                         # Check if the role was defined in the current association
                         if principal_role.name not in role_names:
+                            # ANNOT_EX: invalid metadata error
                             raise RuntimeError(
                                 'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
 
@@ -1097,6 +1144,7 @@ class Schema:
 
                         # Check if the role was defined in the current association
                         if dependent_role.name not in role_names:
+                            # ANNOT_EX: invalid metadata error
                             raise RuntimeError(
                                 'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
 
@@ -1155,6 +1203,7 @@ class Schema:
                         assoc_set.association_type = schema.association(assoc_set.association_type_name,
                                                                         assoc_set.association_type_namespace)
                     except KeyError:
+                        # ANNOT_EX: invalid metadata error
                         raise PyODataModelError(
                             'Association {} does not exist in namespace {}'
                             .format(assoc_set.association_type_name, assoc_set.association_type_namespace))
@@ -1166,10 +1215,12 @@ class Schema:
                             entity_set = schema.entity_set(end.entity_set_name, namespace)
                             end.entity_set = entity_set
                         except KeyError:
+                            # ANNOT_EX: invalid metadata error
                             raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
                                                     .format(end.entity_set_name, namespace))
                         # Check if role is defined in Association
                         if assoc_set.association_type.end_by_role(end.role) is None:
+                            # ANNOT_EX: invalid metadata error
                             raise PyODataModelError('Role {} is not defined in association {}'
                                                     .format(end.role, assoc_set.association_type_name))
                 except (PyODataModelError, KeyError) as ex:
@@ -1193,6 +1244,7 @@ class Schema:
                                 annotation.entity_set = schema.entity_set(
                                     annotation.collection_path, namespace=annotation.element_namespace)
                             except KeyError:
+                                # ANNOT_EX: invalid metadata error
                                 raise RuntimeError(f'Entity Set {annotation.collection_path} '
                                                    f'for {annotation} does not exist')
 
@@ -1200,12 +1252,14 @@ class Schema:
                                 vh_type = schema.typ(annotation.proprty_entity_type_name,
                                                      namespace=annotation.element_namespace)
                             except KeyError:
+                                # ANNOT_EX: invalid metadata error
                                 raise RuntimeError(f'Target Type {annotation.proprty_entity_type_name} '
                                                    f'of {annotation} does not exist')
 
                             try:
                                 target_proprty = vh_type.proprty(annotation.proprty_name)
                             except KeyError:
+                                # ANNOT_EX: invalid metadata error
                                 raise RuntimeError(f'Target Property {annotation.proprty_name} '
                                                    f'of {vh_type} as defined in {annotation} does not exist')
 
@@ -1252,6 +1306,8 @@ class StructType(Typ):
             stp = StructTypeProperty.from_etree(proprty)
 
             if stp.name in stype._properties:
+                # ANNOT_EX: invalid metadata error
+                # TODO: add permissive policy
                 raise KeyError('{0} already has property {1}'.format(stype, stp.name))
 
             stype._properties[stp.name] = stp
@@ -1329,6 +1385,7 @@ class EnumType(Identifier):
     def __getattr__(self, item):
         member = next(filter(lambda x: x.name == item, self._member), None)
         if member is None:
+            # ANNOT_EX: model usage error
             raise PyODataException(f'EnumType {self} has no member {item}')
 
         return member
@@ -1340,6 +1397,7 @@ class EnumType(Identifier):
 
         member = next(filter(lambda x: x.value == int(item), self._member), None)
         if member is None:
+            # ANNOT_EX: model usage error
             raise PyODataException(f'EnumType {self} has no member with value {item}')
 
         return member
@@ -1361,6 +1419,7 @@ class EnumType(Identifier):
         }
 
         if underlying_type not in valid_types:
+            # ANNOT_EX: metadata error
             raise PyODataParserError(
                 f'Type {underlying_type} is not valid as underlying type for EnumType - must be one of {valid_types}')
 
@@ -1379,6 +1438,7 @@ class EnumType(Identifier):
 
             vtype = valid_types[underlying_type]
             if not vtype[0] < next_value < vtype[1]:
+                # ANNOT_EX: metadata error
                 raise PyODataParserError(f'Value {next_value} is out of range for type {underlying_type}')
 
             emember = EnumMember(etype, name, next_value)
@@ -1432,6 +1492,7 @@ class EntityType(StructType):
             navp = NavigationTypeProperty.from_etree(proprty)
 
             if navp.name in etype._nav_properties:
+                # ANNOT_EX: metadata error
                 raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
 
             etype._nav_properties[navp.name] = navp
@@ -1468,9 +1529,11 @@ class EntitySet(Identifier):
     @entity_type.setter
     def entity_type(self, value):
         if self._entity_type is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
 
         if value.name != self.entity_type_info[1]:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._entity_type = value
@@ -1577,6 +1640,7 @@ class StructTypeProperty(VariableDeclaration):
     def struct_type(self, value):
 
         if self._struct_type is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._struct_type, self, value))
 
         self._struct_type = value
@@ -1586,6 +1650,8 @@ class StructTypeProperty(VariableDeclaration):
                 self._text_proprty = self._struct_type.proprty(self._text_proprty_name)
             except KeyError:
                 # TODO: resolve EntityType of text property
+                # ANNOT_EX: metadata error or rather bug in pyodata internall error - how this can happen?
+                # TODO: the text looks invalid
                 if '/' not in self._text_proprty_name:
                     raise RuntimeError('The attribute sap:text of {1} is set to non existing Property \'{0}\''
                                        .format(self._text_proprty_name, self))
@@ -1727,9 +1793,11 @@ class NavigationTypeProperty(VariableDeclaration):
     def association(self, value):
 
         if self._association is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._association, self, value))
 
         if value.name != self._association_info.name:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._association = value
@@ -1779,9 +1847,11 @@ class EndRole:
     def entity_type(self, value):
 
         if self._entity_type is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
 
         if value.name != self._entity_type_info.name:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
 
         self._entity_type = value
@@ -1842,30 +1912,36 @@ class ReferentialConstraint:
     def from_etree(referential_constraint_node, config: Config):
         principal = referential_constraint_node.xpath('edm:Principal', namespaces=config.namespaces)
         if len(principal) != 1:
+            # ANNOT_EX: metadata error
             raise RuntimeError('Referential constraint must contain exactly one principal element')
 
         principal_name = principal[0].get('Role')
         if principal_name is None:
+            # ANNOT_EX: metadata error
             raise RuntimeError('Principal role name was not specified')
 
         principal_refs = []
         for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
             principal_refs.append(property_ref.get('Name'))
         if not principal_refs:
+            # ANNOT_EX: metadata error
             raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
 
         dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=config.namespaces)
         if len(dependent) != 1:
+            # ANNOT_EX: metadata error
             raise RuntimeError('Referential constraint must contain exactly one dependent element')
 
         dependent_name = dependent[0].get('Role')
         if dependent_name is None:
+            # ANNOT_EX: metadata error
             raise RuntimeError('Dependent role name was not specified')
 
         dependent_refs = []
         for property_ref in dependent[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
             dependent_refs.append(property_ref.get('Name'))
         if len(principal_refs) != len(dependent_refs):
+            # ANNOT_EX: metadata error
             raise RuntimeError('Number of properties should be equal for the principal {} and the dependent {}'
                                .format(principal_name, dependent_name))
 
@@ -1904,6 +1980,7 @@ class Association:
         try:
             return next((item for item in self._end_roles if item.role == end_role))
         except StopIteration:
+            # ANNOT_EX: metadata error
             raise KeyError('Association {} has no End with Role {}'.format(self._name, end_role))
 
     @property
@@ -1918,14 +1995,17 @@ class Association:
         for end in association_node.xpath('edm:End', namespaces=config.namespaces):
             end_role = EndRole.from_etree(end)
             if end_role.entity_type_info is None:
+                # ANNOT_EX: metadata error
                 raise RuntimeError('End type is not specified in the association {}'.format(name))
             association._end_roles.append(end_role)
 
         if len(association._end_roles) != 2:
+            # ANNOT_EX: metadata error
             raise RuntimeError('Association {} does not have two end roles'.format(name))
 
         refer = association_node.xpath('edm:ReferentialConstraint', namespaces=config.namespaces)
         if len(refer) > 1:
+            # ANNOT_EX: metadata error
             raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
 
         if not refer:
@@ -1962,9 +2042,11 @@ class AssociationSetEndRole:
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set:
+            # ANNOT_EX: metadata error - redefinition
             raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_set, self, value))
 
         if value.name != self._entity_set_name:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise PyODataModelError(
                 'Assigned entity set {0} differentiates from the declared {1}'.format(value, self._entity_set_name))
 
@@ -2013,17 +2095,20 @@ class AssociationSet:
         try:
             return next((end for end in self._end_roles if end.role == end_role))
         except StopIteration:
+            # ANNOT_EX: metadata error
             raise KeyError('Association set {} has no End with Role {}'.format(self._name, end_role))
 
     def end_by_entity_set(self, entity_set):
         try:
             return next((end for end in self._end_roles if end.entity_set_name == entity_set))
         except StopIteration:
+            # ANNOT_EX: metadata error
             raise KeyError('Association set {} has no End with Entity Set {}'.format(self._name, entity_set))
 
     @association_type.setter
     def association_type(self, value):
         if self._association_type is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {} of {} with {}'.format(self._association_type, self, value))
         self._association_type = value
 
@@ -2035,6 +2120,7 @@ class AssociationSet:
 
         end_roles_list = association_set_node.xpath('edm:End', namespaces=config.namespaces)
         if len(end_roles) > 2:
+            # ANNOT_EX: metadata error
             raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
 
         for end_role in end_roles_list:
@@ -2132,9 +2218,11 @@ class ValueHelper(Annotation):
     @proprty.setter
     def proprty(self, value):
         if self._proprty is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
 
         if value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise RuntimeError('{0} cannot be an annotation of {1}'.format(self, value))
 
         self._proprty = value
@@ -2145,6 +2233,7 @@ class ValueHelper(Annotation):
                 try:
                     param.local_property = etype.proprty(param.local_property_name)
                 except KeyError:
+                    # ANNOT_EX: metadata error
                     raise RuntimeError('{0} of {1} points to an non existing LocalDataProperty {2} of {3}'.format(
                         param, self, param.local_property_name, etype))
 
@@ -2159,9 +2248,11 @@ class ValueHelper(Annotation):
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._entity_set, self, value))
 
         if value.name != self.collection_path:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise RuntimeError('{0} cannot be assigned to {1}'.format(self, value))
 
         self._entity_set = value
@@ -2172,6 +2263,7 @@ class ValueHelper(Annotation):
                 try:
                     param.list_property = etype.proprty(param.list_property_name)
                 except KeyError:
+                    # ANNOT_EX: metadata error
                     raise RuntimeError('{0} of {1} points to an non existing ValueListProperty {2} of {3}'.format(
                         param, self, param.list_property_name, etype))
 
@@ -2188,6 +2280,7 @@ class ValueHelper(Annotation):
             if prm.local_property.name == name:
                 return prm
 
+        # ANNOT_EX: model usage error
         raise KeyError('{0} has no local property {1}'.format(self, name))
 
     def list_property_param(self, name):
@@ -2195,6 +2288,7 @@ class ValueHelper(Annotation):
             if prm.list_property.name == name:
                 return prm
 
+        # ANNOT_EX: model usage error
         raise KeyError('{0} has no list property {1}'.format(self, name))
 
     @staticmethod
@@ -2253,6 +2347,7 @@ class ValueHelperParameter:
     @value_helper.setter
     def value_helper(self, value):
         if self._value_helper is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._value_helper, self, value))
 
         self._value_helper = value
@@ -2272,6 +2367,7 @@ class ValueHelperParameter:
     @local_property.setter
     def local_property(self, value):
         if self._local_property is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._local_property, self, value))
 
         self._local_property = value
@@ -2287,6 +2383,7 @@ class ValueHelperParameter:
     @list_property.setter
     def list_property(self, value):
         if self._list_property is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._list_property, self, value))
 
         self._list_property = value
@@ -2328,9 +2425,11 @@ class FunctionImport(Identifier):
     @return_type.setter
     def return_type(self, value):
         if self._return_type is not None:
+            # ANNOT_EX: metadata error - redefinition
             raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._return_type, self, value))
 
         if value.name != self.return_type_info[1]:
+            # ANNOT_EX: metadata error or rather bug in pyodata internall error - declared type name does not match runtime type name
             raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
 
         self._return_type = value
@@ -2413,6 +2512,7 @@ def sap_attribute_get_bool(node, attr, default):
     if value == 'false':
         return False
 
+    # ANNOT_EX: metadata error
     raise TypeError('Not a bool attribute: {0} = {1}'.format(attr, value))
 
 
@@ -2466,6 +2566,7 @@ class MetadataBuilder:
         elif isinstance(self._xml, bytes):
             mdf = io.BytesIO(self._xml)
         else:
+            # ANNOT_EX: usage error
             raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(self._xml)))
 
         namespaces = self._config.namespaces
@@ -2475,17 +2576,20 @@ class MetadataBuilder:
         try:
             dataservices = next((child for child in edmx if etree.QName(child.tag).localname == 'DataServices'))
         except StopIteration:
+            # ANNOT_EX: invalid metadata xml
             raise PyODataParserError('Metadata document is missing the element DataServices')
 
         try:
             schema = next((child for child in dataservices if etree.QName(child.tag).localname == 'Schema'))
         except StopIteration:
+            # ANNOT_EX: invalid metadata xml
             raise PyODataParserError('Metadata document is missing the element Schema')
 
         if 'edmx' not in self._config.namespaces:
             namespace = etree.QName(edmx.tag).namespace
 
             if namespace not in self.EDMX_WHITELIST:
+                # ANNOT_EX: unsupported metadata
                 raise PyODataParserError(f'Unsupported Edmx namespace - {namespace}')
 
             namespaces['edmx'] = namespace
@@ -2494,6 +2598,7 @@ class MetadataBuilder:
             namespace = etree.QName(schema.tag).namespace
 
             if namespace not in self.EDM_WHITELIST:
+                # ANNOT_EX: unsupported metadata
                 raise PyODataParserError(f'Unsupported Schema namespace - {namespace}')
 
             namespaces['edm'] = namespace

@@ -172,6 +172,7 @@ class EntityKey:
 
             # check that entity type key consists of exactly one property
             if len(self._key) != 1:
+                # ANNOT_EX: usage error or service error - caller must decide
                 raise PyODataException(('Key of entity type {} consists of multiple properties {} '
                                         'and cannot be initialized by single value').format(
                                             self._entity_type.name, ', '.join([prop.name for prop in self._key])))
@@ -187,6 +188,7 @@ class EntityKey:
         else:
             for key_prop in self._key:
                 if key_prop.name not in args:
+                    # ANNOT_EX: usage error or service error - caller must decide
                     raise PyODataException('Missing value for key property {}'.format(key_prop.name))
 
             self._type = EntityKey.TYPE_COMPLEX
@@ -366,6 +368,7 @@ class EntityGetRequest(ODataHttpRequest):
             """Returns $value from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for $value failed with status code {}'
                                 .format(response.status_code), response)
 
@@ -461,6 +464,7 @@ class EntityCreateRequest(ODataHttpRequest):
                     nav_prop = entity_type.nav_proprty(key)
                     val = EntityCreateRequest._build_values(nav_prop.typ, val)
                 except KeyError:
+                    # ANNOT_EX: invalid usage by programmer
                     raise PyODataException('Property {} is not declared in {} entity type'.format(
                         key, entity_type.name))
 
@@ -544,6 +548,7 @@ class EntityModifyRequest(ODataHttpRequest):
             try:
                 val = self._entity_type.proprty(key).typ.traits.to_json(val)
             except KeyError:
+                # ANNOT_EX: invalid usage by programmer
                 raise PyODataException(
                     'Property {} is not declared in {} entity type'.format(key, self._entity_type.name))
 
@@ -680,6 +685,7 @@ class FunctionRequest(QueryRequest):
             # add parameter as custom query argument
             self.custom(param.name, param.typ.traits.to_literal(value))
         except KeyError:
+            # ANNOT_EX: invalid usage by programmer
             raise PyODataException('Function import {0} does not have pararmeter {1}'
                                    .format(self._function_import.name, name))
 
@@ -757,6 +763,7 @@ class EntityProxy:
                             for entity in proprties[prop.name]['results']:
                                 self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
                     else:
+                        # ANNOT_EX: invalid usage by programmer or wrong data by service - caller must decide
                         raise PyODataException('Unknown multiplicity {0} of association role {1}'
                                                .format(prop.to_role.multiplicity, prop.to_role.name))
 
@@ -787,6 +794,7 @@ class EntityProxy:
                 self._cache[attr] = value
                 return value
             except KeyError as ex:
+                # ANNOT_EX: invalid usage by programmer
                 raise AttributeError('EntityType {0} does not have Property {1}: {2}'
                                      .format(self._entity_type.name, attr, str(ex)))
 
@@ -797,6 +805,7 @@ class EntityProxy:
         try:
             navigation_property = self._entity_type.nav_proprty(nav_property)
         except KeyError:
+            # ANNOT_EX: invalid usage by programmer related to odata model
             raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
                 nav_property, self._entity_type))
 
@@ -812,6 +821,7 @@ class EntityProxy:
                 navigation_entity_set = self._service.schema.entity_set(end.entity_set_name, association_info.namespace)
 
         if not navigation_entity_set:
+            # ANNOT_EX: invalid usage by programmer - this does not look possible - one would expect model.py detects this problem - move the check to model.py
             raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
 
         roles = navigation_property.association.end_roles
@@ -838,6 +848,7 @@ class EntityProxy:
             """Gets property value from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for Attribute {0} of Entity {1} failed with status code {2}'
                                 .format(proprty.name, key, response.status_code), response)
 
@@ -857,6 +868,7 @@ class EntityProxy:
             """Gets property value from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for $value of Entity {0} failed with status code {1}'
                                 .format(key, response.status_code), response)
 
@@ -921,6 +933,7 @@ class GetEntitySetFilter:
         """Creates a expression by joining the operands with the operator"""
 
         if len(operands) < 2:
+            # ANNOT_EX: invalid usage by programmer (not odata related)
             raise ExpressionError('The $filter operator \'{}\' needs at least two operands'.format(operator))
 
         return '({})'.format(' {} '.format(operator).join(operands))
@@ -1006,6 +1019,7 @@ class EntitySetProxy:
         try:
             navigation_property = self._entity_set.entity_type.nav_proprty(nav_property)
         except KeyError:
+            # ANNOT_EX: invalid usage by programmer related to odata model
             raise PyODataException('Navigation property {} is not declared in {} entity type'.format(
                 nav_property, self._entity_set.entity_type))
 
@@ -1020,6 +1034,7 @@ class EntitySetProxy:
                 navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
 
         if not navigation_entity_set:
+            # ANNOT_EX: invalid usage by programmer - this does not look possible - one would expect model.py detects this problem - move the check to model.py
             raise PyODataException(
                 'No association set for role {} {}'.format(navigation_property.to_role, association_set.end_roles))
 
@@ -1040,6 +1055,7 @@ class EntitySetProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1068,6 +1084,7 @@ class EntitySetProxy:
             """Gets entity from HTTP response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1091,6 +1108,7 @@ class EntitySetProxy:
             """Gets entity set from HTTP Response"""
 
             if response.status_code != requests.codes.ok:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP GET for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1119,6 +1137,7 @@ class EntitySetProxy:
             """Gets newly created entity encoded in HTTP Response"""
 
             if response.status_code != return_code:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP POST for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1136,6 +1155,7 @@ class EntitySetProxy:
             """Gets modified entity encoded in HTTP Response"""
 
             if response.status_code != 204:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError('HTTP modify request for Entity Set {} failed with status code {}'
                                 .format(self._name, response.status_code), response)
 
@@ -1156,6 +1176,7 @@ class EntitySetProxy:
             """Check if entity deletion was successful"""
 
             if response.status_code != 204:
+                # ANNOT_EX: odata request error analysis of status codes could help
                 raise HttpError(f'HTTP POST for Entity delete {self._name} '
                                 f'failed with status code {response.status_code}',
                                 response)
@@ -1185,6 +1206,7 @@ class EntityContainer:
         try:
             return self._entity_sets[name]
         except KeyError:
+            # ANNOT_EX: programmer's error related to model
             raise AttributeError(
                 'EntitySet {0} not defined in {1}.'.format(name, ','.join(list(self._entity_sets.keys()))))
 
@@ -1206,6 +1228,7 @@ class FunctionContainer:
     def __getattr__(self, name):
 
         if name not in self._functions:
+            # ANNOT_EX: programmer's error related to model
             raise AttributeError(
                 'Function {0} not defined in {1}.'.format(name, ','.join(list(self._functions.keys()))))
 
@@ -1215,28 +1238,34 @@ class FunctionContainer:
             """Get function call response from HTTP Response"""
 
             if 300 <= response.status_code < 400:
+                # ANNOT_EX: odata request error
                 raise HttpError(f'Function Import {fimport.name} requires Redirection which is not supported',
                                 response)
 
             if response.status_code == 401:
+                # ANNOT_EX: odata request error
                 raise HttpError(f'Not authorized to call Function Import {fimport.name}',
                                 response)
 
             if response.status_code == 403:
+                # ANNOT_EX: odata request error
                 raise HttpError(f'Missing privileges to call Function Import {fimport.name}',
                                 response)
 
             if response.status_code == 405:
+                # ANNOT_EX: odata request error
                 raise HttpError(
                     f'Despite definition Function Import {fimport.name} does not support HTTP {fimport.http_method}',
                     response)
 
             if 400 <= response.status_code < 500:
+                # ANNOT_EX: odata request error
                 raise HttpError(
                     f'Function Import {fimport.name} call has failed with status code {response.status_code}',
                     response)
 
             if response.status_code >= 500:
+                # ANNOT_EX: odata request error
                 raise HttpError(f'Server has encountered an error while processing Function Import {fimport.name}',
                                 response)
 
@@ -1375,6 +1404,7 @@ class Service:
                 # raise error (even for successfull status codes) since such changeset response
                 # always means something wrong happened on server
                 response = ODataHttpResponse.from_string(parts[0])
+                # ANNOT_EX: odata request error
                 raise HttpError('Changeset cannot be processed due to single response received, status code: {}'.format(
                     response.status_code), response)
 
@@ -1383,6 +1413,7 @@ class Service:
                                                      req)
 
                 if isinstance(req, MultipartRequest):
+                    # ANNOT_EX: invalid odata response
                     raise PyODataException('Changeset cannot contain nested multipart content')
 
                 # part represents single request, we have to parse
@@ -1438,6 +1469,7 @@ class MultipartRequest(ODataHttpRequest):
         """Process HTTP response to mutipart HTTP request"""
 
         if response.status_code != 202:  # 202 Accepted
+            # ANNOT_EX: odata request error analysis of status codes could help
             raise HttpError('HTTP POST for multipart request {0} failed with status code {1}'
                             .format(request.id, response.status_code), response)
 

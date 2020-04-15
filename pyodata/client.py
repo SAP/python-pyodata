@@ -18,11 +18,13 @@ def _fetch_metadata(connection, url, logger):
                  resp.content)
 
     if resp.status_code != 200:
+        # ANNOT_EX: fatal runtime communication initialization error on service side
         raise HttpError(
             'Metadata request failed, status code: {}, body:\n{}'.format(resp.status_code, resp.content), resp)
 
     mime_type = resp.headers['content-type']
     if not any((typ in ['application/xml', 'text/xml'] for typ in mime_type.split(';'))):
+        # ANNOT_EX: fatal runtime communication initialization error on service side
         raise HttpError(
             'Metadata request did not return XML, MIME type: {}, body:\n{}'.format(mime_type, resp.content),
             resp)
@@ -54,6 +56,7 @@ class Client:
                 logger.info('Using static metadata')
 
             if config is not None and namespaces is not None:
+                # ANNOT_EX: fatal invalid usage error
                 raise PyODataException('You cannot pass namespaces and config at the same time')
 
             if config is None:
@@ -73,4 +76,5 @@ class Client:
 
             return service
 
+        # ANNOT_EX: fatal runtime initialization error on pyodata side
         raise PyODataException('No implementation for selected odata version {}'.format(odata_version))
