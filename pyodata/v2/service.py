@@ -14,12 +14,13 @@ from email.parser import Parser
 from http.client import HTTPResponse
 from io import BytesIO
 
-import requests
-
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError
 from . import model
 
 LOGGER_NAME = 'pyodata.service'
+
+HTTP_CODE_OK = 200
+HTTP_CODE_CREATED = 201
 
 
 def urljoin(*path):
@@ -365,7 +366,7 @@ class EntityGetRequest(ODataHttpRequest):
         def stream_handler(response):
             """Returns $value from HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for $value failed with status code {}'
                                 .format(response.status_code), response)
 
@@ -837,7 +838,7 @@ class EntityProxy:
         def proprty_get_handler(key, proprty, response):
             """Gets property value from HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for Attribute {0} of Entity {1} failed with status code {2}'
                                 .format(proprty.name, key, response.status_code), response)
 
@@ -856,7 +857,7 @@ class EntityProxy:
         def value_get_handler(key, response):
             """Gets property value from HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for $value of Entity {0} failed with status code {1}'
                                 .format(key, response.status_code), response)
 
@@ -1039,7 +1040,7 @@ class EntitySetProxy:
         def get_entity_handler(parent, nav_property, navigation_entity_set, response):
             """Gets entity from HTTP response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1067,7 +1068,7 @@ class EntitySetProxy:
         def get_entity_handler(response):
             """Gets entity from HTTP response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1090,7 +1091,7 @@ class EntitySetProxy:
         def get_entities_handler(response):
             """Gets entity set from HTTP Response"""
 
-            if response.status_code != requests.codes.ok:
+            if response.status_code != HTTP_CODE_OK:
                 raise HttpError('HTTP GET for Entity Set {0} failed with status code {1}'
                                 .format(self._name, response.status_code), response)
 
@@ -1112,7 +1113,7 @@ class EntitySetProxy:
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
                                    self._parent_last_segment + entity_set_name, self._entity_set.entity_type)
 
-    def create_entity(self, return_code=requests.codes.created):
+    def create_entity(self, return_code=HTTP_CODE_CREATED):
         """Creates a new entity in the given entity-set."""
 
         def create_entity_handler(response):
