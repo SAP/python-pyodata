@@ -4,6 +4,7 @@
 1. [Code separation into multiple files](#Structure)
 2. [Defining OData version in the code](#version-specific-code)
 3. [Working with metadata and model](#Model)
+4. [GeoJson optional depencency](#GeoJson)
 
 ## Code separation into multiple files  <a name="Structure"></a>
 The codebase is now split into logical units. This is in contrast to the single-file approach in previous releases. 
@@ -114,6 +115,10 @@ based on OData version declared in config witch the config and kwargs as argumen
 ```Python 
 build_element(EntitySet, config, entity_set_node=entity_set)
 ```      
+
+## GeoJson optional depencency  <a name="GeoJson"></a>
+OData V4 introduced support for multiple standardized geolocation types. To use them GeoJson depencency is required, but
+as it is likely that not everyone will use these types the depencency is optional and stored in requirments-optional.txt  
 
 
 // Author note: Should be StrucType removed from the definition of build_functions? 
