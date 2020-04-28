@@ -562,7 +562,7 @@ class EdmStructTypTraits(TypTraits):
         return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
     def from_literal(self, value):
-        return EdmStructTypeSerializer.from_json(self._edm_type, value)
+        return EdmStructTypeSerializer.from_literal(self._edm_type, value)
 
 
 class EnumTypTrait(TypTraits):
