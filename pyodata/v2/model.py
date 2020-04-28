@@ -26,6 +26,17 @@ IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 
+def current_timezone():
+    """Default Timezone for Python datetime instances when parsed from
+       Edm.DateTime values and vice versa.
+
+       OData V2 does not mention Timezones in the documentation of
+       Edm.DateTime and UTC was chosen because it is universal.
+    """
+
+    return datetime.timezone.utc
+
+
 def modlog():
     return logging.getLogger(LOGGER_NAME)
 
@@ -387,7 +398,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
         # https://www.odata.org/documentation/odata-version-2-0/json-format/
-        return f'/Date({int(value.replace(tzinfo=datetime.timezone.utc).timestamp()) * 1000})/'
+        return f'/Date({int(value.replace(tzinfo=current_timezone()).timestamp()) * 1000})/'
 
     def from_json(self, value):
 
@@ -402,7 +413,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         try:
             # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
-            value = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(milliseconds=int(value))
+            value = datetime.datetime(1970, 1, 1, tzinfo=current_timezone()) + datetime.timedelta(milliseconds=int(value))
         except ValueError:
             raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
@@ -426,7 +437,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
                 except ValueError:
                     raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
 
-        return value
+        return value.replace(tzinfo=current_timezone())
 
 
 class EdmStringTypTraits(TypTraits):
