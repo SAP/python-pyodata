@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
-    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation
+    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, current_timezone
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 from tests.conftest import assert_logging_policy
 
@@ -458,7 +458,7 @@ def test_traits_datetime():
 
     # 1. direction Python -> OData
 
-    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=timezone.utc)
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=current_timezone())
     assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44.123456'"
 
     # without miliseconds part
@@ -481,12 +481,14 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 6
     assert testdate.microsecond == 654321
+    assert testdate.tzinfo == current_timezone()
 
     # parsing without miliseconds
     testdate = typ.traits.from_literal("datetime'1976-11-23T03:33:06'")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
+    assert testdate.tzinfo == current_timezone()
 
     # parsing without seconds and miliseconds
     testdate = typ.traits.from_literal("datetime'1976-11-23T03:33'")
@@ -494,6 +496,7 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 0
     assert testdate.microsecond == 0
+    assert testdate.tzinfo == current_timezone()
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
@@ -515,12 +518,14 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 6
     assert testdate.microsecond == 10000
+    assert testdate.tzinfo == current_timezone()
 
     # parsing without miliseconds
     testdate = typ.traits.from_json("/Date(217567986000)/")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
+    assert testdate.tzinfo == current_timezone()
 
     # parsing without seconds and miliseconds
     testdate = typ.traits.from_json("/Date(217567980000)/")
@@ -528,6 +533,7 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 0
     assert testdate.microsecond == 0
+    assert testdate.tzinfo == current_timezone()
 
     # parsing the lowest value
     with pytest.raises(OverflowError):
@@ -541,6 +547,7 @@ def test_traits_datetime():
     assert testdate.minute == 0
     assert testdate.second == 0
     assert testdate.microsecond == 0
+    assert testdate.tzinfo == current_timezone()
 
     # parsing the highest value
     with pytest.raises(OverflowError):
@@ -554,6 +561,7 @@ def test_traits_datetime():
     assert testdate.minute == 59
     assert testdate.second == 59
     assert testdate.microsecond == 999000
+    assert testdate.tzinfo == current_timezone()
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:

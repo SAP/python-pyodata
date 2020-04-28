@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - handle GET EntitySet payload without the member results - Jakub Filak
+- both Literal and JSON DateTimes has Timezone set to UTC - Jakub Filak
 
 ### Fixed
 - removed superfluous debug print when parsing FunctionImports from metadata - Jakub Filak
