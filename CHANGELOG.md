@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - support for Edm.Float - Jakub Filak
 
+### Fixed
+- removed superfluous debug print when parsing FunctionImports from metadata - Jakub Filak
 
 ## [1.4.0]
 

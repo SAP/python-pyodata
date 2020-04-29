@@ -2359,7 +2359,6 @@ class FunctionImport(Identifier):
 
         rt_type = function_import_node.get('ReturnType')
         rt_info = None if rt_type is None else Types.parse_type_name(rt_type)
-        print(name, rt_type, rt_info)
 
         parameters = dict()
         for param in function_import_node.xpath('edm:Parameter', namespaces=config.namespaces):
