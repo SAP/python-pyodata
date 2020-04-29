@@ -287,7 +287,7 @@ class EdmStructTypeSerializer:
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.to_literal(value[type_prop.name])
+                result[type_prop.name] = type_prop.to_literal(value[type_prop.name])
 
         return result
 
@@ -301,7 +301,7 @@ class EdmStructTypeSerializer:
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.from_json(value[type_prop.name])
+                result[type_prop.name] = type_prop.from_json(value[type_prop.name])
 
         return result
 
@@ -315,7 +315,7 @@ class EdmStructTypeSerializer:
         result = {}
         for type_prop in edm_type.proprties():
             if type_prop.name in value:
-                result[type_prop.name] = type_prop.typ.traits.from_literal(value[type_prop.name])
+                result[type_prop.name] = type_prop.from_literal(value[type_prop.name])
 
         return result
 
@@ -710,6 +710,42 @@ class VariableDeclaration(Identifier):
     @property
     def scale(self):
         return self._scale
+
+    def from_literal(self, value):
+        if value is None:
+            if not self.nullable:
+                raise PyODataException(f'Cannot convert null URL literal to value of {str(self)}')
+
+            return None
+
+        return self.typ.traits.from_literal(value)
+
+    def to_literal(self, value):
+        if value is None:
+            if not self.nullable:
+                raise PyODataException(f'Cannot convert None to URL literal of {str(self)}')
+
+            return None
+
+        return self.typ.traits.to_literal(value)
+
+    def from_json(self, value):
+        if value is None:
+            if not self.nullable:
+                raise PyODataException(f'Cannot convert null JSON to value of {str(self)}')
+
+            return None
+
+        return self.typ.traits.from_json(value)
+
+    def to_json(self, value):
+        if value is None:
+            if not self.nullable:
+                raise PyODataException(f'Cannot convert None to JSON of {str(self)}')
+
+            return None
+
+        return self.typ.traits.to_json(value)
 
     def _check_scale_value(self):
         if self._scale > self._precision:

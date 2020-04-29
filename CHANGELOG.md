@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - removed superfluous debug print when parsing FunctionImports from metadata - Jakub Filak
 - property 'Nullable' attributes are correctly parsed and respected - Vasilii Khomutov
 - use correct type of deserialization of Literal (URL) structure values - Jakub Filak
+- null values are correctly handled - Jakub Filak
 
 ## [1.4.0]
 

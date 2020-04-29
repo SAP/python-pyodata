@@ -204,7 +204,7 @@ class EntityKey:
         if self._type == EntityKey.TYPE_SINGLE:
             # first property is the key property
             key_prop = self._key[0]
-            return key_prop.typ.traits.to_literal(self._proprties[key_prop.name])
+            return key_prop.to_literal(self._proprties[key_prop.name])
 
         key_pairs = []
         for key_prop in self._key:
@@ -212,7 +212,7 @@ class EntityKey:
             #    raise RuntimeError('Entity key is not complete, missing value of property: {0}'.format(key_prop.name))
 
             key_pairs.append(
-                '{0}={1}'.format(key_prop.name, key_prop.typ.traits.to_literal(self._proprties[key_prop.name])))
+                '{0}={1}'.format(key_prop.name, key_prop.to_literal(self._proprties[key_prop.name])))
 
         return ','.join(key_pairs)
 
@@ -456,7 +456,7 @@ class EntityCreateRequest(ODataHttpRequest):
         values = {}
         for key, val in entity.items():
             try:
-                val = entity_type.proprty(key).typ.traits.to_json(val)
+                val = entity_type.proprty(key).to_json(val)
             except KeyError:
                 try:
                     nav_prop = entity_type.nav_proprty(key)
@@ -543,7 +543,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
         for key, val in kwargs.items():
             try:
-                val = self._entity_type.proprty(key).typ.traits.to_json(val)
+                val = self._entity_type.proprty(key).to_json(val)
             except KeyError:
                 raise PyODataException(
                     'Property {} is not declared in {} entity type'.format(key, self._entity_type.name))
@@ -679,7 +679,7 @@ class FunctionRequest(QueryRequest):
             param = self._function_import.get_parameter(name)
 
             # add parameter as custom query argument
-            self.custom(param.name, param.typ.traits.to_literal(value))
+            self.custom(param.name, param.to_literal(value))
         except KeyError:
             raise PyODataException('Function import {0} does not have pararmeter {1}'
                                    .format(self._function_import.name, name))
@@ -721,11 +721,10 @@ class EntityProxy:
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
                     if proprties[type_proprty.name] is not None:
-                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_json(proprties[type_proprty.name])
+                        self._cache[type_proprty.name] = type_proprty.from_json(proprties[type_proprty.name])
                     else:
                         # null value is in literal form for now, convert it to python representation
-                        self._cache[type_proprty.name] = type_proprty.typ.traits.from_literal(
-                            type_proprty.typ.null_value)
+                        self._cache[type_proprty.name] = type_proprty.from_literal(type_proprty.typ.null_value)
 
             # then, assign all navigation properties
             for prop in self._entity_type.nav_proprties:
@@ -843,7 +842,7 @@ class EntityProxy:
                                 .format(proprty.name, key, response.status_code), response)
 
             data = response.json()['d']
-            return proprty.typ.traits.from_json(data[proprty.name])
+            return proprty.from_json(data[proprty.name])
 
         path = urljoin(self.get_path(), name)
         return self._service.http_get_odata(
@@ -942,7 +941,7 @@ class GetEntitySetFilter:
     def format_filter(proprty, operator, value):
         """Creates a filter expression """
 
-        return '{} {} {}'.format(proprty.name, operator, proprty.typ.traits.to_literal(value))
+        return '{} {} {}'.format(proprty.name, operator, proprty.to_literal(value))
 
     def __eq__(self, value):
         return GetEntitySetFilter.format_filter(self._proprty, 'eq', value)
