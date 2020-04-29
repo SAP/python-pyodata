@@ -1102,6 +1102,8 @@ class EntitySetProxy:
 
             entities = content['d']['results']
 
+            self._logger.info('Fetched %d entities', len(entities))
+
             result = []
             for props in entities:
                 entity = EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, props)
