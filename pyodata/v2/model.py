@@ -1668,7 +1668,7 @@ class StructTypeProperty(VariableDeclaration):
         return StructTypeProperty(
             entity_type_property_node.get('Name'),
             Types.parse_type_name(entity_type_property_node.get('Type')),
-            entity_type_property_node.get('Nullable'),
+            attribute_get_bool(entity_type_property_node, 'Nullable', True),
             entity_type_property_node.get('MaxLength'),
             entity_type_property_node.get('Precision'),
             entity_type_property_node.get('Scale'),
@@ -2364,7 +2364,7 @@ class FunctionImport(Identifier):
         for param in function_import_node.xpath('edm:Parameter', namespaces=config.namespaces):
             param_name = param.get('Name')
             param_type_info = Types.parse_type_name(param.get('Type'))
-            param_nullable = param.get('Nullable')
+            param_nullable = attribute_get_bool(param, 'Nullable', False)
             param_max_length = param.get('MaxLength')
             param_precision = param.get('Precision')
             param_scale = param.get('Scale')
@@ -2401,8 +2401,7 @@ def sap_attribute_get_string(node, attr):
     return sap_attribute_get(node, attr)
 
 
-def sap_attribute_get_bool(node, attr, default):
-    value = sap_attribute_get(node, attr)
+def str_to_bool(value, attr, default):
     if value is None:
         return default
 
@@ -2413,6 +2412,14 @@ def sap_attribute_get_bool(node, attr, default):
         return False
 
     raise TypeError('Not a bool attribute: {0} = {1}'.format(attr, value))
+
+
+def attribute_get_bool(node, attr, default):
+    return str_to_bool(node.get(attr), attr, default)
+
+
+def sap_attribute_get_bool(node, attr, default):
+    return str_to_bool(sap_attribute_get(node, attr), attr, default)
 
 
 ANNOTATION_NAMESPACES = {
