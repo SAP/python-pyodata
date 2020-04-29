@@ -1100,7 +1100,9 @@ class EntitySetProxy:
             if isinstance(content, int):
                 return content
 
-            entities = content['d']['results']
+            entities = content['d']
+            if isinstance(entities, dict):
+                entities = entities['results']
 
             self._logger.info('Fetched %d entities', len(entities))
 

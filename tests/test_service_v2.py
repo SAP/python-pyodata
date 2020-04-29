@@ -672,6 +672,35 @@ def test_get_entity_with_entity_key_and_other_params(service):
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
 
 @responses.activate
+def test_get_entities(service):
+    """Get entities"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees".format(service.url),
+        json={'d': {
+            'results': [
+                {
+                    'ID': 669,
+                    'NameFirst': 'Yennefer',
+                    'NameLast': 'De Vengerberg'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    empls = request.execute()
+    assert empls[0].ID == 669
+    assert empls[0].NameFirst == 'Yennefer'
+    assert empls[0].NameLast == 'De Vengerberg'
+
+@responses.activate
 def test_navigation_multi(service):
     """Get entities via navigation property"""
 

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - support for Edm.Float - Jakub Filak
 
+### Changed
+- handle GET EntitySet payload without the member results - Jakub Filak
+
 ### Fixed
 - removed superfluous debug print when parsing FunctionImports from metadata - Jakub Filak
 
