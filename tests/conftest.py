@@ -5,14 +5,19 @@ import pytest
 from pyodata.v2.model import schema_from_xml
 
 
+def contents_of_fixtures_file(file_name):
+    path_to_current_file = os.path.realpath(__file__)
+    current_directory = os.path.split(path_to_current_file)[0]
+    path_to_file = os.path.join(current_directory, file_name)
+
+    with open(path_to_file, 'rb') as md_file:
+        return md_file.read()
+
+
 @pytest.fixture
 def metadata():
     """Example OData metadata"""
-    path_to_current_file = os.path.realpath(__file__)
-    current_directory = os.path.split(path_to_current_file)[0]
-    path_to_file = os.path.join(current_directory, "metadata.xml")
-
-    return open(path_to_file, 'rb').read()
+    return contents_of_fixtures_file("metadata.xml")
 
 
 @pytest.fixture
