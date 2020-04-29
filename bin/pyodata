@@ -57,20 +57,39 @@ def print_out_metadata_info(args, client):
 
 def print_out_entity_set(args, client):
     typ = client.schema.entity_set(args.name).entity_type
-    request = getattr(client.entity_sets, args.name).get_entities()
-    entities = request.execute()
+    entity_set = getattr(client.entity_sets, args.name)
+
+    count = entity_set.get_entities().count().execute()
+    count_width = len(str(count))
+    print('[Size of entity set:', count, ']')
+
+    skip = 0
+    top = args.chunk_size
+    start = 0
 
     keys = {kp.name for kp in typ.key_proprties}
     members = {mp.name for mp in typ.proprties() if mp.name not in keys}
 
-    for entity in entities:
-        for prop in keys:
-            print(f'K {prop} = {getattr(entity, prop)}')
+    while skip < count:
+        if args.chunk_size < 1:
+            entities = entity_set.get_entities().execute()
+            skip = count # stop iteration after the first run
+        else:
+            entities = entity_set.get_entities().skip(skip).top(top).execute()
 
-        for prop in members:
-            print(f'+ {prop} = {getattr(entity, prop)}')
+        for seq_no, entity in enumerate(entities, start=start):
+            seq_no_str = str(seq_no)
+            print('-- {0:-03}'.format(seq_no), '-' * (76 - len(seq_no_str)))
+            for prop in keys:
+                print(f'K {prop} = {getattr(entity, prop)}')
 
-        print('-' * 80)
+            for prop in members:
+                print(f'+ {prop} = {getattr(entity, prop)}')
+
+            print('-' * 80)
+
+        skip += top
+        start += len(entities)
 
 
 def print_out_function_import(args, client):
@@ -93,6 +112,8 @@ def _parse_args(argv):
                         help='Specify metadata parser custom error handlers in the form: TARGET=POLICY')
     parser.add_argument('-v', '--verbose', dest='verbose_count', action='count', default=0,
                         help='make verbose output')
+    parser.add_argument('--chunk-size', type=int, default=0,
+                        help='amount of fetched entities in one GET EntitySet Request; 0 means all')
 
     parser.set_defaults(func=print_out_metadata_info)
 
