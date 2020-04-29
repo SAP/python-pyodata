@@ -303,6 +303,7 @@
                 <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
                 <Property Name="NameFirst" Type="Edm.String" Nullable="true"/>
                 <Property Name="NameLast" Type="Edm.String" Nullable="true"/>
+                <Property Name="NickName" Type="Edm.String"/>
                 <NavigationProperty Name="Addresses" Relationship="EXAMPLE_SRV_SETS.AssociationEmployeeAddress"
                                     FromRole="EmployeeRole" ToRole="AddressRole"/>
             </EntityType>

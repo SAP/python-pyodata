@@ -147,6 +147,19 @@ def test_edmx(schema):
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
 
+def test_schema_entity_type_nullable(schema):
+    emp_entity = schema.entity_type('Employee')
+
+    id_property = emp_entity.proprty('ID')
+    assert not id_property.nullable
+
+    firstname_property = emp_entity.proprty('NameFirst')
+    assert firstname_property.nullable
+
+    nickname_property = emp_entity.proprty('NickName')
+    assert nickname_property.nullable
+
+
 def test_schema_entity_sets(schema):
     """Test Schema methods for EntitySets"""
 
