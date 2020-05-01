@@ -12,10 +12,10 @@ that the later is for testing on invalid metadata.
 
 
 ## Test and classes <a name="Classes"></a>
-In previos versions all tests were writen as standalone function, however this is makes hard to orientate in the code 
-and it makes hard to kwno witch tests are related. Tests in this release are bundled together in appropriate places. 
-Such as when testing build_function(see the example below). Another advantage of bundeling is that tests for specific 
-bundles can be run separately.  
+In previous versions all tests were written as a standalone function, however, due to that, it is hard to orientate in 
+the code and it makes hard to know which test cases are related and which are not. To avoid that, tests in this release 
+are bundled together in inappropriate places. Such as when testing build_function(see the example below). Also, bundling 
+makes it easy to run all related tests at once, without having to run the whole test suit, thus making it faster to debug.  
 
 ```python
 class TestSchema:
@@ -34,13 +34,13 @@ class TestSchema:
 
 ## Using metadata templates <a name="Templates"></a>
 For testing the V4 there are two sets of metadata. `tests/v4/metadata.xml` is filed with test entities, types, sets etc.
-while the `tests/v4/metadata.template.xml` is only metadata skeleton. The latter is useful when there is need for 
-ceranty that any other metadata arent influensing the result, when custom elements are needed for specific test or when 
+while the `tests/v4/metadata.template.xml` is only metadata skeleton. The latter is useful when there is a need to be 
+sure that any other metadata arent influencing the result, when custom elements are needed for a specific test or when 
 you are working with invalid metadata.  
 
-To use the metadata template the Ninja2 is requited. Ninja2 is template engine which can load up the template xml and 
-fill it with provided data. Fixture template_builder is available to all tests. Calling the fixture with array of EMD 
-elements will return MetadataBuilder already filled with your custom data.
+To use the metadata template the Ninja2 is requited. Ninja2 is a template engine which can load up the template XML and 
+fill it with provided data. Fixture template_builder is available to all tests. Calling the fixture with an array of EMD 
+elements will return MetadataBuilder preloaded with your custom data.
 
 ```python
     faulty_entity = """ 

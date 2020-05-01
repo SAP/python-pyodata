@@ -4,6 +4,7 @@
 1. [Code separation into multiple files](#Structure)
 2. [Defining OData version in the code](#version-specific-code)
 3. [Working with metadata and model](#Model)
+3. [Annotations](#Annotations)
 4. [GeoJson optional depencency](#GeoJson)
 
 ## Code separation into multiple files  <a name="Structure"></a>
@@ -115,6 +116,12 @@ based on OData version declared in config witch the config and kwargs as argumen
 ```Python 
 build_element(EntitySet, config, entity_set_node=entity_set)
 ```      
+
+## Annotations <a name="Annotations"></a>
+Annotations are handle bit diferently to the rest of EDM elements. That is due to that, annocation do not represent 
+standalone elements/instances in resulting Model. Annotations are procesed by build_anotation, build functio expect 
+_target_(an element to annotate) and _Annotation Term_(Name of the annotatio), build_annotation does not return any value.
+Anotation term is searched in annotations dictionary defined in the OData version subclass. 
 
 ## GeoJson optional depencency  <a name="GeoJson"></a>
 OData V4 introduced support for multiple standardized geolocation types. To use them GeoJson depencency is required, but
