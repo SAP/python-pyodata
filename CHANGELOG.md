@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.0]
+
 ### Added
 - support for Edm.Float - Jakub Filak
 
