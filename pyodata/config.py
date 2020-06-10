@@ -5,6 +5,12 @@ from pyodata.policies import PolicyFatal, ParserError, ErrorPolicyType
 import pyodata.version
 
 
+CustomErrorPolicies = Dict[ParserError, ErrorPolicyType]
+ODataVersion = Type[pyodata.version.ODATAVersion]
+Namespaces = Dict[str, str]
+Aliases = Dict[str, str]
+
+
 class Config:
     # pylint: disable=too-many-instance-attributes,missing-docstring
     # All attributes have purpose and are used for configuration
@@ -13,8 +19,8 @@ class Config:
     """ This is configuration class for PyOData. All session dependent settings should be stored here. """
 
     def __init__(self,
-                 odata_version: Type[pyodata.version.ODATAVersion],
-                 custom_error_policies: Dict[ParserError, ErrorPolicyType] = None,
+                 odata_version: ODataVersion,
+                 custom_error_policies: CustomErrorPolicies = None,
                  default_error_policy: ErrorPolicyType = None,
                  xml_namespaces=None
                  ):
@@ -46,7 +52,7 @@ class Config:
 
         self._sap_value_helper_directions = None
         self._annotation_namespaces = None
-        self._aliases: Dict[str, str] = dict()
+        self._aliases: Aliases = dict()
 
     def err_policy(self, error: ParserError) -> ErrorPolicyType:
         """ Returns error policy for given error. If custom error policy fo error is set, then returns that."""
@@ -67,29 +73,29 @@ class Config:
         self._custom_error_policy = policies
 
     @property
-    def namespaces(self) -> str:
+    def namespaces(self) -> Namespaces:
         return self._namespaces
 
     @namespaces.setter
-    def namespaces(self, value: Dict[str, str]):
+    def namespaces(self, value: Namespaces):
         self._namespaces = value
 
     @property
-    def odata_version(self) -> Type[pyodata.version.ODATAVersion]:
+    def odata_version(self) -> ODataVersion:
         return self._odata_version
 
     @property
-    def sap_value_helper_directions(self):
+    def sap_value_helper_directions(self) -> None:
         return self._sap_value_helper_directions
 
     @property
-    def aliases(self) -> Dict[str, str]:
+    def aliases(self) -> Aliases:
         return self._aliases
 
     @aliases.setter
-    def aliases(self, value: Dict[str, str]):
+    def aliases(self, value: Aliases):
         self._aliases = value
 
     @property
-    def annotation_namespace(self):
+    def annotation_namespace(self) -> None:
         return self._annotation_namespaces
