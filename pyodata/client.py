@@ -71,8 +71,8 @@ class Client:
         # create service instance based on model we have
         logger.info('Creating OData Service (version: %s)', str(config.odata_version))
 
-        service = Service(url, schema, connection)
-        if config.odata_version == ODataV4:
-            return v4.Service(url, schema, connection)
-
-        return service
+        try:
+            return {ODataV2: Service,
+                    ODataV4: v4.Service}[config.odata_version](url, schema, connection)
+        except KeyError:
+            raise PyODataException(f'Bug: unhandled OData version {str(config.odata_version)}')
