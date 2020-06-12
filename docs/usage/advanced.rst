@@ -45,7 +45,19 @@ Error handling
 --------------
 
 PyOData returns *HttpError* when the response code does not match the expected
-code. Basically the exception is raised for all status codes >= 400.
+code. Basically the exception is raised for all status codes >= 400 and its
+instances have the property response which holds return value of the library
+making HTTP requests.
+
+For example, the following code show how to print out error details if
+Python Requests is used as the HTTP communication library.
+
+.. code-block:: python
+
+    try:
+        new_data = create_request.execute()
+    except pyodata.exceptions.HttpError as ex:
+        print(ex.response.text)
 
 In the case you know the implementation of back-end part and you want to show
 accurate errors reported by your service, you can replace *HttpError* by your
