@@ -30,6 +30,7 @@ ErrorPolicyType = TypeVar("ErrorPolicyType", bound="ErrorPolicy")
 
 class ErrorPolicy(ABC):
     """ All policies has to inhere this class"""
+
     @abstractmethod
     def resolve(self, ekseption):
         """ This method is invoked when an error arise."""
@@ -37,12 +38,14 @@ class ErrorPolicy(ABC):
 
 class PolicyFatal(ErrorPolicy):
     """ Encounter error should result in parser failing. """
+
     def resolve(self, ekseption):
         raise ekseption
 
 
 class PolicyWarning(ErrorPolicy):
     """ Encounter error is logged, but parser continues as nothing has happened """
+
     def __init__(self):
         logging.basicConfig(format='%(levelname)s: %(message)s')
         self._logger = logging.getLogger()
@@ -53,6 +56,7 @@ class PolicyWarning(ErrorPolicy):
 
 class PolicyIgnore(ErrorPolicy):
     """ Encounter error is ignored and parser continues as nothing has happened """
+
     def __init__(self):
         logging.basicConfig(format='%(levelname)s: %(message)s')
         self._logger = logging.getLogger()
