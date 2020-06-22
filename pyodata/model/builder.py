@@ -1,12 +1,17 @@
 """Metadata Builder Implementation"""
 
 import io
+from typing import TypeVar, Dict
+
 from lxml import etree
 
 from pyodata.config import Config
 from pyodata.exceptions import PyODataParserError
 from pyodata.model.elements import ValueHelperParameter, Schema, build_element
+from pyodata.type_declarations import ETreeType
 
+XMLType = TypeVar('XMLType', str, bytes)
+AliasesType = Dict[str, str]
 
 ANNOTATION_NAMESPACES = {
     'edm': 'http://docs.oasis-open.org/odata/ns/edm',
@@ -39,7 +44,7 @@ class MetadataBuilder:
         'http://docs.oasis-open.org/odata/ns/edm'
     ]
 
-    def __init__(self, xml, config):
+    def __init__(self, xml: XMLType, config: Config):
         self._xml = xml
         self._config = config
 
@@ -99,7 +104,7 @@ class MetadataBuilder:
         return build_element(Schema, self._config, schema_nodes=edm_schemas)
 
     @staticmethod
-    def get_aliases(edmx, config: Config):
+    def get_aliases(edmx: ETreeType, config: Config):
         """Get all aliases"""
 
         # aliases = collections.defaultdict(set)
@@ -117,7 +122,7 @@ class MetadataBuilder:
         return aliases
 
     @staticmethod
-    def update_alias(aliases, config: Config):
+    def update_alias(aliases: AliasesType, config: Config):
         """Update config with aliases"""
         config.aliases = aliases
         helper_direction_keys = list(config.sap_value_helper_directions.keys())
