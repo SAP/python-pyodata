@@ -53,5 +53,9 @@ class PolicyWarning(ErrorPolicy):
 
 class PolicyIgnore(ErrorPolicy):
     """ Encounter error is ignored and parser continues as nothing has happened """
+    def __init__(self):
+        logging.basicConfig(format='%(levelname)s: %(message)s')
+        self._logger = logging.getLogger()
+
     def resolve(self, ekseption):
-        pass
+        self._logger.debug('[%s] %s', ekseption.__class__.__name__, str(ekseption))
