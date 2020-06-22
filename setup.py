@@ -40,6 +40,7 @@ setup(
         "lxml>=3.7.3",
     ],
     extras_require={
+        "geojson"
     },
     tests_require=[
         "codecov",

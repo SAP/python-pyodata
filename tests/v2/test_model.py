@@ -2,13 +2,18 @@
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
 import os
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
-from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
-    Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
-    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation
+
+from tests.v2.conftest import assert_logging_policy
+from pyodata.config import Config
+from pyodata.model.builder import MetadataBuilder
+from pyodata.model.elements import Typ, Types, EntityType, TypeInfo, NullType, Schema, StructTypeProperty
+from pyodata.model.type_traits import EdmStructTypeSerializer
+from pyodata.policies import ParserError, PolicyWarning, PolicyIgnore, PolicyFatal
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
-from tests.conftest import assert_logging_policy
+from pyodata.v2 import ODataV2
+from pyodata.v2.elements import EndRole, AssociationSet, AssociationSetEndRole, Association, NullAssociation
 
 
 def test_edmx(schema):
@@ -30,7 +35,6 @@ def test_edmx(schema):
         'CarIDPic',
         'Customer',
         'Order',
-        'EnumTest'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -46,12 +50,6 @@ def test_edmx(schema):
         'CarIDPics',
         'Customers',
         'Orders',
-        'EnumTests'
-    }
-
-    assert set((enum_type.name for enum_type in schema.enum_types)) == {
-        'Country',
-        'Language'
     }
 
     master_entity = schema.entity_type('MasterEntity')
@@ -138,11 +136,11 @@ def test_edmx(schema):
     assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
 
     # Error handling in the method typ - without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.typ('FooBar')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema'
     # Error handling in the method typ - with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.typ('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Type FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -156,17 +154,17 @@ def test_schema_entity_sets(schema):
     assert schema.entity_set('Cities', namespace='EXAMPLE_SRV') is not None
 
     # without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in any Schema Namespace'
 
     # with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='BLAH')
-    assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace BLAH'
+    assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
 
     # with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.entity_set('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'EntitySet FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -236,17 +234,17 @@ def test_edmx_associations(schema):
     assert str(association_set) == 'AssociationSet(CustomerOrder_AssocSet)'
 
     # error handling: without namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in any Schema Namespace'
 
     # error handling: with unknown namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='BLAH')
     assert typ_ex_info.value.args[0] == 'There is no Schema Namespace BLAH'
 
     # error handling: with namespace
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         assert schema.association_set_by_association('FooBar', namespace='EXAMPLE_SRV')
     assert typ_ex_info.value.args[0] == 'Association Set for Association FooBar does not exist in Schema Namespace EXAMPLE_SRV'
 
@@ -350,20 +348,22 @@ def test_edmx_complex_type_prop_vh(schema):
 def test_traits():
     """Test individual traits"""
 
+    config = Config(ODataV2)
+
     # generic
-    typ = Types.from_name('Edm.Binary')
+    typ = Types.from_name('Edm.Binary', config)
     assert repr(typ.traits) == 'TypTraits'
     assert typ.traits.to_literal('bincontent') == 'bincontent'
     assert typ.traits.from_literal('some bin content') == 'some bin content'
 
     # string
-    typ = Types.from_name('Edm.String')
+    typ = Types.from_name('Edm.String', config)
     assert repr(typ.traits) == 'EdmStringTypTraits'
     assert typ.traits.to_literal('Foo Foo') == "'Foo Foo'"
     assert typ.traits.from_literal("'Alice Bob'") == 'Alice Bob'
 
     # bool
-    typ = Types.from_name('Edm.Boolean')
+    typ = Types.from_name('Edm.Boolean', config)
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
     assert typ.traits.to_literal(True) == 'true'
     assert typ.traits.from_literal('true') is True
@@ -376,17 +376,17 @@ def test_traits():
     assert typ.traits.from_json(False) is False
 
     # integers
-    typ = Types.from_name('Edm.Int16')
+    typ = Types.from_name('Edm.Int16', config)
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_literal(23) == '23'
     assert typ.traits.from_literal('345') == 345
 
-    typ = Types.from_name('Edm.Int32')
+    typ = Types.from_name('Edm.Int32', config)
     assert repr(typ.traits) == 'EdmIntTypTraits'
     assert typ.traits.to_literal(23) == '23'
     assert typ.traits.from_literal('345') == 345
 
-    typ = Types.from_name('Edm.Int64')
+    typ = Types.from_name('Edm.Int64', config)
     assert repr(typ.traits) == 'EdmLongIntTypTraits'
     assert typ.traits.to_literal(23) == '23L'
     assert typ.traits.from_literal('345L') == 345
@@ -399,7 +399,7 @@ def test_traits():
     assert typ.traits.from_json('0L') == 0
 
     # GUIDs
-    typ = Types.from_name('Edm.Guid')
+    typ = Types.from_name('Edm.Guid', config)
     assert repr(typ.traits) == 'EdmPrefixedTypTraits'
     assert typ.traits.to_literal('000-0000') == "guid'000-0000'"
     assert typ.traits.from_literal("guid'1234-56'") == '1234-56'
@@ -411,7 +411,9 @@ def test_traits():
 def test_traits_datetime():
     """Test Edm.DateTime traits"""
 
-    typ = Types.from_name('Edm.DateTime')
+    config = Config(ODataV2)
+
+    typ = Types.from_name('Edm.DateTime', config)
     assert repr(typ.traits) == 'EdmDateTimeTypTraits'
 
     # 1. direction Python -> OData
@@ -500,10 +502,12 @@ def test_traits_datetime():
 def test_traits_collections():
     """Test collection traits"""
 
-    typ = Types.from_name('Collection(Edm.Int32)')
+    config = Config(ODataV2)
+
+    typ = Types.from_name('Collection(Edm.Int32)', config)
     assert typ.traits.from_json(['23', '34']) == [23, 34]
 
-    typ = Types.from_name('Collection(Edm.String)')
+    typ = Types.from_name('Collection(Edm.String)', config)
     assert typ.traits.from_json(['Bob', 'Alice']) == ['Bob', 'Alice']
 
 
@@ -545,14 +549,16 @@ def test_type_parsing():
 def test_types():
     """Test Types repository"""
 
+    config = Config(ODataV2)
+
     # generic
     for type_name in ['Edm.Binary', 'Edm.String', 'Edm.Int16', 'Edm.Guid']:
-        typ = Types.from_name(type_name)
+        typ = Types.from_name(type_name, config)
         assert typ.kind == Typ.Kinds.Primitive
         assert not typ.is_collection
 
     # Collection of primitive types
-    typ = Types.from_name('Collection(Edm.String)')
+    typ = Types.from_name('Collection(Edm.String)', config)
     assert repr(typ) == 'Collection(Typ(Edm.String))'
     assert typ.kind is Typ.Kinds.Primitive
     assert typ.is_collection
@@ -619,11 +625,11 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(RuntimeError) as e_info:
+    with pytest.raises(PyODataModelError) as e_info:
         metadata.build()
-    assert str(e_info.value) == 'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+    assert str(e_info.value) == 'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES'
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
@@ -631,8 +637,8 @@ def test_annot_v_l_missing_e_s(mock_warning, xml_builder_factory):
 
     metadata.build()
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
-                          'Entity Set DataValueHelp for ValueHelper(Dict/Value) does not exist'
+                          'PyODataModelError',
+                          'EntitySet DataValueHelp does not exist in Schema Namespace MISSING_ES'
                           )
 
 
@@ -671,13 +677,11 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    try:
+    with pytest.raises(PyODataParserError) as e_info:
         metadata.build()
-        assert 'Expected' == 'RuntimeError'
-    except RuntimeError as ex:
-        assert str(ex) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
+    assert str(e_info.value) == 'Target Type Dict of ValueHelper(Dict/Value) does not exist'
 
     metadata.config.set_custom_error_policy({
         ParserError.ANNOTATION: PolicyWarning()
@@ -685,12 +689,12 @@ def test_annot_v_l_missing_e_t(mock_warning, xml_builder_factory):
 
     metadata.build()
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataParserError',
                           'Target Type Dict of ValueHelper(Dict/Value) does not exist'
                           )
 
 
-@patch('pyodata.v2.model.PolicyIgnore.resolve')
+@patch.object(PolicyIgnore, 'resolve')
 @patch('logging.Logger.warning')
 def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory):
     """Test correct handling of annotations whose target property does not exist"""
@@ -731,9 +735,9 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
         """
     )
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
+    with pytest.raises(PyODataParserError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Target Property NoExisting of EntityType(Dict) as defined in ' \
                                         'ValueHelper(Dict/NoExisting) does not exist'
@@ -753,10 +757,9 @@ def test_annot_v_l_trgt_inv_prop(mock_warning, mock_resolve, xml_builder_factory
     metadata.build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataParserError',
                           'Target Property NoExisting of EntityType(Dict) as defined in ValueHelper(Dict/NoExisting)'
-                          ' does not exist'
-                          )
+                          ' does not exist')
 
 
 def test_namespace_with_periods(xml_builder_factory):
@@ -802,7 +805,7 @@ def test_namespace_with_periods(xml_builder_factory):
         """
     )
 
-    schema = MetadataBuilder(xml_builder.serialize()).build()
+    schema = MetadataBuilder(xml_builder.serialize(), Config(ODataV2)).build()
 
     db_entity = schema.entity_type('Database')
 
@@ -843,6 +846,7 @@ def test_edmx_entity_sets(schema):
 def test_config_set_default_error_policy():
     """ Test configurability of policies """
     config = Config(
+        ODataV2,
         custom_error_policies={
             ParserError.ANNOTATION: PolicyWarning()
         }
@@ -865,8 +869,6 @@ def test_null_type(xml_builder_factory):
             <Property Name="Key" Type="Edm.UnknownType" />
         </EntityType>
         
-        <EnumType Name="MasterEnum" UnderlyingType="Edm.String" />
-        
          <ComplexType Name="MasterComplex">
                 <Property Name="Width" Type="Edm.Double" />
                 <Property Name="Width" Type="Edm.Double" />
@@ -880,6 +882,7 @@ def test_null_type(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyIgnore()
         ))
 
@@ -888,8 +891,6 @@ def test_null_type(xml_builder_factory):
     type_info = TypeInfo(namespace=None, name='MasterProperty', is_collection=False)
     assert isinstance(schema.get_type(type_info).proprty('Key').typ, NullType)
 
-    type_info = TypeInfo(namespace=None, name='MasterEnum', is_collection=False)
-    assert isinstance(schema.get_type(type_info), NullType)
 
     type_info = TypeInfo(namespace=None, name='MasterComplex', is_collection=False)
     assert isinstance(schema.get_type(type_info), NullType)
@@ -927,6 +928,7 @@ def test_faulty_association(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyIgnore()
         ))
 
@@ -953,6 +955,7 @@ def test_faulty_association_set(xml_builder_factory):
     metadata = MetadataBuilder(
         xml_builder.serialize(),
         config=Config(
+            ODataV2,
             default_error_policy=PolicyWarning()
         ))
 
@@ -976,9 +979,9 @@ def test_missing_association_for_navigation_property(xml_builder_factory):
            </EntityType>
        """)
 
-    metadata = MetadataBuilder(xml_builder.serialize())
+    metadata = MetadataBuilder(xml_builder.serialize(), Config(ODataV2))
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         metadata.build()
     assert typ_ex_info.value.args[0] == 'Association Followers does not exist in namespace EXAMPLE_SRV'
 
@@ -996,7 +999,7 @@ def test_edmx_association_end_by_role():
     assert association.end_by_role(end_from.role) == end_from
     assert association.end_by_role(end_to.role) == end_to
 
-    with pytest.raises(KeyError) as typ_ex_info:
+    with pytest.raises(PyODataModelError) as typ_ex_info:
         association.end_by_role('Blah')
     assert typ_ex_info.value.args[0] == 'Association FooBar has no End with Role Blah'
 
@@ -1033,7 +1036,7 @@ def test_missing_data_service(xml_builder_factory):
     xml = xml_builder.serialize()
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element DataServices'
 
@@ -1046,13 +1049,13 @@ def test_missing_schema(xml_builder_factory):
     xml = xml_builder.serialize()
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == 'Metadata document is missing the element Schema'
 
 
-@patch.object(Schema, 'from_etree')
-def test_namespace_whitelist(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_namespace_whitelist(mock_build_element: MagicMock, xml_builder_factory):
     """Test correct handling of whitelisted namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1061,13 +1064,11 @@ def test_namespace_whitelist(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert MetadataBuilder(xml, Config(ODataV2)).build() == 'Mocked'
 
 
-@patch.object(Schema, 'from_etree')
-def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_unsupported_edmx_n(mock_build_element, xml_builder_factory):
     """Test correct handling of non-whitelisted Edmx namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1076,26 +1077,26 @@ def test_unsupported_edmx_n(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(
+    schema = MetadataBuilder(
         xml,
         config=Config(
+            ODataV2,
             xml_namespaces={'edmx': edmx}
         )
     ).build()
 
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert schema == 'Mocked'
 
     try:
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Edmx namespace - {edmx}'
 
-    mock_from_etree.assert_called_once()
+    mock_build_element.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
-def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
+def test_unsupported_schema_n(mock_build_element, xml_builder_factory):
     """Test correct handling of non-whitelisted Schema namespaces"""
 
     xml_builder = xml_builder_factory()
@@ -1104,26 +1105,25 @@ def test_unsupported_schema_n(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(
+    schema = MetadataBuilder(
         xml,
         config=Config(
+            ODataV2,
             xml_namespaces={'edm': edm}
         )
     ).build()
 
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert schema == 'Mocked'
 
     try:
-
-        MetadataBuilder(xml).build()
+        MetadataBuilder(xml, Config(ODataV2)).build()
     except PyODataParserError as ex:
         assert str(ex) == f'Unsupported Schema namespace - {edm}'
 
-    mock_from_etree.assert_called_once()
+    mock_build_element.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
+@patch('pyodata.model.builder.build_element', return_value='Mocked')
 def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
@@ -1132,13 +1132,11 @@ def test_whitelisted_edm_namespace(mock_from_etree, xml_builder_factory):
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    assert MetadataBuilder(xml, Config(ODataV2)).build() == 'Mocked'
 
 
-@patch.object(Schema, 'from_etree')
-def test_whitelisted_edm_namespace_2006_04(mock_from_etree, xml_builder_factory):
+@patch('pyodata.v2.build_schema')
+def test_whitelisted_edm_namespace_2006_04(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
     xml_builder = xml_builder_factory()
@@ -1146,13 +1144,12 @@ def test_whitelisted_edm_namespace_2006_04(mock_from_etree, xml_builder_factory)
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
+    MetadataBuilder(xml, Config(ODataV2)).build()
+    mocked.assert_called_once()
 
 
-@patch.object(Schema, 'from_etree')
-def test_whitelisted_edm_namespace_2007_05(mock_from_etree, xml_builder_factory):
+@patch('pyodata.v2.build_schema')
+def test_whitelisted_edm_namespace_2007_05(mocked, xml_builder_factory):
     """Test correct handling of whitelisted Microsoft's edm namespace"""
 
     xml_builder = xml_builder_factory()
@@ -1160,80 +1157,8 @@ def test_whitelisted_edm_namespace_2007_05(mock_from_etree, xml_builder_factory)
     xml_builder.add_schema('', '')
     xml = xml_builder.serialize()
 
-    MetadataBuilder(xml).build()
-    assert Schema.from_etree is mock_from_etree
-    mock_from_etree.assert_called_once()
-
-
-def test_enum_parsing(schema):
-    """Test correct parsing of enum"""
-
-    country = schema.enum_type('Country').USA
-    assert str(country) == "Country'USA'"
-
-    country2 = schema.enum_type('Country')['USA']
-    assert str(country2) == "Country'USA'"
-
-    try:
-        schema.enum_type('Country').Cyprus
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member Cyprus'
-
-    c = schema.enum_type('Country')[1]
-    assert str(c) == "Country'China'"
-
-    try:
-        schema.enum_type('Country')[15]
-    except PyODataException as ex:
-        assert str(ex) == f'EnumType EnumType(Country) has no member with value {15}'
-
-    type_info = TypeInfo(namespace=None, name='Country', is_collection=False)
-
-    try:
-        schema.get_type(type_info)
-    except PyODataModelError as ex:
-        assert str(ex) == f'Neither primitive types nor types parsed from service metadata contain requested type {type_info[0]}'
-
-    language = schema.enum_type('Language')
-    assert language.is_flags is True
-
-    try:
-        schema.enum_type('ThisEnumDoesNotExist')
-    except KeyError as ex:
-        assert str(ex) == f'\'EnumType ThisEnumDoesNotExist does not exist in any Schema Namespace\''
-
-    try:
-        schema.enum_type('Country', 'WrongNamespace').USA
-    except KeyError as ex:
-        assert str(ex) == '\'EnumType Country does not exist in Schema Namespace WrongNamespace\''
-
-
-def test_unsupported_enum_underlying_type(xml_builder_factory):
-    """Test if parser will parse only allowed underlying types"""
-    xml_builder = xml_builder_factory()
-    xml_builder.add_schema('Test', '<EnumType Name="UnsupportedEnumType" UnderlyingType="Edm.Bool" />')
-    xml = xml_builder.serialize()
-
-    try:
-        MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
-        assert str(ex).startswith(f'Type Edm.Bool is not valid as underlying type for EnumType - must be one of')
-
-
-def test_enum_value_out_of_range(xml_builder_factory):
-    """Test if parser will check for values ot of range defined by underlying type"""
-    xml_builder = xml_builder_factory()
-    xml_builder.add_schema('Test', """
-        <EnumType Name="Num" UnderlyingType="Edm.Byte">
-            <Member Name="TooBig" Value="-130" />
-        </EnumType>
-        """)
-    xml = xml_builder.serialize()
-
-    try:
-        MetadataBuilder(xml).build()
-    except PyODataParserError as ex:
-        assert str(ex) == f'Value -130 is out of range for type Edm.Byte'
+    MetadataBuilder(xml, Config(ODataV2)).build()
+    mocked.assert_called_once()
 
 
 @patch('logging.Logger.warning')
@@ -1279,18 +1204,19 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml_builder.add_schema('EXAMPLE_SRV', schema.format('---', value_list_property))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
-        MetadataBuilder(xml).build()
+    with pytest.raises(PyODataModelError) as typ_ex_info:
+        MetadataBuilder(xml, Config(ODataV2)).build()
 
     assert typ_ex_info.value.args[0] == 'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to ' \
                                         'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataModelError',
                           'ValueHelperParameter(Type) of ValueHelper(MasterEntity/Data) points to '
                           'an non existing LocalDataProperty --- of EntityType(MasterEntity)'
                           )
@@ -1300,18 +1226,19 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     xml_builder.add_schema('EXAMPLE_SRV', schema.format(local_data_property, '---'))
     xml = xml_builder.serialize()
 
-    with pytest.raises(RuntimeError) as typ_ex_info:
-        MetadataBuilder(xml).build()
+    with pytest.raises(PyODataModelError) as typ_ex_info:
+        MetadataBuilder(xml, Config(ODataV2)).build()
 
-    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non ' \
-                                        'existing ValueListProperty --- of EntityType(DataEntity)'
+    assert typ_ex_info.value.args[0] == 'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to ' \
+                                        'an non existing ValueListProperty --- of EntityType(DataEntity)'
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 
     assert_logging_policy(mock_warning,
-                          'RuntimeError',
+                          'PyODataModelError',
                           'ValueHelperParameter(---) of ValueHelper(MasterEntity/Data) points to an non '
                           'existing ValueListProperty --- of EntityType(DataEntity)'
                           )
@@ -1324,6 +1251,7 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     mock_warning.reset_mock()
 
     MetadataBuilder(xml, Config(
+        ODataV2,
         default_error_policy=PolicyWarning()
     )).build()
 

@@ -114,23 +114,6 @@
                 <Property Name="Number" Type="Edm.String" Nullable="false"/>
                 <Property Name="Owner" Type="Edm.String" Nullable="false"/>
             </EntityType>
-
-            <EntityType Name="EnumTest">
-                <Property Name="CountryOfOrigin" Type="Country"/>
-            </EntityType>
-
-            <EnumType Name="Country" UnderlyingType="Edm.Int32">
-                <Member Name="USA"/>
-                <Member Name="China"/>
-                <Member Name="Slovakia"/>
-            </EnumType>
-
-            <EnumType Name="Language" UnderlyingType="Edm.Int32" IsFlags="True">
-                <Member Name="English"/>
-                <Member Name="Czech"/>
-                <Member Name="Japanese"/>
-            </EnumType>
-
             <ComplexType Name="ComplexNumber">
                 <Property Name="Real" Type="Edm.Double" Nullable="false"/>
                 <Property Name="Imaginary" Type="Edm.Double" Nullable="false"/>
@@ -201,7 +184,6 @@
                            sap:topable="true"/>
                 <EntitySet Name="CarIDPics" EntityType="EXAMPLE_SRV.CarIDPic" sap:countable="false" sap:pageable="false"
                            sap:topable="false"/>
-                <EntitySet Name="EnumTests" EntityType="EXAMPLE_SRV.EnumTest" />
                 <FunctionImport Name="retrieve" ReturnType="Edm.Boolean" EntitySet="MasterEntities" m:HttpMethod="GET"
                                 sap:action-for="EXAMPLE_SRV.MasterEntity">
                     <Parameter Name="Param" Type="Edm.String" Mode="In" MaxLenght="5"/>

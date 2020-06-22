@@ -65,8 +65,10 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=locally-disabled
+disable=locally-disabled,duplicate-code
 
+# As parts of definitions are the same even for different versions,
+# pylint detects them as duplicate code which it is not. Disabling pylint 'duplicate-code' inside module did not work.
 
 [REPORTS]
 

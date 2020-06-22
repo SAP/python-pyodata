@@ -9,10 +9,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Client can be created from local metadata - Jakub Filak
 - support all standard EDM schema versions - Jakub Filak
+- Splits python representation of metadata and metadata parsing - Martin Miksik
+- Separate type repositories for individual versions of OData - Martin Miksik
+- Support for OData V4 primitive types - Martin Miksik
+- Support for navigation property in OData v4 - Martin Miksik
+- Support for EntitySet in OData v4 - Martin Miksik
+- Support for TypeDefinition in OData v4 - Martin Miksik
+- Support for TypeDefinition in OData v4 - Martin Miksik
+- Add V4 to pyodata cmd interface - Martin Miksik
+- Permissive parsing for TypeDefinition
+- Changes all manually raised exception to be child of PyODataException - Martin Miksik
+- More comprehensive tests for ODATA V4 - Martin Miksik
+- Majority of variables and functions in Service V2 are now type annotated - Martin Miksik
+
+### Changed
+- Implementation and naming schema of `from_etree` - Martin Miksik
+- Build functions of struct types now handle invalid metadata independently. - Martin Miksik
+- Default value of precision if non is provided in metadata - Martin Miksik 
+- Parsing of path values for navigation property bindings - Martin Miksik
 
 ### Fixed
 - make sure configured error policies are applied for Annotations referencing
   unknown type/member - Martin Miksik
+- Race condition in `test_types_repository_separation` - Martin Miksik
+- Import error while using python version prior to 3.7 - Martin Miksik
+- Parsing datetime containing timezone information for python 3.6 and lower - Martin Miksik
+- Type hinting for ErrorPolicy's children - Martin Miksik
+- Error when printing navigation property without partner value - Martin Miksik
 
 ## [1.3.0]
 

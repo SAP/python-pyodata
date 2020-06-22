@@ -6,12 +6,14 @@ import requests
 import pytest
 from unittest.mock import patch
 
-import pyodata.v2.model
+# from typeguard.importhook import install_import_hook
+# install_import_hook('pyodata.v2')
+
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException, HttpError, ExpressionError
+from pyodata.exceptions import PyODataException, HttpError, ExpressionError, PyODataModelError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
-from tests.conftest import assert_request_contains_header
+from tests.v2.conftest import assert_request_contains_header
 
 
 URL_ROOT = 'http://odatapy.example.com'
@@ -86,32 +88,6 @@ def test_create_entity_code_400(service):
 
     assert str(e_info.value).startswith('HTTP POST for Entity Set')
 
-
-@responses.activate
-def test_create_entity_containing_enum(service):
-    """Basic test on creating entity with enum"""
-
-    # pylint: disable=redefined-outer-name
-
-    responses.add(
-        responses.POST,
-        "{0}/EnumTests".format(service.url),
-        headers={'Content-type': 'application/json'},
-        json={'d': {
-            'CountryOfOrigin': 'USA',
-        }},
-        status=201)
-
-    result = service.entity_sets.EnumTests.create_entity().set(**{'CountryOfOrigin': 'USA'}).execute()
-
-    USA = service.schema.enum_type('Country').USA
-    assert result.CountryOfOrigin == USA
-
-    traits = service.schema.enum_type('Country').traits
-    literal = traits.to_literal(USA)
-
-    assert literal == "EXAMPLE_SRV.Country\'USA\'"
-    assert traits.from_literal(literal).name == 'USA'
 
 @responses.activate
 def test_create_entity_nested(service):
@@ -1350,9 +1326,9 @@ def test_get_entity_set_query_filter_property_error(service):
 
     request = service.entity_sets.MasterEntities.get_entities()
 
-    with pytest.raises(KeyError) as e_info:
+    with pytest.raises(PyODataModelError) as e_info:
         assert not request.Foo == 'bar'
-    assert e_info.value.args[0] == 'Foo'
+    assert e_info.value.args[0] == 'Property Foo not found on EntityType(MasterEntity)'
 
 
 @responses.activate

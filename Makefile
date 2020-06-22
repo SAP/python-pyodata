@@ -5,6 +5,7 @@ PYTHON_MODULE_FILES=$(shell find $(PYTHON_MODULE) -type f -name '*.py')
 TESTS_DIR=tests
 TESTS_UNIT_DIR=$(TESTS_DIR)
 TESTS_UNIT_FILES=$(shell find $(TESTS_UNIT_DIR) -type f -name '*.py')
+TESTS_OLINGO_SERVER=$(TESTS_DIR)/olingo_server
 
 PYTHON_BIN=python3
 
@@ -25,6 +26,9 @@ COVERAGE_CMD_HTML=$(COVERAGE_BIN) html
 COVERAGE_HTML_DIR=.htmlcov
 COVERAGE_HTML_ARGS=$(COVERAGE_REPORT_ARGS) -d $(COVERAGE_HTML_DIR)
 COVERAGE_REPORT_FILES=$(PYTHON_BINARIES) $(PYTHON_MODULE_FILES)
+
+DOCKER_BIN=docker
+DOCKER_NAME=pyodata_olingo
 
 all: check
 
@@ -56,4 +60,21 @@ doc:
 
 .PHONY=clean
 clean:
-	rm --preserve-root -rf $(COVERAGE_HTML_DIR) .coverage
+	rm --preserve-root -rf $(COVERAGE_HTML_DIR) .coverage; true
+	$(DOCKER_BIN) rmi pyodata_olingo; true
+	$(DOCKER_BIN) rm --force pyodata_olingo; true
+
+.PHONY=olingo
+build_olingo:
+	$(DOCKER_BIN) rmi $(DOCKER_NAME); true
+	$(DOCKER_BIN) build -t $(DOCKER_NAME) $(TESTS_OLINGO_SERVER)
+
+run_olingo:
+	$(DOCKER_BIN) run -d -it -p 8888:8080 --name $(DOCKER_NAME) $(DOCKER_NAME):latest
+
+stop_olingo:
+	$(DOCKER_BIN) stop $(DOCKER_NAME)
+	$(DOCKER_BIN) rm --force $(DOCKER_NAME)
+
+attach_olingo:
+	$(DOCKER_BIN) attach $(DOCKER_NAME)
