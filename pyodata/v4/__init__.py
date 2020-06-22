@@ -1,8 +1,7 @@
 """ This module represents implementation of ODATA V4 """
 
-from typing import List
 
-from pyodata.version import ODATAVersion
+from pyodata.version import ODATAVersion, BuildFunctionDict, PrimitiveTypeList, BuildAnnotationDict
 from pyodata.model.elements import Typ, Schema, ComplexType, StructType, StructTypeProperty, EntityType
 from pyodata.model.build_functions import build_entity_type, build_complex_type, build_struct_type_property, \
     build_struct_type
@@ -20,7 +19,7 @@ class ODataV4(ODATAVersion):
     """ Definition of OData V4 """
 
     @staticmethod
-    def build_functions():
+    def build_functions() -> BuildFunctionDict:
         return {
             StructTypeProperty: build_struct_type_property,
             StructType: build_struct_type,
@@ -35,7 +34,7 @@ class ODataV4(ODATAVersion):
         }
 
     @staticmethod
-    def primitive_types() -> List[Typ]:
+    def primitive_types() -> PrimitiveTypeList:
         # TODO: We currently lack support for:
         #   'Edm.Geometry',
         #   'Edm.GeometryPoint',
@@ -75,7 +74,7 @@ class ODataV4(ODATAVersion):
         ]
 
     @staticmethod
-    def annotations():
+    def annotations() -> BuildAnnotationDict:
         return {
             Unit: build_unit_annotation
         }

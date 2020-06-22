@@ -1,12 +1,16 @@
 """ Base class for defining ODATA versions. """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Callable, TYPE_CHECKING
-
-# pylint: disable=cyclic-import
+from typing import List, Dict, Callable, TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
+    # pylint: disable=cyclic-import
     from pyodata.model.elements import Typ, Annotation  # noqa
+
+PrimitiveTypeDict = Dict[str, 'Typ']
+PrimitiveTypeList = List['Typ']
+BuildFunctionDict = Dict[type, Callable]
+BuildAnnotationDict = Dict[Type['Annotation'], Callable]
 
 
 class ODATAVersion(ABC):
@@ -19,21 +23,21 @@ class ODATAVersion(ABC):
                            'therefore you can not create instance of them')
 
     # Separate dictionary of all registered types (primitive, complex and collection variants) for each child
-    Types: Dict[str, 'Typ'] = dict()
+    Types: PrimitiveTypeDict = dict()
 
     @staticmethod
     @abstractmethod
-    def primitive_types() -> List['Typ']:
+    def primitive_types() -> PrimitiveTypeList:
         """ Here we define which primitive types are supported and what is their python representation"""
 
     @staticmethod
     @abstractmethod
-    def build_functions() -> Dict[type, Callable]:
+    def build_functions() -> BuildFunctionDict:
         """ Here we define which elements are supported and what is their python representation"""
 
     @staticmethod
     @abstractmethod
-    def annotations() -> Dict['Annotation', Callable]:
+    def annotations() -> BuildAnnotationDict:
         """ Here we define which annotations are supported and what is their python representation"""
     #
     # @staticmethod
