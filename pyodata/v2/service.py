@@ -1157,7 +1157,7 @@ class EntitySetProxy:
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, method="PATCH", **kwargs):
+    def update_entity(self, key=None, method=None, **kwargs):
         """Updates an existing entity in the given entity-set."""
 
         def update_entity_handler(response):
@@ -1173,6 +1173,9 @@ class EntitySetProxy:
             entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
         self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
+
+        if method is None:
+            method = self._service.config['http']['update_method']
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
                                    entity_key, method=method)
@@ -1309,6 +1312,8 @@ class Service:
         self._entity_container = EntityContainer(self)
         self._function_container = FunctionContainer(self)
 
+        self._config = {'http': {'update_method': 'PATCH'}}
+
     @property
     def schema(self):
         """Parsed metadata"""
@@ -1338,6 +1343,12 @@ class Service:
         """Functions proxy"""
 
         return self._function_container
+
+    @property
+    def config(self):
+        """Service specific configuration"""
+
+        return self._config
 
     def http_get(self, path, connection=None):
         """HTTP GET response for the passed path in the service"""

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Specify PATCH or PUT method for EntityUpdateRequest - Barton Ip
+- Add a Service wide configuration (e.g. http.update\_method) - Jakub Filak
 - <, <=, >, >= operators on GetEntitySetFilter - Barton Ip
 
 ### Fixed
