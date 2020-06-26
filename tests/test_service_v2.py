@@ -687,6 +687,20 @@ def test_update_entity_with_patch_method_specified(service):
     query = service.entity_sets.TemperatureMeasurements.update_entity(key, method="PATCH")
     assert query.get_method() == "PATCH"
 
+def test_update_entity_with_merge_method_specified(service):
+    """Make sure the method update_entity handles correctly when MERGE method is specified"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key, method='merge')
+    assert query.get_method() == 'MERGE'
+
 
 def test_update_entity_with_no_method_specified(service):
     """Make sure the method update_entity handles correctly when no method is specified"""
@@ -730,8 +744,10 @@ def test_update_entity_with_wrong_method_specified(service):
         Sensor='sensor1',
         Date=datetime.datetime(2017, 12, 24, 18, 0))
 
-    with pytest.raises(ValueError):
-        service.entity_sets.TemperatureMeasurements.update_entity(key, method="DELETE")
+    with pytest.raises(ValueError) as caught_ex:
+        service.entity_sets.TemperatureMeasurements.update_entity(key, method='DELETE')
+
+    assert str(caught_ex.value).startswith('The value "DELETE" is not on the list of allowed Entity Update HTTP Methods: PATCH, PUT, MERGE')
 
 
 def test_get_entity_with_entity_key_and_other_params(service):
