@@ -956,6 +956,18 @@ class GetEntitySetFilter:
     def __ne__(self, value):
         return GetEntitySetFilter.format_filter(self._proprty, 'ne', value)
 
+    def __lt__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'lt', value)
+
+    def __le__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'le', value)
+
+    def __ge__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'ge', value)
+    
+    def __gt__(self, value):
+        return GetEntitySetFilter.format_filter(self._proprty, 'gt', value)
+
 
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""

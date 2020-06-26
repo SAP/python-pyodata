@@ -1332,6 +1332,50 @@ def test_get_entity_set_query_filter_ne(service):
     assert filter_str == "Key ne 'bar'"
 
 
+def test_get_entity_set_query_filter_lt(service):
+    """Test the operator 'lt' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.Cars.get_entities()
+    filter_str = request.Price < 2
+
+    assert filter_str == "Price lt 2"
+
+
+def test_get_entity_set_query_filter_le(service):
+    """Test the operator 'le' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.Cars.get_entities()
+    filter_str = request.Price <= 2
+
+    assert filter_str == "Price le 2"
+
+
+def test_get_entity_set_query_filter_ge(service):
+    """Test the operator 'ge' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.Cars.get_entities()
+    filter_str = request.Price >= 2
+
+    assert filter_str == "Price ge 2"
+
+
+def test_get_entity_set_query_filter_gt(service):
+    """Test the operator 'gt' of $filter for humans"""
+
+    # pylint: disable=redefined-outer-name, invalid-name
+
+    request = service.entity_sets.Cars.get_entities()
+    filter_str = request.Price > 2
+
+    assert filter_str == "Price gt 2"
+
+
 def test_get_entity_set_query_filter_and(service):
     """Test the operator 'and' of $filter for humans"""
 
