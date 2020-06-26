@@ -512,6 +512,8 @@ class EntityModifyRequest(ODataHttpRequest):
        Call execute() to send the update-request to the OData service
        and get the modified entity."""
 
+    ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
+
     def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH"):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
@@ -519,10 +521,10 @@ class EntityModifyRequest(ODataHttpRequest):
         self._entity_type = entity_set.entity_type
         self._entity_key = entity_key
 
-        if method.upper() not in ["PATCH", "PUT"]:
-            raise ValueError("Method must be either PATCH or PUT")
-
-        self._method = method
+        self._method = method.upper()
+        if self._method not in EntityModifyRequest.ALLOWED_HTTP_METHODS:
+            raise ValueError('The value "{}" is not on the list of allowed Entity Update HTTP Methods: {}'
+                             .format(method, ', '.join(EntityModifyRequest.ALLOWED_HTTP_METHODS)))
 
         self._values = {}
 
