@@ -512,12 +512,17 @@ class EntityModifyRequest(ODataHttpRequest):
        Call execute() to send the update-request to the OData service
        and get the modified entity."""
 
-    def __init__(self, url, connection, handler, entity_set, entity_key):
+    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH"):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
         self._entity_key = entity_key
+
+        if method.upper() not in ["PATCH", "PUT"]:
+            raise ValueError("Method must be either PATCH or PUT")
+
+        self._method = method
 
         self._values = {}
 
@@ -531,7 +536,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_method(self):
         # pylint: disable=no-self-use
-        return 'PATCH'
+        return self._method
 
     def get_body(self):
         # pylint: disable=no-self-use
@@ -1154,7 +1159,7 @@ class EntitySetProxy:
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, **kwargs):
+    def update_entity(self, key=None, method="PATCH", **kwargs):
         """Updates an existing entity in the given entity-set."""
 
         def update_entity_handler(response):
@@ -1172,7 +1177,7 @@ class EntitySetProxy:
         self._logger.info('Updating entity %s for key %s and args %s', self._entity_set.entity_type.name, key, kwargs)
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
-                                   entity_key)
+                                   entity_key, method=method)
 
     def delete_entity(self, key: EntityKey = None, **kwargs):
         """Delete the entity"""

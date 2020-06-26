@@ -658,6 +658,66 @@ def test_update_entity_with_entity_key(service):
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
 
 
+def test_update_entity_with_put_method_specified(service):
+    """Make sure the method update_entity handles correctly when PUT method is specified"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key, method="PUT")
+    assert query.get_method() == "PUT"
+
+
+def test_update_entity_with_patch_method_specified(service):
+    """Make sure the method update_entity handles correctly when PATCH method is specified"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key, method="PATCH")
+    assert query.get_method() == "PATCH"
+
+
+def test_update_entity_with_no_method_specified(service):
+    """Make sure the method update_entity handles correctly when no method is specified"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    query = service.entity_sets.TemperatureMeasurements.update_entity(key)
+    assert query.get_method() == "PATCH"
+
+
+def test_update_entity_with_wrong_method_specified(service):
+    """Make sure the method update_entity raises ValueError when wrong method is specified"""
+
+    # pylint: disable=redefined-outer-name
+
+
+    key = EntityKey(
+        service.schema.entity_type('TemperatureMeasurement'),
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0))
+
+    with pytest.raises(ValueError):
+        service.entity_sets.TemperatureMeasurements.update_entity(key, method="DELETE")
+
+
 def test_get_entity_with_entity_key_and_other_params(service):
     """Make sure the method update_entity handles correctly the parameter key which is EntityKey"""
 
