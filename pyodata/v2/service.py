@@ -239,7 +239,7 @@ class ODataHttpRequest:
         self._connection = connection
         self._url = url
         self._handler = handler
-        self._headers = headers
+        self._headers = headers or dict()
         self._logger = logging.getLogger(LOGGER_NAME)
 
     @property
@@ -267,10 +267,32 @@ class ODataHttpRequest:
         # pylint: disable=no-self-use
         return None
 
-    def get_headers(self):
-        """Get dict of HTTP headers"""
+    def get_default_headers(self):
+        """Get dict of Child specific HTTP headers"""
         # pylint: disable=no-self-use
-        return None
+        return dict()
+
+    def get_headers(self):
+        """Get dict of HTTP headers which is union of return value
+           of the method get_default_headers() and the headers
+           added via the method add_headers() where the latter
+           headers have priority - same keys get value of the latter.
+        """
+
+        headers = self.get_default_headers()
+        headers.update(self._headers)
+
+        return headers
+
+    def add_headers(self, value):
+        """Add the give dictionary of HTTP headers to
+           HTTP request sent by this ODataHttpRequest instance.
+        """
+
+        if not isinstance(value, dict):
+            raise TypeError("Headers must be of type 'dict' not {}".format(type(value)))
+
+        self._headers.update(value)
 
     def execute(self):
         """Fetches HTTP response and returns processed result
@@ -284,12 +306,7 @@ class ODataHttpRequest:
         # pylint: disable=assignment-from-none
         body = self.get_body()
 
-        headers = {} if self._headers is None else self._headers
-
-        # pylint: disable=assignment-from-none
-        extra_headers = self.get_headers()
-        if extra_headers is not None:
-            headers.update(extra_headers)
+        headers = self.get_headers()
 
         self._logger.debug('Send (execute) %s request to %s', self.get_method(), url)
         self._logger.debug('  query params: %s', self.get_query_params())
@@ -350,7 +367,7 @@ class EntityGetRequest(ODataHttpRequest):
     def get_path(self):
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
-    def get_headers(self):
+    def get_default_headers(self):
         return {'Accept': 'application/json'}
 
     def get_query_params(self):
@@ -447,7 +464,7 @@ class EntityCreateRequest(ODataHttpRequest):
     def get_body(self):
         return json.dumps(self._get_body())
 
-    def get_headers(self):
+    def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'X'}
 
     @staticmethod
@@ -547,7 +564,7 @@ class EntityModifyRequest(ODataHttpRequest):
             body[key] = val
         return json.dumps(body)
 
-    def get_headers(self):
+    def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
     def set(self, **kwargs):
@@ -640,7 +657,7 @@ class QueryRequest(ODataHttpRequest):
 
         return self._last_segment
 
-    def get_headers(self):
+    def get_default_headers(self):
         if self._count:
             return {}
 
@@ -703,9 +720,9 @@ class FunctionRequest(QueryRequest):
     def get_method(self):
         return self._function_import.http_method
 
-    def get_headers(self):
+    def get_default_headers(self):
         return {
-            'Accept': 'application/json',
+            'Accept': 'application/json'
         }
 
 
@@ -1461,7 +1478,7 @@ class MultipartRequest(ODataHttpRequest):
         """Get boundary used for request parts"""
         return self.id
 
-    def get_headers(self):
+    def get_default_headers(self):
         # pylint: disable=no-self-use
         return {'Content-Type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
 
