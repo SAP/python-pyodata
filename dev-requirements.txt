@@ -1,5 +1,5 @@
 requests==2.23.0
-pytest>=2.7.0
+pytest>=4.6.0
 responses>=0.8.1
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
