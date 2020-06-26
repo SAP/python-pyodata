@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- URL encode $filter contents - Barton Ip
+
 ## [1.5.0]
 
 ### Added

@@ -1450,7 +1450,7 @@ def test_navigation_count_with_filter(service):
 
     responses.add(
         responses.GET,
-        "{0}/Employees(23)/Addresses/$count?$filter=City eq 'London'".format(service.url),
+        "{0}/Employees(23)/Addresses/$count?%24filter=City%2520eq%2520%2527London%2527".format(service.url),
         json=3,
         status=200)
 
