@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Specify PATCH or PUT method for EntityUpdateRequest - Barton Ip
+- <, <=, >, >= operators on GetEntitySetFilter - Barton Ip
+
 ### Fixed
 - URL encode $filter contents - Barton Ip
 
