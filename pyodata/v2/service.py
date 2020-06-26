@@ -235,11 +235,11 @@ class EntityKey:
 class ODataHttpRequest:
     """Deferred HTTP Request"""
 
-    def __init__(self, url, connection, handler, headers=None):
+    def __init__(self, url, connection, handler, headers={}):
         self._connection = connection
         self._url = url
         self._handler = handler
-        self._headers = headers
+        self.headers = headers
         self._logger = logging.getLogger(LOGGER_NAME)
 
     @property
@@ -284,7 +284,7 @@ class ODataHttpRequest:
         # pylint: disable=assignment-from-none
         body = self.get_body()
 
-        headers = {} if self._headers is None else self._headers
+        headers = self.headers
 
         # pylint: disable=assignment-from-none
         extra_headers = self.get_headers()
@@ -351,7 +351,7 @@ class EntityGetRequest(ODataHttpRequest):
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_headers(self):
-        return {'Accept': 'application/json'}
+        return {'Accept': 'application/json', **self.headers}
 
     def get_query_params(self):
         qparams = super(EntityGetRequest, self).get_query_params()
@@ -448,7 +448,7 @@ class EntityCreateRequest(ODataHttpRequest):
         return json.dumps(self._get_body())
 
     def get_headers(self):
-        return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'X'}
+        return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'X', **self.headers}
 
     @staticmethod
     def _build_values(entity_type, entity):
@@ -541,7 +541,7 @@ class EntityModifyRequest(ODataHttpRequest):
         return json.dumps(body)
 
     def get_headers(self):
-        return {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        return {'Accept': 'application/json', 'Content-Type': 'application/json', **self.headers}
 
     def set(self, **kwargs):
         """Set properties to be changed."""
@@ -639,6 +639,7 @@ class QueryRequest(ODataHttpRequest):
 
         return {
             'Accept': 'application/json',
+            **self.headers
         }
 
     def get_query_params(self):
@@ -699,6 +700,7 @@ class FunctionRequest(QueryRequest):
     def get_headers(self):
         return {
             'Accept': 'application/json',
+            **self.headers
         }
 
 
@@ -1445,7 +1447,7 @@ class MultipartRequest(ODataHttpRequest):
 
     def get_headers(self):
         # pylint: disable=no-self-use
-        return {'Content-Type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
+        return {'Content-Type': 'multipart/mixed;boundary={}'.format(self.get_boundary()), **self.headers}
 
     def get_body(self):
         return encode_multipart(self.get_boundary(), self.requests)
