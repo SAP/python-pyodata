@@ -24,13 +24,13 @@ In the case the service you are dealing with requires PUT method, you have two o
 The first option allows you to change the used HTTP method for a single call via
 the key word parameter *method* of the method *update_entity*.
 
-... code-block:: python
+.. code-block:: python
 
     update_request = northwind.entity_sets.Customers.update_entity(CustomerID='ALFKI', method='PUT')
 
 If you need to run more update requests for different entity sets and all of them must be *PUT*,
 then you can consider setting the default service's update method to *PUT*.
 
-... code-block:: python
+.. code-block:: python
 
     northwind.config['http']['update_method'] = 'PUT'
