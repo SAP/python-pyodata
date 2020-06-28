@@ -734,7 +734,7 @@ def test_get_entity_with_entity_key_and_other_params(service):
 
 def test_get_entities_with_custom_headers(service):
     query = service.entity_sets.TemperatureMeasurements.get_entities()
-    query.headers = {"X-Foo": "bar"}
+    query.add_headers({"X-Foo": "bar"})
 
     assert query.get_headers() == {"Accept": "application/json", "X-Foo": "bar"}
 
@@ -746,7 +746,7 @@ def test_get_entity_with_custom_headers(service):
         Date=datetime.datetime(2017, 12, 24, 18, 0))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key)
-    query.headers = {"X-Foo": "bar"}
+    query.add_headers({"X-Foo": "bar"})
 
     assert query.get_headers() == {"Accept": "application/json", "X-Foo": "bar"}
 
@@ -758,30 +758,38 @@ def test_update_entities_with_custom_headers(service):
         Date=datetime.datetime(2017, 12, 24, 18, 0))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
-    query.headers = {"X-Foo": "bar"}
+    query.add_headers({"X-Foo": "bar"})
 
     assert query.get_headers() == {"Accept": "application/json", "Content-Type": "application/json", "X-Foo": "bar"}
 
 
 def test_create_entity_with_custom_headers(service):
     query = service.entity_sets.TemperatureMeasurements.create_entity()
-    query.headers = {"X-Foo": "bar"}
+    query.add_headers({"X-Foo": "bar"})
 
     assert query.get_headers() == {"Accept": "application/json", "Content-Type": "application/json", "X-Requested-With": "X", "X-Foo": "bar"}
 
 
 def test_create_entity_with_overwriting_custom_headers(service):
     query = service.entity_sets.TemperatureMeasurements.create_entity()
-    query.headers = {"X-Requested-With": "bar"}
+    query.add_headers({"X-Requested-With": "bar"})
 
     assert query.get_headers() == {"Accept": "application/json", "Content-Type": "application/json", "X-Requested-With": "bar"}
 
 
 def test_create_entity_with_blank_custom_headers(service):
     query = service.entity_sets.TemperatureMeasurements.create_entity()
-    query.headers = {}
+    query.add_headers({})
 
     assert query.get_headers() == {"Accept": "application/json", "Content-Type": "application/json", "X-Requested-With": "X"}
+
+
+def test_pass_incorrect_header_type(service):
+    query = service.entity_sets.TemperatureMeasurements.create_entity()
+
+    with pytest.raises(TypeError) as ex:
+        query.add_headers(69420)
+        assert str(ex) == "TypeError: Headers must be of type 'dict' not <class 'int'>"
 
 
 @responses.activate
