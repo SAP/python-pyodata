@@ -1640,19 +1640,361 @@ def test_navigation_count(service):
 
 
 @responses.activate
-def test_navigation_count_with_filter(service):
-    """Check getting $count via navigation property with $filter"""
+def test_count_with_filter(service):
+    """Check getting $count with $filter"""
 
     # pylint: disable=redefined-outer-name
 
     responses.add(
         responses.GET,
-        "{0}/Employees(23)/Addresses/$count?%24filter=City%2520eq%2520%2527London%2527".format(service.url),
+        "{0}/Employees(23)/Addresses/$count?%24filter=City%20eq%20%27London%27".format(service.url),
         json=3,
         status=200)
 
     addresses = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
     request = addresses.filter(addresses.City == 'London').count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter(service):
+    """Check getting $count with $filter and using new filter syntax"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses/$count?%24filter=City%20eq%20%27London%27".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+    request = employees.filter(City="London").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_lt_operator(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20lt%2023".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__lt=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_lte_operator(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20le%2023".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__lte=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_gt_operator(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20gt%2023".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__gt=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_gte_operator(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20ge%2023".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__gte=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_eq_operator(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20eq%2023".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__eq=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_in_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=ID%20eq%201%20or%20ID%20eq%202%20or%20ID%20eq%203".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__in=[1,2,3]).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_startswith_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=startswith%28NickName%2C%20%27Tim%27%29%20eq%20true".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(NickName__startswith="Tim").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_endswith_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=endswith%28NickName%2C%20%27othy%27%29%20eq%20true".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(NickName__endswith="othy").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_length_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=length%28NickName%29%20eq%206".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(NickName__length=6).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_length_operator_as_string(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=length%28NickName%29%20eq%206".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(NickName__length="6").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_contains_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=substringof%28%27Tim%27%2C%20NickName%29%20eq%20true".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(NickName__contains="Tim").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_range_operator(service):
+    """Check getting $count with $filter in"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=ID%20gte%2020%20and%20ID%20lte%2050".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__range=(20, 50)).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_multiple(service):
+    """Check getting $count with $filter with new filter syntax using multiple filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?%24filter=ID%20eq%2023%20and%20NickName%20eq%20%27Steve%27".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID=23, NickName="Steve").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_or(service):
+    """Check getting $count with $filter with FilterExpression syntax or"""
+    from pyodata.v2.service import FilterExpression as Q
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=%28ID%20eq%2023%20and%20NickName%20eq%20%27Steve%27%29%20or%20%28ID%20eq%2025%20and%20NickName%20eq%20%27Tim%27%29".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(Q(ID=23, NickName="Steve") | Q(ID=25, NickName="Tim")).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+@responses.activate
+def test_count_with_multiple_filters_startswith(service):
+    """Check getting $count with $filter calling startswith"""
+    from pyodata.v2.service import FilterExpression as Q
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=%28ID%20eq%2023%20and%20startswith%28NickName%2C%20%27Ste%27%29%20eq%20true%29%20or%20%28ID%20eq%2025%20and%20NickName%20eq%20%27Tim%27%29".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(Q(ID=23, NickName__startswith="Ste") | Q(ID=25, NickName="Tim")).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+
+
+ 
+@responses.activate
+def test_count_with_chained_filters(service):
+    """Check getting $count with chained filters"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees/$count?$filter=ID%20gte%2020%20and%20ID%20lte%2050%20and%20NickName%20eq%20%27Tim%27".format(service.url),
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__range=(20, 50)).filter(NickName="Tim").count()
 
     assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
 

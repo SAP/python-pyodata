@@ -303,8 +303,9 @@ class ODataHttpRequest:
         if body:
             self._logger.debug('  body: %s', body)
 
+        params = "&".join("%s=%s" % (k,v) for k,v in self.get_query_params().items())
         response = self._connection.request(
-            self.get_method(), url, headers=headers, params=self.get_query_params(), data=body)
+            self.get_method(), url, headers=headers, params=params, data=body)
 
         self._logger.debug('Received response')
         self._logger.debug('  url: %s', response.url)
@@ -612,7 +613,7 @@ class QueryRequest(ODataHttpRequest):
     def filter(self, filter_val):
         """Sets the filter expression."""
         # returns QueryRequest
-        self._filter = quote(filter_val)
+        self._filter = filter_val
         return self
 
     # def nav(self, key_value, nav_property):
@@ -982,6 +983,144 @@ class GetEntitySetFilter:
     def __gt__(self, value):
         return GetEntitySetFilter.format_filter(self._proprty, 'gt', value)
 
+class FilterExpression(object):
+    def __init__(self, *args, **kwargs):
+        self.expressions = kwargs
+        self.other = None
+        self.operator = None
+
+    def __or__(self, other):
+        self.other = other
+        self.operator = "or"
+        return self
+
+    def __and__(self, other):
+        self.other = other
+        self.operator = "and"
+        return self
+
+class GetEntitySetFilterChainable(object):
+    """
+    Example expressions
+        FirstName="Tim"
+        FirstName__contains="Tim"
+        Age__gt=56
+        Age__gte=6
+        Age__lt=78
+        Age__lte=90
+        Age__range=(5,9)
+        FirstName__in=["Tim", "Bob", "Sam"]
+        FirstName__startswith="Tim"
+        FirstName__endswith="mothy"
+        Addresses__Suburb="Chatswood"
+        Addresses__Suburb__contains="wood"
+    """
+    operators = ["startswith", "endswith", "lt", "lte", "gt", "gte", "contains", "range", "in", "length"]
+    def __init__(self, request, filter_expressions, exprs):
+        self.request = request
+        self.expressions = exprs
+        self.filter_expressions = filter_expressions
+
+    def proprty_obj(self, name):
+        return self.request._entity_type.proprty(name)
+
+    def process_query_objects(self):
+        filter_expressions = []
+        for q in self.filter_expressions:
+            lhs_expressions = []
+            rhs_expressions = []
+            for expr, val in q.expressions.items():
+                lhs_expressions.append(self.decode_expression(expr, val))
+            lhs_expressions = self.combine_expressions(lhs_expressions)
+
+            if q.other:
+                for expr, val in q.other.expressions.items():
+                    rhs_expressions.append(self.decode_expression(expr, val))
+                    rhs_expressions = self.combine_expressions(rhs_expressions)
+                
+                filter_expressions.append(f"({lhs_expressions}) {q.operator} ({rhs_expressions})")
+            else:
+                filter_expressions.append(lhs_expression)
+
+        return filter_expressions
+
+    def process_expressions(self):
+        filter_expressions = []
+        for expr, val in self.expressions.items():
+            filter_expressions.append(self.decode_expression(expr, val))
+
+        filter_expressions.extend(self.process_query_objects())
+        return filter_expressions
+
+    def decode_expression(self, expr, val):
+        properties = self.request._entity_type._properties.keys()
+        field = None
+        # field_heirarchy = []
+        operator = "eq"
+        exprs = expr.split("__")
+
+        for part in exprs:
+            if part in properties:
+                field = part
+                # field_heirarchy.append(part)
+            elif part in self.__class__.operators:
+                operator = part
+
+        # field = "/".join(field_heirarchy)
+
+        # target_field = self.proprty_obj(field_heirarchy[-1])
+        expression = self.build_expression(field, operator, val)
+        
+        return expression
+    
+    def combine_expressions(self, expressions):
+        return " and ".join(expressions)
+
+    def build_expression(self, field_name, operator, value):
+        target_field = self.proprty_obj(field_name)
+        if operator not in ["length", "in", "range"]:
+            value = target_field.to_literal(value)
+        if operator == "lt":
+            return f"{field_name} lt {value}"
+        elif operator == "lte":
+            return f"{field_name} le {value}"
+        elif operator == "gte":
+            return f"{field_name} ge {value}"
+        elif operator == "gt":
+            return f"{field_name} gt {value}"
+        elif operator == "startswith":
+            return f"startswith({field_name}, {value}) eq true"
+        elif operator == "endswith":
+            return f"endswith({field_name}, {value}) eq true"
+        elif operator == "length":
+            value = int(value)
+            return f"length({field_name}) eq {value}"
+        elif operator in ["contains"]:
+            return f"substringof({value}, {field_name}) eq true"
+        elif operator == "range":
+            if not (isinstance(value, tuple) or isinstance(value, list)):
+                raise TypeError("Range must be tuple or list not {}".format(type(value)))
+            if len(value) != 2:
+                raise ValueError("Only two items can be passed in a range.")
+            
+            x = target_field.to_literal(value[0])
+            y = target_field.to_literal(value[1]) 
+            return f"{field_name} gte {x} and {field_name} lte {y}"
+        elif operator == "in":
+            literal_values = []
+            for v in value:
+                val = target_field.to_literal(v)
+                literal_values.append(f"{field_name} eq {val}")
+            return " or ".join(literal_values)
+        elif operator == "eq":
+            return f"{field_name} eq {value}"
+        else:
+            raise ValueError(f"Invalid expression {operator}")
+
+    def as_filter_string(self):
+        expressions = self.process_expressions()
+        result = self.combine_expressions(expressions)
+        return quote(result)
 
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
@@ -994,6 +1133,19 @@ class GetEntitySetRequest(QueryRequest):
     def __getattr__(self, name):
         proprty = self._entity_type.proprty(name)
         return GetEntitySetFilter(proprty)
+
+    def set_filter(self, filter_val):
+        filter_text = self._filter + " and " if self._filter else ""
+        filter_text += filter_val
+        self._filter = filter_text
+
+    def filter(self, *args, **kwargs):
+        if len(args) and isinstance(args[0], str):
+            self._filter = args[0]
+            return self
+        else:
+            self.set_filter(GetEntitySetFilterChainable(self, args, kwargs).as_filter_string())
+            return self
 
 
 class EntitySetProxy:

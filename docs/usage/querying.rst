@@ -66,6 +66,36 @@ Print unique identification (Id) of all employees with name John Smith:
         print(smith.EmployeeID)
 
 
+Get entities matching a filter in ORM style
+---------------------------------------------------
+
+Print unique identification (Id) of all employees with name John Smith:
+
+.. code-block:: python
+
+    from pyodata.v2.service import GetEntitySetFilter as esf
+
+    smith_employees_request = northwind.entity_sets.Employees.get_entities()
+    smith_employees_request = smith_employees_request.filter(FirstName="John", LastName="Smith")
+    for smith in smith_employees_request.execute():
+        print(smith.EmployeeID)
+
+
+Get entities matching a complex filter in ORM style
+---------------------------------------------------
+
+Print unique identification (Id) of all employees with name John Smith:
+
+.. code-block:: python
+
+    from pyodata.v2.service import GetEntitySetFilter as esf
+
+    smith_employees_request = northwind.entity_sets.Employees.get_entities()
+    smith_employees_request = smith_employees_request.filter(FirstName__contains="oh", LastName__startswith="Smi")
+    for smith in smith_employees_request.execute():
+        print(smith.EmployeeID)
+
+
 Get a count of entities
 -----------------------
 
