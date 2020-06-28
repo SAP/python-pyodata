@@ -1164,6 +1164,7 @@ class GetEntitySetFilterChainable:
         "range",
         "in",
         "length",
+        "eq"
     ]
 
     def __init__(self, request, filter_expressions, exprs):
@@ -1221,7 +1222,8 @@ class GetEntitySetFilterChainable:
                 # field_heirarchy.append(part)
             elif part in self.__class__.operators:
                 operator = part
-
+            else:
+                raise ValueError("'{}' is not a valid property or operator".format(part))
         # field = "/".join(field_heirarchy)
 
         # target_field = self.proprty_obj(field_heirarchy[-1])

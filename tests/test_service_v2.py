@@ -1959,7 +1959,7 @@ def test_count_with_chainable_filter_or(service):
     assert request.execute() == 3
 
 @responses.activate
-def test_count_with_multiple_filters_startswith(service):
+def test_count_with_multiple_chainable_filters_startswith(service):
     """Check getting $count with $filter calling startswith"""
     from pyodata.v2.service import FilterExpression as Q
     # pylint: disable=redefined-outer-name
@@ -1978,9 +1978,30 @@ def test_count_with_multiple_filters_startswith(service):
     assert request.execute() == 3
 
 
+@responses.activate
+def test_count_with_chainable_filters_invalid_property_lookup(service):
+    """Check getting $count with $filter calling startswith"""
+    # pylint: disable=redefined-outer-name
+
+    employees = service.entity_sets.Employees.get_entities()
+    with pytest.raises(ValueError) as ex:
+        request = employees.filter(Foo="Bar")
+    
+    assert str(ex.value) == "'Foo' is not a valid property or operator"
 
 
- 
+@responses.activate
+def test_count_with_chainable_filters_invalid_operator_lookup(service):
+    """Check getting $count with $filter calling startswith"""
+    # pylint: disable=redefined-outer-name
+
+    employees = service.entity_sets.Employees.get_entities()
+    with pytest.raises(ValueError) as ex:
+        request = employees.filter(NickName__foo="Bar")
+    
+    assert str(ex.value) == "'foo' is not a valid property or operator"    
+
+
 @responses.activate
 def test_count_with_chained_filters(service):
     """Check getting $count with chained filters"""
