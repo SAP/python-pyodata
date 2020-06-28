@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Specify PATCH, PUT, or MERGE method for EntityUpdateRequest - Barton Ip
 - Add a Service wide configuration (e.g. http.update\_method) - Jakub Filak
 - <, <=, >, >= operators on GetEntitySetFilter - Barton Ip
+- Django style filtering - Barton Ip
 
 ### Fixed
 - URL encode $filter contents - Barton Ip

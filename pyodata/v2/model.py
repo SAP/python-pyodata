@@ -1287,6 +1287,9 @@ class StructType(Typ):
     def proprties(self):
         return list(self._properties.values())
 
+    def has_proprty(self, proprty_name):
+        return proprty_name in self._properties
+
     @classmethod
     def from_etree(cls, type_node, config: Config):
         name = type_node.get('Name')

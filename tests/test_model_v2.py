@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
-    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, current_timezone
+    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, current_timezone, StructType
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 from tests.conftest import assert_logging_policy
 
@@ -1404,3 +1404,23 @@ def test_missing_property_referenced_in_annotation(mock_warning, xml_builder_fac
     )).build()
 
     assert mock_warning.called is False
+
+
+def test_struct_type_has_property_initial_instance():
+    struct_type = StructType('Name', 'Label', False)
+
+    assert struct_type.has_proprty('proprty') == False
+
+
+def test_struct_type_has_property_no():
+    struct_type = StructType('Name', 'Label', False)
+    struct_type._properties['foo'] = 'ugly test hack'
+
+    assert not struct_type.has_proprty('proprty')
+
+
+def test_struct_type_has_property_yes():
+    struct_type = StructType('Name', 'Label', False)
+    struct_type._properties['proprty'] = 'ugly test hack'
+
+    assert struct_type.has_proprty('proprty')

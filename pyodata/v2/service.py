@@ -314,8 +314,9 @@ class ODataHttpRequest:
         if body:
             self._logger.debug('  body: %s', body)
 
+        params = "&".join("%s=%s" % (k, v) for k, v in self.get_query_params().items())
         response = self._connection.request(
-            self.get_method(), url, headers=headers, params=self.get_query_params(), data=body)
+            self.get_method(), url, headers=headers, params=params, data=body)
 
         self._logger.debug('Received response')
         self._logger.debug('  url: %s', response.url)
@@ -623,7 +624,7 @@ class QueryRequest(ODataHttpRequest):
     def filter(self, filter_val):
         """Sets the filter expression."""
         # returns QueryRequest
-        self._filter = quote(filter_val)
+        self._filter = filter_val
         return self
 
     # def nav(self, key_value, nav_property):
@@ -993,6 +994,212 @@ class GetEntitySetFilter:
         return GetEntitySetFilter.format_filter(self._proprty, 'gt', value)
 
 
+class FilterExpression:
+    """A class representing named expression of OData $filter"""
+
+    def __init__(self, **kwargs):
+        self._expressions = kwargs
+        self._other = None
+        self._operator = None
+
+    @property
+    def expressions(self):
+        """Get expressions where key is property name with the operator suffix
+           and value is the left hand side operand.
+        """
+
+        return self._expressions.items()
+
+    @property
+    def other(self):
+        """Get an instance of the other operand"""
+
+        return self._other
+
+    @property
+    def operator(self):
+        """The other operand"""
+
+        return self._operator
+
+    def __or__(self, other):
+        if self._other is not None:
+            raise RuntimeError('The FilterExpression already initialized')
+
+        self._other = other
+        self._operator = "or"
+        return self
+
+    def __and__(self, other):
+        if self._other is not None:
+            raise RuntimeError('The FilterExpression already initialized')
+
+        self._other = other
+        self._operator = "and"
+        return self
+
+
+class GetEntitySetFilterChainable:
+    """
+    Example expressions
+        FirstName='Tim'
+        FirstName__contains='Tim'
+        Age__gt=56
+        Age__gte=6
+        Age__lt=78
+        Age__lte=90
+        Age__range=(5,9)
+        FirstName__in=['Tim', 'Bob', 'Sam']
+        FirstName__startswith='Tim'
+        FirstName__endswith='mothy'
+        Addresses__Suburb='Chatswood'
+        Addresses__Suburb__contains='wood'
+    """
+
+    OPERATORS = [
+        'startswith',
+        'endswith',
+        'lt',
+        'lte',
+        'gt',
+        'gte',
+        'contains',
+        'range',
+        'in',
+        'length',
+        'eq'
+    ]
+
+    def __init__(self, entity_type, filter_expressions, exprs):
+        self._entity_type = entity_type
+        self._filter_expressions = filter_expressions
+        self._expressions = exprs
+
+    @property
+    def expressions(self):
+        """Get expressions as a list of tuples where the first item
+           is a property name with the operator suffix and the second item
+           is a left hand side value.
+        """
+
+        return self._expressions.items()
+
+    def proprty_obj(self, name):
+        """Returns a model property for a particular property"""
+
+        return self._entity_type.proprty(name)
+
+    def _decode_and_combine_filter_expression(self, filter_expression):
+        filter_expressions = [self._decode_expression(expr, val) for expr, val in filter_expression.expressions]
+        return self._combine_expressions(filter_expressions)
+
+    def _process_query_objects(self):
+        """Processes FilterExpression objects to OData lookups"""
+
+        filter_expressions = []
+
+        for expr in self._filter_expressions:
+            lhs_expressions = self._decode_and_combine_filter_expression(expr)
+
+            if expr.other is not None:
+                rhs_expressions = self._decode_and_combine_filter_expression(expr.other)
+                filter_expressions.append(f'({lhs_expressions}) {expr.operator} ({rhs_expressions})')
+            else:
+                filter_expressions.append(lhs_expressions)
+
+        return filter_expressions
+
+    def _process_expressions(self):
+        filter_expressions = [self._decode_expression(expr, val) for expr, val in self.expressions]
+
+        filter_expressions.extend(self._process_query_objects())
+
+        return filter_expressions
+
+    def _decode_expression(self, expr, val):
+        field = None
+        # field_heirarchy = []
+        operator = 'eq'
+        exprs = expr.split('__')
+
+        for part in exprs:
+            if self._entity_type.has_proprty(part):
+                field = part
+                # field_heirarchy.append(part)
+            elif part in self.__class__.OPERATORS:
+                operator = part
+            else:
+                raise ValueError(f'"{part}" is not a valid property or operator')
+        # field = '/'.join(field_heirarchy)
+
+        # target_field = self.proprty_obj(field_heirarchy[-1])
+        expression = self._build_expression(field, operator, val)
+
+        return expression
+
+    # pylint: disable=no-self-use
+    def _combine_expressions(self, expressions):
+        return ' and '.join(expressions)
+
+    # pylint: disable=too-many-return-statements, too-many-branches
+    def _build_expression(self, field_name, operator, value):
+        target_field = self.proprty_obj(field_name)
+
+        if operator not in ['length', 'in', 'range']:
+            value = target_field.to_literal(value)
+
+        if operator == 'lt':
+            return f'{field_name} lt {value}'
+
+        if operator == 'lte':
+            return f'{field_name} le {value}'
+
+        if operator == 'gte':
+            return f'{field_name} ge {value}'
+
+        if operator == 'gt':
+            return f'{field_name} gt {value}'
+
+        if operator == 'startswith':
+            return f'startswith({field_name}, {value}) eq true'
+
+        if operator == 'endswith':
+            return f'endswith({field_name}, {value}) eq true'
+
+        if operator == 'length':
+            value = int(value)
+            return f'length({field_name}) eq {value}'
+
+        if operator in ['contains']:
+            return f'substringof({value}, {field_name}) eq true'
+
+        if operator == 'range':
+            if not isinstance(value, (tuple, list)):
+                raise TypeError('Range must be tuple or list not {}'.format(type(value)))
+
+            if len(value) != 2:
+                raise ValueError('Only two items can be passed in a range.')
+
+            low_bound = target_field.to_literal(value[0])
+            high_bound = target_field.to_literal(value[1])
+
+            return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
+
+        if operator == 'in':
+            literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
+            return ' or '.join(literal_values)
+
+        if operator == 'eq':
+            return f'{field_name} eq {value}'
+
+        raise ValueError(f'Invalid expression {operator}')
+
+    def __str__(self):
+        expressions = self._process_expressions()
+        result = self._combine_expressions(expressions)
+        return quote(result)
+
+
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
 
@@ -1004,6 +1211,19 @@ class GetEntitySetRequest(QueryRequest):
     def __getattr__(self, name):
         proprty = self._entity_type.proprty(name)
         return GetEntitySetFilter(proprty)
+
+    def _set_filter(self, filter_val):
+        filter_text = self._filter + ' and ' if self._filter else ''
+        filter_text += filter_val
+        self._filter = filter_text
+
+    def filter(self, *args, **kwargs):
+        if args and len(args) == 1 and isinstance(args[0], str):
+            self._filter = args[0]
+        else:
+            self._set_filter(str(GetEntitySetFilterChainable(self._entity_type, args, kwargs)))
+
+        return self
 
 
 class EntitySetProxy:
