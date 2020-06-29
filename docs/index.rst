@@ -55,6 +55,7 @@ The User Guide
    usage/initialization.rst
    usage/querying.rst
    usage/creating.rst
+   usage/updating.rst
    usage/deleting.rst
    usage/function_imports.rst
    usage/metadata.rst
