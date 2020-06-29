@@ -741,7 +741,7 @@ class EntityProxy:
 
     # pylint: disable=too-many-branches,too-many-nested-blocks
 
-    def __init__(self, service, entity_set, entity_type, proprties=None, entity_key=None):
+    def __init__(self, service, entity_set, entity_type, proprties=None, entity_key=None, headers=None):
         self._logger = logging.getLogger(LOGGER_NAME)
         self._service = service
         self._entity_set = entity_set
@@ -749,6 +749,8 @@ class EntityProxy:
         self._key_props = entity_type.key_proprties
         self._cache = dict()
         self._entity_key = entity_key
+
+        self.headers = dict(headers) if headers else dict()
 
         self._logger.debug('New entity proxy instance of type %s from properties: %s', entity_type.name, proprties)
 
@@ -1122,7 +1124,7 @@ class EntitySetProxy:
 
             entity = response.json()['d']
 
-            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity)
+            return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity, headers=response.headers)
 
         if key is not None and isinstance(key, EntityKey):
             entity_key = key

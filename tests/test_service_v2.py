@@ -1251,7 +1251,8 @@ def test_get_entity(service):
             'NameFirst': 'Rob',
             'NameLast': 'Ickes'
         }},
-        status=200)
+        status=200,
+        headers={"ETag": "W/*"})
 
     request = service.entity_sets.Employees.get_entity(23)
 
@@ -1261,6 +1262,7 @@ def test_get_entity(service):
     assert emp.ID == 23
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
+    assert emp.headers == {"ETag": "W/*", "Content-Type": "application/json"}
 
 
 @responses.activate
