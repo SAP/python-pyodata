@@ -11,7 +11,7 @@ import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
 
-from tests.conftest import assert_request_contains_header
+from tests.conftest import assert_request_contains_header, contents_of_fixtures_file
 
 
 URL_ROOT = 'http://odatapy.example.com'
@@ -1367,6 +1367,33 @@ def test_batch_request(service):
     assert isinstance(chset_response, list)
     assert len(chset_response) == 1
     assert chset_response[0] is None   # response to update request is None
+
+
+@responses.activate
+def test_enormous_batch_request(service):
+    """Batch requests"""
+
+    # pylint: disable=redefined-outer-name
+
+    response_body = contents_of_fixtures_file('enormous_batch_response')
+
+    responses.add(
+        responses.POST,
+        '{0}/$batch'.format(URL_ROOT),
+        body=response_body,
+        content_type='multipart/mixed; boundary=16804F9C063D8720EACA19F7DFB3CD4A0',
+        status=202)
+
+    batch = service.create_batch()
+
+    employee_request = service.entity_sets.Enumerations.get_entities()
+
+    batch.add_request(employee_request)
+
+    response = batch.execute()
+
+    assert len(response) == 1
+    assert len(response[0]) == 1016
 
 
 @responses.activate

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - URL encode $filter contents - Barton Ip
+- JSON errors caused by invalid content length of Batch responses - Barton Ip
 
 ## [1.5.0]
 

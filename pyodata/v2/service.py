@@ -134,6 +134,7 @@ class ODataHttpResponse:
         source = FakeSocket(data)
         response = HTTPResponse(source)
         response.begin()
+        response.length = response.fp.__sizeof__()
 
         return ODataHttpResponse(
             response.getheaders(),

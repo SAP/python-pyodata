@@ -30,7 +30,8 @@ def test_edmx(schema):
         'CarIDPic',
         'Customer',
         'Order',
-        'EnumTest'
+        'EnumTest',
+        'Enumeration'
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {
@@ -46,7 +47,8 @@ def test_edmx(schema):
         'CarIDPics',
         'Customers',
         'Orders',
-        'EnumTests'
+        'EnumTests',
+        'Enumerations'
     }
 
     assert set((enum_type.name for enum_type in schema.enum_types)) == {
