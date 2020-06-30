@@ -308,6 +308,18 @@
                                     FromRole="EmployeeRole" ToRole="AddressRole"/>
             </EntityType>
 
+            <EntityType Name="Enumeration">
+                <Key>
+                    <PropertyRef Name="EntityType"/>
+                    <PropertyRef Name="PropertyName"/>
+                    <PropertyRef Name="RefKey"/>
+                </Key>
+                <Property Name="EntityType" Type="Edm.String" Nullable="false" MaxLength="40" />
+                <Property Name="PropertyName" Type="Edm.String" Nullable="false" MaxLength="40"/>
+                <Property Name="RefKey" Type="Edm.String" Nullable="false" MaxLength="50" />
+                <Property Name="Value" Type="Edm.String" Nullable="false" MaxLength="255" />
+            </EntityType>
+
             <EntityType Name="Address">
                 <Key>
                     <PropertyRef Name="ID"/>
@@ -335,6 +347,8 @@
                            sap:content-version="1"/>
 
                 <EntitySet Name="Employees" EntityType="Employee"/>
+                <EntitySet Name="Enumerations" EntityType="Enumeration"/>
+
 
                 <EntitySet Name="Addresses" EntityType="Address"/>
 
