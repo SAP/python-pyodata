@@ -33,8 +33,14 @@ def test_create_entity(service):
     responses.add(
         responses.POST,
         "{0}/MasterEntities".format(service.url),
-        headers={'Content-type': 'application/json'},
+        headers={
+            'Content-type': 'application/json',
+            'ETag':  'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
+        },
         json={'d': {
+            '__metadata': {
+                'etag': 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"',
+            },
             'Key': '12345',
             'Data': 'abcd'
         }},
@@ -44,6 +50,7 @@ def test_create_entity(service):
 
     assert result.Key == '12345'
     assert result.Data == 'abcd'
+    assert result.etag == 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
 
 
 @responses.activate
@@ -197,11 +204,16 @@ def test_get_entity_property(service):
     responses.add(
         responses.GET,
         "{0}/MasterEntities('12345')".format(service.url),
-        headers={'Content-type': 'application/json'},
+        headers={
+            'ETag': 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"',
+            'Content-type': 'application/json',
+        },
         json={'d': {'Key': '12345'}},
         status=200)
 
-    assert service.entity_sets.MasterEntities.get_entity('12345').execute().Key == '12345'
+    result = service.entity_sets.MasterEntities.get_entity('12345').execute()
+    assert result.Key == '12345'
+    assert result.etag == 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
 
 
 @responses.activate
@@ -2127,6 +2139,30 @@ def test_parsing_of_datetime_before_unix_time(service):
 
     result = request.execute()
     assert result.Date == datetime.datetime(1945, 5, 8, 19, 0, tzinfo=datetime.timezone.utc)
+
+
+@responses.activate
+def test_mismatched_etags_in_body_and_header(service):
+    """Test creating entity with missmatched etags"""
+
+    responses.add(
+        responses.POST,
+        "{0}/MasterEntities".format(service.url),
+        headers={
+            'Content-type': 'application/json',
+            'ETag':  'W/\"JEF\"'
+        },
+        json={'d': {
+            '__metadata': {
+                'etag': 'W/\"PEF\"',
+            }
+        }},
+        status=201)
+
+    with pytest.raises(PyODataException) as e_info:
+        service.entity_sets.MasterEntities.create_entity().set(**{}).execute()
+
+    assert str(e_info.value) == 'Etag from header does not match the Etag from response body'
 
 
 def test_odata_http_response():

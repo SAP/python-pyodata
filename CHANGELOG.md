@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add a Service wide configuration (e.g. http.update\_method) - Jakub Filak
 - <, <=, >, >= operators on GetEntitySetFilter - Barton Ip
 - Django style filtering - Barton Ip
+- Add etag property to EntityProxy - Martin Miksik
 
 ### Fixed
 - URL encode $filter contents - Barton Ip
