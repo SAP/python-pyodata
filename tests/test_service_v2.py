@@ -172,20 +172,21 @@ def test_create_entity_nested_list(service):
 
     responses.add(
         responses.POST,
-        "{0}/Cars".format(service.url),
+        "{0}/Customers".format(service.url),
         headers={'Content-type': 'application/json'},
         json={'d': {
-            'Name': 'Hadraplan',
-            'IDPic': [{
-                'CarName': 'Hadraplan-Plus'
-            }]
+            'Name': 'John',
+            'Orders': [
+                {'Owner': 'Mammon'},
+                {'Owner': 'Tomas'},
+            ]
         }},
         status=201)
 
-    entity = {'Name': 'Hadraplan', 'IDPic' : [{'CarName': 'Hadraplan-Plus'}]}
-    result = service.entity_sets.Cars.create_entity().set(**entity).execute()
+    entity = {'Name': 'John', 'Orders': [{'Owner': 'Mammon'}, {'Owner': 'Tomas'}]}
+    result = service.entity_sets.Customers.create_entity().set(**entity).execute()
 
-    assert responses.calls[0].request.body == '{"Name": "Hadraplan", "IDPic": [{"CarName": "Hadraplan-Plus"}]}'
+    assert responses.calls[0].request.body == '{"Name": "John", "Orders": [{"Owner": "Mammon"}, {"Owner": "Tomas"}]}'
 
 @responses.activate
 def test_get_entity_property(service):
