@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - URL encode $filter contents - Barton Ip
 - JSON errors caused by invalid content length of Batch responses - Barton Ip
 
+### Changed
+- ODataHttpResponse.from_string produces header of type {header: value} instead of [(header, value)] - Martin Miksik
+
 ## [1.5.0]
 
 ### Added

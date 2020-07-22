@@ -137,7 +137,7 @@ class ODataHttpResponse:
         response.length = response.fp.__sizeof__()
 
         return ODataHttpResponse(
-            response.getheaders(),
+            dict(response.getheaders()),
             response.status,
             response.read(len(data))  # the len here will give a 'big enough' value to read the whole content
         )
