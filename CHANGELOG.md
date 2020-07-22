@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.0]
+
 ### Added
 - Specify PATCH, PUT, or MERGE method for EntityUpdateRequest - Barton Ip
 - Add a Service wide configuration (e.g. http.update\_method) - Jakub Filak
@@ -99,7 +101,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.3.0...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.6.0...HEAD
+[1.6.0]: https://github.com/SAP/python-pyodata/compare/1.5.0...1.6.0
+[1.5.0]: https://github.com/SAP/python-pyodata/compare/1.4.0...1.5.0
+[1.4.0]: https://github.com/SAP/python-pyodata/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/SAP/python-pyodata/compare/1.2.3...1.3.0
 [1.2.3]: https://github.com/SAP/python-pyodata/compare/1.2.2...1.2.3
 [1.2.2]: https://github.com/SAP/python-pyodata/compare/1.2.1...1.2.2
