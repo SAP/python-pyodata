@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError
-from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter
+from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter, ODataHttpResponse, HTTP_CODE_OK
 
 from tests.conftest import assert_request_contains_header, contents_of_fixtures_file
 
@@ -2126,3 +2126,20 @@ def test_parsing_of_datetime_before_unix_time(service):
 
     result = request.execute()
     assert result.Date == datetime.datetime(1945, 5, 8, 19, 0, tzinfo=datetime.timezone.utc)
+
+
+def test_odata_http_response():
+    """Test that ODataHttpResponse is complaint with requests.Reponse"""
+
+    response_string = 'HTTP/1.1 200 OK \n' \
+                      'Content-Type: application/json\n' \
+                      '\n' \
+                      '{"d": {"ID": 23 }}'
+
+    response = ODataHttpResponse.from_string(response_string)
+
+    assert response.status_code == HTTP_CODE_OK
+
+    assert isinstance(response.headers, dict)
+    assert response.headers['Content-Type'] == 'application/json'
+    assert response.json()['d']['ID'] == 23
