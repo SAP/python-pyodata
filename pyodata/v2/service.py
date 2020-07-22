@@ -728,6 +728,7 @@ class FunctionRequest(QueryRequest):
         }
 
 
+# pylint: disable=too-many-instance-attributes
 class EntityProxy:
     """An immutable OData entity instance, consisting of an identity (an
        entity-set and a unique entity-key within that set), properties (typed,
