@@ -35,3 +35,7 @@ class HttpError(PyODataException):
         super(HttpError, self).__init__(message)
 
         self.response = response
+
+
+class ProgramError(PyODataException):
+    """Raised when an error in the program logic occurs"""
