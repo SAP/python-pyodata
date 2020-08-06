@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pyodata.v2.model
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException, HttpError, ExpressionError
+from pyodata.exceptions import PyODataException, HttpError, ExpressionError, ProgramError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter, ODataHttpResponse, HTTP_CODE_OK
 
 from tests.conftest import assert_request_contains_header, contents_of_fixtures_file
@@ -1619,6 +1619,183 @@ def test_get_entity_set_query_filter_property_error(service):
     with pytest.raises(KeyError) as e_info:
         assert not request.Foo == 'bar'
     assert e_info.value.args[0] == 'Foo'
+
+
+@responses.activate
+def test_inlinecount(service):
+    """Check getting entities with $inlinecount"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees?$inlinecount=allpages".format(service.url),
+        json={'d': {
+            '__count': 3,
+            'results': [
+                {
+                    'ID': 21,
+                    'NameFirst': 'George',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 22,
+                    'NameFirst': 'John',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 23,
+                    'NameFirst': 'Rob',
+                    'NameLast': 'Ickes'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().count(inline=True)
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute().total_count == 3
+
+
+@responses.activate
+def test_inlinecount_with_skip(service):
+    """Check getting entities with $inlinecount with $skip"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees?$inlinecount=allpages&$skip=1".format(service.url),
+        json={'d': {
+            '__count': 3,
+            'results': [
+                {
+                    'ID': 22,
+                    'NameFirst': 'John',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 23,
+                    'NameFirst': 'Rob',
+                    'NameLast': 'Ickes'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().skip(1).count(inline=True)
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute().total_count == 3
+
+
+@responses.activate
+def test_navigation_inlinecount(service):
+    """Check getting entities with $inlinecount via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses?$inlinecount=allpages".format(service.url),
+        json={'d': {
+            '__count': 3,
+            'results': [
+                {
+                    'ID': 456,
+                    'Street': 'Baker Street',
+                    'City': 'London'
+                },{
+                    'ID': 457,
+                    'Street': 'Lowth Road',
+                    'City': 'London'
+                },{
+                    'ID': 458,
+                    'Street': 'Warner Road',
+                    'City': 'Manchester'
+                }
+            ]
+        }},
+        status=200)
+
+    addresses = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+    request = addresses.count(inline=True)
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute().total_count == 3
+
+
+@responses.activate
+def test_inlinecount_with_filter(service):
+    """Check getting entities with $inlinecount and $filter"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees(23)/Addresses?$inlinecount=allpages&%24filter=City%20eq%20%27London%27".format(service.url),
+        json={'d': {
+            '__count': 2,
+            'results': [
+                {
+                    'ID': 456,
+                    'Street': 'Baker Street',
+                    'City': 'London'
+                },{
+                    'ID': 457,
+                    'Street': 'Lowth Road',
+                    'City': 'London'
+                }
+            ]
+        }},
+        status=200)
+
+    addresses = service.entity_sets.Employees.get_entity(23).nav('Addresses').get_entities()
+    request = addresses.filter(addresses.City == 'London').count(inline=True)
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute().total_count == 2
+
+
+@responses.activate
+def test_total_count_exception(service):
+    """Check getting entities without $inlinecount and then requesting total_count"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        "{0}/Employees".format(service.url),
+        json={'d': {
+            'results': [
+                {
+                    'ID': 21,
+                    'NameFirst': 'George',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 22,
+                    'NameFirst': 'John',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 23,
+                    'NameFirst': 'Rob',
+                    'NameLast': 'Ickes'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    with pytest.raises(ProgramError) as e_info:
+        request.execute().total_count
+
+    assert str(e_info.value) == ('The collection does not include Total Count of items because '
+                                 'the request was made without specifying "count(inline=True)".')
 
 
 @responses.activate
