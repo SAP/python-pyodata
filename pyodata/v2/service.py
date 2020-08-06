@@ -21,7 +21,7 @@ except ImportError:
     # Fallback to urllib2
     from urllib2 import quote
 
-from pyodata.exceptions import HttpError, PyODataException, ExpressionError
+from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
 from . import model
 
 LOGGER_NAME = 'pyodata.service'
@@ -603,6 +603,7 @@ class QueryRequest(ODataHttpRequest):
 
         self._logger = logging.getLogger(LOGGER_NAME)
         self._count = None
+        self._inlinecount = None
         self._top = None
         self._skip = None
         self._order_by = None
@@ -612,9 +613,12 @@ class QueryRequest(ODataHttpRequest):
         self._last_segment = last_segment
         self._logger.debug('New instance of QueryRequest for last segment: %s', self._last_segment)
 
-    def count(self):
-        """Sets a flag to return the number of items."""
-        self._count = True
+    def count(self, inline=False):
+        """Sets a flag to return the number of items. Can be inline with results or just the count."""
+        if inline:
+            self._inlinecount = True
+        else:
+            self._count = True
         return self
 
     def expand(self, expand):
@@ -687,6 +691,9 @@ class QueryRequest(ODataHttpRequest):
 
         if self._expand is not None:
             qparams['$expand'] = self._expand
+
+        if self._inlinecount:
+            qparams['$inlinecount'] = 'allpages'
 
         return qparams
 
@@ -1238,6 +1245,24 @@ class GetEntitySetRequest(QueryRequest):
         return self
 
 
+class ListWithTotalCount(list):
+    """A list with the additional property total_count"""
+
+    def __init__(self, total_count):
+        super(ListWithTotalCount, self).__init__()
+        self._total_count = total_count
+
+    @property
+    def total_count(self):
+        """Count of all entities"""
+        if self._total_count is None:
+            raise ProgramError('The collection does not include Total Count '
+                               'of items because the request was made without '
+                               'specifying "count(inline=True)".')
+
+        return self._total_count
+
+
 class EntitySetProxy:
     """EntitySet Proxy"""
 
@@ -1362,7 +1387,6 @@ class EntitySetProxy:
 
     def get_entities(self):
         """Get all entities"""
-
         def get_entities_handler(response):
             """Gets entity set from HTTP Response"""
 
@@ -1376,12 +1400,16 @@ class EntitySetProxy:
                 return content
 
             entities = content['d']
+            total_count = None
+
             if isinstance(entities, dict):
+                if '__count' in entities:
+                    total_count = int(entities['__count'])
                 entities = entities['results']
 
             self._logger.info('Fetched %d entities', len(entities))
 
-            result = []
+            result = ListWithTotalCount(total_count)
             for props in entities:
                 entity = EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, props)
                 result.append(entity)
