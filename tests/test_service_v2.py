@@ -2180,3 +2180,18 @@ def test_odata_http_response():
     assert isinstance(response.headers, dict)
     assert response.headers['Content-Type'] == 'application/json'
     assert response.json()['d']['ID'] == 23
+
+
+@responses.activate
+def test_custom_with_get_entity(service):
+    """ Test that `custom` can be called after `get_entity`"""
+
+    responses.add(
+        responses.GET,
+        "{0}/MasterEntities('12345')?foo=bar".format(service.url),
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    entity = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar").execute()
+    assert entity.Key == '12345'

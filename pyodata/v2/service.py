@@ -242,6 +242,7 @@ class ODataHttpRequest:
         self._handler = handler
         self._headers = headers or dict()
         self._logger = logging.getLogger(LOGGER_NAME)
+        self._customs = {}  # string -> string hash
 
     @property
     def handler(self):
@@ -256,7 +257,7 @@ class ODataHttpRequest:
     def get_query_params(self):
         """Get query params"""
         # pylint: disable=no-self-use
-        return {}
+        return dict(self._customs)
 
     def get_method(self):
         """Get HTTP method"""
@@ -330,6 +331,12 @@ class ODataHttpRequest:
             self._logger.debug('  body: <cannot be decoded>')
 
         return self._handler(response)
+
+    def custom(self, name, value):
+        """Adds a custom name-value pair."""
+        # returns QueryRequest
+        self._customs[name] = value
+        return self
 
 
 class EntityGetRequest(ODataHttpRequest):
@@ -603,14 +610,7 @@ class QueryRequest(ODataHttpRequest):
         self._select = None
         self._expand = None
         self._last_segment = last_segment
-        self._customs = {}  # string -> string hash
         self._logger.debug('New instance of QueryRequest for last segment: %s', self._last_segment)
-
-    def custom(self, name, value):
-        """Adds a custom name-value pair."""
-        # returns QueryRequest
-        self._customs[name] = value
-        return self
 
     def count(self):
         """Sets a flag to return the number of items."""
@@ -684,9 +684,6 @@ class QueryRequest(ODataHttpRequest):
 
         if self._select is not None:
             qparams['$select'] = self._select
-
-        for key, val in self._customs.items():
-            qparams[key] = val
 
         if self._expand is not None:
             qparams['$expand'] = self._expand
