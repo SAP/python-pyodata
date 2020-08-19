@@ -106,6 +106,16 @@ Print a count of all employees:
     count = northwind.entity_sets.Employees.get_entities().count().execute()
     print(count)
 
+Print all employees and their count:
+
+.. code-block:: python
+
+    employees = northwind.entity_sets.Employees.get_entities().count(inline=True).execute()
+    print(employees.total_count)
+
+    for employee in employees:
+        print(employee.EmployeeID, employee.LastName)
+
 
 Get a count of entities via navigation property
 -----------------------------------------------
@@ -116,6 +126,17 @@ Print a count of all orders associated with Employee 1:
 
     count = northwind.entity_sets.Employees.get_entity(1).nav('Orders').get_entities().count().execute()
     print(count)
+
+
+Print all orders associated with Employee 1 and their count:
+
+.. code-block:: python
+
+    orders = northwind.entity_sets.Employees.get_entity(1).nav('Orders').get_entities().count(inline=True).execute()
+    print(orders.total_count)
+
+    for order in orders:
+        print(order.OrderID, order.ProductID)
 
 
 Use non-standard OData URL Query parameters

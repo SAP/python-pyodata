@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Add inlinecount support - Stoyko Stoev
+- Add a ProgramError exception - Stoyko Stoev
+
 ## [1.6.0]
 
 ### Added
