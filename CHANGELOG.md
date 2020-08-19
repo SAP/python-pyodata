@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add inlinecount support - Stoyko Stoev
 - Add a ProgramError exception - Stoyko Stoev
 
+### Fixed
+- Passing custom URL query parameters for Entity Requests - Sylvain Fankhauser
+
 ## [1.6.0]
 
 ### Added
