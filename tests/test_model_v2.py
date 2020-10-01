@@ -1009,6 +1009,7 @@ def test_faulty_association(xml_builder_factory):
         ))
 
     schema = metadata.build()
+    assert schema.is_valid == False
     assert isinstance(schema.associations[0], NullAssociation)
 
     with pytest.raises(PyODataModelError) as typ_ex_info:
@@ -1035,6 +1036,7 @@ def test_faulty_association_set(xml_builder_factory):
         ))
 
     schema = metadata.build()
+    assert schema.is_valid == False
     assert isinstance(schema.association_set('toDataEntitySet'), NullAssociation)
 
     with pytest.raises(PyODataModelError) as typ_ex_info:
