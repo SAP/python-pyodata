@@ -141,6 +141,12 @@ For parser to use your custom configuration, it needs to be passed as an argumen
 
     northwind = pyodata.Client(SERVICE_URL, requests.Session(), config=custom_config)
 
+Additionally, Schema class has Boolean atribute 'is_valid' that returns if the parser encountered errors. It's value does not depends on used Parser policy. 
+
+.. code-block:: python
+
+    northwind.schema.is_valid
+
 Set custom namespaces (Deprecated - use config instead)
 -------------------------------------------------------
 
