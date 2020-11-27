@@ -1,5 +1,6 @@
 """OData Client Implementation"""
 
+import os
 import logging
 import warnings
 
@@ -11,7 +12,14 @@ from pyodata.exceptions import PyODataException, HttpError
 def _fetch_metadata(connection, url, logger):
     # download metadata
     logger.info('Fetching metadata')
-    resp = connection.get(url + '$metadata')
+    sap_client = os.environ.get('PYODATA_SAP_CLIENT')
+    logger.debug('Set sap-client with PYDATA_SAP_CLIENT. sap-client={}'.format(sap_client))
+    resp = None
+    if sap_client is None:
+        resp = connection.get(url + '$metadata')
+    else:
+        param = {'sap-client': sap_client}
+        resp = connection.get(url + '$metadata', params=param)
 
     logger.debug('Retrieved the response:\n%s\n%s',
                  '\n'.join((f'H: {key}: {value}' for key, value in resp.headers.items())),
