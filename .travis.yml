@@ -15,7 +15,7 @@ env:
   - LXML_VERSION=4.2.6
   - LXML_VERSION=4.3.5
   - LXML_VERSION=4.4.3
-  - LXML_VERSION=4.5.0
+  - LXML_VERSION=4.5.2
 
 jobs:
   exclude:

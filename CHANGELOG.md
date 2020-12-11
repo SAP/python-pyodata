@@ -6,9 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0]
+
 ### Added
 - Add inlinecount support - Stoyko Stoev
 - Add a ProgramError exception - Stoyko Stoev
+- Add is_valid schema property - Petr Hanak
 
 ### Fixed
 - Passing custom URL query parameters for Entity Requests - Sylvain Fankhauser

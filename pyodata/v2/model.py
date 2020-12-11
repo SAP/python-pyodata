@@ -830,6 +830,7 @@ class Schema:
 
         self._decls = Schema.Declarations()
         self._config = config
+        self._is_valid = False
 
     def __str__(self):
         return "{0}({1})".format(self.__class__.__name__, ','.join(self.namespaces))
@@ -841,6 +842,14 @@ class Schema:
     @property
     def config(self):
         return self._config
+
+    @property
+    def is_valid(self):
+        """Returns if metadata provided were parsed to schema without any problem regardless of Policies (Fatal, Warning, Ignore).
+
+        Policies affects behaviour o parser while this property represents status.
+        """
+        return self._is_valid
 
     def typ(self, type_name, namespace=None):
         """Returns either EntityType, ComplexType or EnumType that matches the name.
@@ -1046,6 +1055,7 @@ class Schema:
     @staticmethod
     def from_etree(schema_nodes, config: Config):
         schema = Schema(config)
+        schema._is_valid = True
 
         # Parse Schema nodes by parts to get over the problem of not-yet known
         # entity types referenced by entity sets, function imports and
@@ -1063,6 +1073,7 @@ class Schema:
                 except (PyODataParserError, AttributeError) as ex:
                     config.err_policy(ParserError.ENUM_TYPE).resolve(ex)
                     etype = NullType(enum_type.get('Name'))
+                    schema._is_valid = False
 
                 decl.add_enum_type(etype)
 
@@ -1072,6 +1083,7 @@ class Schema:
                 except (KeyError, AttributeError) as ex:
                     config.err_policy(ParserError.COMPLEX_TYPE).resolve(ex)
                     ctype = NullType(complex_type.get('Name'))
+                    schema._is_valid = False
 
                 decl.add_complex_type(ctype)
 
@@ -1081,6 +1093,7 @@ class Schema:
                 except (KeyError, AttributeError) as ex:
                     config.err_policy(ParserError.ENTITY_TYPE).resolve(ex)
                     etype = NullType(entity_type.get('Name'))
+                    schema._is_valid = False
 
                 decl.add_entity_type(etype)
 
@@ -1101,6 +1114,7 @@ class Schema:
                     except PyODataModelError as ex:
                         config.err_policy(ParserError.PROPERTY).resolve(ex)
                         prop.typ = NullType(prop.type_info.name)
+                        schema._is_valid = False
 
         # pylint: disable=too-many-nested-blocks
         # Then, process Associations nodes because they refer EntityTypes and
@@ -1122,6 +1136,7 @@ class Schema:
 
                             end_role.entity_type = etype
                         except KeyError:
+                            schema._is_valid = False
                             raise PyODataModelError(
                                 f'EntityType {end_role.entity_type_info.name} does not exist in Schema '
                                 f'Namespace {end_role.entity_type_info.namespace}')
@@ -1132,6 +1147,7 @@ class Schema:
 
                         # Check if the role was defined in the current association
                         if principal_role.name not in role_names:
+                            schema._is_valid = False
                             raise RuntimeError(
                                 'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
 
@@ -1144,6 +1160,7 @@ class Schema:
 
                         # Check if the role was defined in the current association
                         if dependent_role.name not in role_names:
+                            schema._is_valid = False
                             raise RuntimeError(
                                 'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
 
@@ -1154,6 +1171,7 @@ class Schema:
                 except (PyODataModelError, RuntimeError) as ex:
                     config.err_policy(ParserError.ASSOCIATION).resolve(ex)
                     decl.associations[assoc.name] = NullAssociation(assoc.name)
+                    schema._is_valid = False
                 else:
                     decl.associations[assoc.name] = assoc
 
@@ -1174,6 +1192,7 @@ class Schema:
                 except KeyError as ex:
                     config.err_policy(ParserError.ASSOCIATION).resolve(ex)
                     nav_prop.association = NullAssociation(nav_prop.association_info.name)
+                    schema._is_valid = False
 
         # Then, process EntitySet, FunctionImport and AssociationSet nodes.
         for schema_node in schema_nodes:
@@ -1202,6 +1221,7 @@ class Schema:
                         assoc_set.association_type = schema.association(assoc_set.association_type_name,
                                                                         assoc_set.association_type_namespace)
                     except KeyError:
+                        schema._is_valid = False
                         raise PyODataModelError(
                             'Association {} does not exist in namespace {}'
                             .format(assoc_set.association_type_name, assoc_set.association_type_namespace))
@@ -1213,15 +1233,18 @@ class Schema:
                             entity_set = schema.entity_set(end.entity_set_name, namespace)
                             end.entity_set = entity_set
                         except KeyError:
+                            schema._is_valid = False
                             raise PyODataModelError('EntitySet {} does not exist in Schema Namespace {}'
                                                     .format(end.entity_set_name, namespace))
                         # Check if role is defined in Association
                         if assoc_set.association_type.end_by_role(end.role) is None:
+                            schema._is_valid = False
                             raise PyODataModelError('Role {} is not defined in association {}'
                                                     .format(end.role, assoc_set.association_type_name))
                 except (PyODataModelError, KeyError) as ex:
                     config.err_policy(ParserError.ASSOCIATION).resolve(ex)
                     decl.association_sets[assoc_set.name] = NullAssociation(assoc_set.name)
+                    schema._is_valid = False
                 else:
                     decl.association_sets[assoc_set.name] = assoc_set
 
@@ -1240,6 +1263,7 @@ class Schema:
                                 annotation.entity_set = schema.entity_set(
                                     annotation.collection_path, namespace=annotation.element_namespace)
                             except KeyError:
+                                schema._is_valid = False
                                 raise RuntimeError(f'Entity Set {annotation.collection_path} '
                                                    f'for {annotation} does not exist')
 
@@ -1247,18 +1271,21 @@ class Schema:
                                 vh_type = schema.typ(annotation.proprty_entity_type_name,
                                                      namespace=annotation.element_namespace)
                             except KeyError:
+                                schema._is_valid = False
                                 raise RuntimeError(f'Target Type {annotation.proprty_entity_type_name} '
                                                    f'of {annotation} does not exist')
 
                             try:
                                 target_proprty = vh_type.proprty(annotation.proprty_name)
                             except KeyError:
+                                schema._is_valid = False
                                 raise RuntimeError(f'Target Property {annotation.proprty_name} '
                                                    f'of {vh_type} as defined in {annotation} does not exist')
 
                             annotation.proprty = target_proprty
                             target_proprty.value_helper = annotation
                     except (RuntimeError, PyODataModelError) as ex:
+                        schema._is_valid = False
                         config.err_policy(ParserError.ANNOTATION).resolve(ex)
 
         return schema
