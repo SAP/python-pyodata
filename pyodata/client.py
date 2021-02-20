@@ -19,12 +19,12 @@ def _fetch_metadata(connection, url, logger):
 
     if resp.status_code != 200:
         raise HttpError(
-            'Metadata request failed, status code: {}, body:\n{}'.format(resp.status_code, resp.content), resp)
+            f'Metadata request failed, status code: {resp.status_code}, body:\n{resp.content}', resp)
 
     mime_type = resp.headers['content-type']
     if not any((typ in ['application/xml', 'text/xml'] for typ in mime_type.split(';'))):
         raise HttpError(
-            'Metadata request did not return XML, MIME type: {}, body:\n{}'.format(mime_type, resp.content),
+            f'Metadata request did not return XML, MIME type: {mime_type}, body:\n{resp.content}',
             resp)
 
     return resp.content
@@ -73,4 +73,4 @@ class Client:
 
             return service
 
-        raise PyODataException('No implementation for selected odata version {}'.format(odata_version))
+        raise PyODataException(f'No implementation for selected odata version {odata_version}')

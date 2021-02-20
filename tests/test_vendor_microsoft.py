@@ -35,7 +35,7 @@ def test_get_entities_with_top_and_skip_without_results_member(service_northwind
 
     responses.add(
         responses.GET,
-        "{0}/Employees?$skip=10&$top=5".format(service_northwind_v2.url),
+        f"{service_northwind_v2.url}/Employees?$skip=10&$top=5",
         json={'d': [
                 {
                     'EmployeeID': 1,
