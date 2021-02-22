@@ -1254,7 +1254,7 @@ class Schema:
             for annotation_group in schema_node.xpath('edm:Annotations', namespaces=ANNOTATION_NAMESPACES):
                 for annotation in ExternalAnnontation.from_etree(annotation_group):
                     if not annotation.element_namespace != schema.namespaces:
-                        modlog().warning(f"{annotation} not in the namespaces {','.join(schema.namespaces)}")
+                        modlog().warning('{0} not in the namespaces {1}'.format(annotation, ','.join(schema.namespaces)))
                         continue
 
                     try:
@@ -2155,7 +2155,7 @@ class Annotation:
         if term in SAP_ANNOTATION_VALUE_LIST:
             return ValueHelper.from_etree(target, annotation_node)
 
-        modlog().warning(f'Unsupported Annotation({term})')
+        modlog().warning('Unsupported Annotation({0})'.format(term))
         return None
 
 
@@ -2165,7 +2165,7 @@ class ExternalAnnontation:
         target = annotations_node.get('Target')
 
         if annotations_node.get('Qualifier'):
-            modlog().warning(f'Ignoring qualified Annotations of {target}')
+            modlog().warning('Ignoring qualified Annotations of {}'.format(target))
             return
 
         for annotation in annotations_node.xpath('edm:Annotation', namespaces=ANNOTATION_NAMESPACES):
