@@ -17,6 +17,8 @@
 
 * Every Pull Request must contain test or a good justification why
   the test part is not included.
+  
+* Every Pull Request must have signed CLA agreement. You can do it simply in the PR checks section.
 
 * If you believe that it is not necessary to add a test because there is
   already a test going through the statements you have modified, you are probably
