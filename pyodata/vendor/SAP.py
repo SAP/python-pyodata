@@ -19,7 +19,7 @@ def json_get(obj, member, typ, default=None):
 
     value = obj.get(member, default)
     if not isinstance(value, typ):
-        raise ValueError('%s is not a %s' % (member, typ.__name__))
+        raise ValueError(f'{member} is not a {typ.__name__}')
 
     return value
 
