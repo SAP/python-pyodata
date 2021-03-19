@@ -21,6 +21,8 @@ from lxml import etree
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 LOGGER_NAME = 'pyodata.model'
+FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = False
+FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = False
 
 IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
@@ -414,8 +416,19 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         try:
             # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
             value = datetime.datetime(1970, 1, 1, tzinfo=current_timezone()) + datetime.timedelta(milliseconds=int(value))
-        except ValueError:
-            raise PyODataModelError(f'Cannot decode datetime from value {value}.')
+        except (ValueError, OverflowError):
+            if FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE and int(value) < -62135596800000:
+                # Some service providers return false minimal date values. 
+                # -62135596800000 is the lowest value PyOData could read.
+                # This workaroud fixes this issue and returns 0001-01-01 00:00:00+00:00 in such a case.
+                return datetime.datetime(year=1, day=1, month=1, tzinfo=current_timezone())
+            elif FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE and int(value) > 253402300799999:
+                return datetime.datetime(year=9999, day=31, month=12, tzinfo=current_timezone())
+            else:
+                raise PyODataModelError(f'Cannot decode datetime from value {value}. '
+                                        f'Possible value range: -62135596800000 to 253402300799999. '
+                                        f'You may fix this by setting `FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE` '
+                                        f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
 
         return value
 
