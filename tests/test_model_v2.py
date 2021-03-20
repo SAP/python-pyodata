@@ -9,6 +9,7 @@ from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType,
     PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, current_timezone, StructType
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 from tests.conftest import assert_logging_policy
+import pyodata.v2.model
 
 
 def test_edmx(schema):
@@ -537,10 +538,20 @@ def test_traits_datetime():
     assert testdate.microsecond == 0
     assert testdate.tzinfo == current_timezone()
 
-    # parsing the lowest value
-    with pytest.raises(OverflowError):
-        typ.traits.from_json("/Date(-62135596800001)/")
+    # parsing below lowest value with workaround
+    pyodata.v2.model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = True
+    testdate = typ.traits.from_json("/Date(-62135596800001)/")
+    assert testdate.year == 1
+    assert testdate.month == 1
+    assert testdate.day == 1
+    assert testdate.tzinfo == current_timezone()
 
+    # parsing the lowest value
+    pyodata.v2.model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = False
+    with pytest.raises(PyODataModelError) as e_info:
+        typ.traits.from_json("/Date(-62135596800001)/")
+    assert str(e_info.value).startswith('Cannot decode datetime from value -62135596800001.')
+       
     testdate = typ.traits.from_json("/Date(-62135596800000)/")
     assert testdate.year == 1
     assert testdate.month == 1
@@ -551,9 +562,19 @@ def test_traits_datetime():
     assert testdate.microsecond == 0
     assert testdate.tzinfo == current_timezone()
 
+    # parsing above highest value with workaround
+    pyodata.v2.model.FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = True
+    testdate = typ.traits.from_json("/Date(253402300800000)/")
+    assert testdate.year == 9999
+    assert testdate.month == 12
+    assert testdate.day == 31
+    assert testdate.tzinfo == current_timezone()
+
     # parsing the highest value
-    with pytest.raises(OverflowError):
+    pyodata.v2.model.FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = False
+    with pytest.raises(PyODataModelError) as e_info:
         typ.traits.from_json("/Date(253402300800000)/")
+    assert str(e_info.value).startswith('Cannot decode datetime from value 253402300800000.')
 
     testdate = typ.traits.from_json("/Date(253402300799999)/")
     assert testdate.year == 9999
