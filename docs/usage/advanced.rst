@@ -95,3 +95,42 @@ it is enough to set log level to the desired value.
     logging.basicConfig()
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
+
+Observing HTTP traffic
+----------------------
+
+There are cases where you need access to the transport protocol (http). For
+example: you need to read value of specific http header. Pyodata provides
+simple mechanism to observe all http requests and access low level properties
+from underlying network library (e.g. **python requests**).
+
+You can use basic predefined observer class
+``pyodata.utils.RequestObserverLastCall`` to catch last response headers:
+
+.. code-block:: python
+
+    from pyodata.utils import RequestObserverLastCall
+
+    last = RequestObserverLastCall()
+    northwind.entity_sets.Employees.get_entity(1).execute(last)
+    print(last.response.headers)
+
+You can also write your own observer to cover more specific cases. This is an example of
+custom observer which stores status code of the last response.
+
+.. code-block:: python
+
+    from pyodata.utils import RequestObserver
+
+    class CatchStatusCode(RequestObserver):
+
+        def __init__(self):
+            self.status_code = None
+
+        def http_response(self, response, request):
+            self.status_code = response.status_code
+
+    last_status = RequestObserverLastCall()
+
+    northwind.entity_sets.Employees.get_entity(1).execute(last_status)
+    print(last_status.status_code)
