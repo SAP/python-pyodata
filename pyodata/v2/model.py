@@ -1016,7 +1016,7 @@ class Schema:
             try:
                 return decl.associations[association_name]
             except KeyError:
-                pass
+                return None
 
     @property
     def associations(self):
@@ -1046,7 +1046,7 @@ class Schema:
             try:
                 return decl.association_sets[set_name]
             except KeyError:
-                pass
+                return None
 
     @property
     def association_sets(self):
