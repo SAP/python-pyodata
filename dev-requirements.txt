@@ -3,7 +3,7 @@ pytest>=4.6.0
 responses>=0.8.1
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
-pylint==2.6.2
+pylint==2.8.3
 pytest-cov==2.11.1
 codecov==2.1.11
 flake8==3.8.4
