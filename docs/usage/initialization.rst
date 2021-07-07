@@ -96,6 +96,48 @@ Python client initialization:
 
 For more information on client side SSL cerificationcas, please refer to this [gist](https://gist.github.com/mtigas/952344).
 
+Get the service proxy client for an OData service published on SAP BTP, ABAP environment
+--------------------------------------------------------------------------
+
+Let's assume you have an ABAP environment service instance running on SAP Business Technology
+Platform. You have used this instance to provide an OData service by using, for example, the
+ABAP RESTful Application Programming Model. To connect to it, you need to provide several attributes 
+found in the JSON service key of the instance, as well as your username and password for SAP BTP.
+
+The following code takes care to extract the needed attributes from the JSON service key
+(stored in the example in *key.txt*), and returns a client connected to the service specified
+in *SERVICE_NAME*.
+
+.. code-block:: python
+
+    import requests
+    import pyodata
+    import json
+
+    with open('key.txt', 'r') as f:
+        KEY = f.read()
+    
+    KEY = json.loads(KEY)
+    
+    USER = 'MyBTPuser'
+    PASSWORD = 'MyBTPpassword'
+    SERVICE_NAME = 'ZMyService'
+    
+    # get the relevant token
+    token_url = KEY['uaa']['url']
+    token_url += f'/oauth/token?grant_type=password&password={PASSWORD}&username={USER}'
+    token_response = requests.post(token_url, auth=(KEY['uaa']['clientid'], KEY['uaa']['clientsecret']))
+    token_response = json.loads(token_response.text)
+    token = token_response['id_token']
+    
+    # store it in the session's headers
+    session = requests.Session()
+    session.headers.update({'Authorization': f'Bearer {token}'})
+    
+    # connect to the service
+    service_url = KEY['url'] + '/sap/opu/odata/sap/' + SERVICE_NAME
+    client = pyodata.Client(service_url, session)
+
 Get the service with local metadata
 -----------------------------------
 
