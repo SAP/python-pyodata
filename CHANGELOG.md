@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Helper for obtaining a token for services coming from SAP BTP, ABAP environment - Stoyko Stoev
+
 ## [1.7.0]
 
 ### Added
