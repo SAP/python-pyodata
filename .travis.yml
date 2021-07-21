@@ -33,7 +33,9 @@ jobs:
     - python: 3.8
       env: LXML_VERSION=4.0.0       
     - python: 3.9
-      env: LXML_VERSION=3.7.3      
+      env: LXML_VERSION=3.7.3   
+    - python: 3.9
+      env: LXML_VERSION=3.8.0      
     - python: 3.9
       env: LXML_VERSION=4.0.0     
     - python: 3.9
