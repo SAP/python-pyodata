@@ -5,6 +5,7 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
   
 env:
   - LXML_VERSION=3.7.3
@@ -15,7 +16,7 @@ env:
   - LXML_VERSION=4.3.5
   - LXML_VERSION=4.4.3
   - LXML_VERSION=4.5.2
-  - LXML_VERSION=4.6.2  
+  - LXML_VERSION=4.6.3
 
 jobs:
   exclude:
@@ -31,7 +32,16 @@ jobs:
       env: LXML_VERSION=3.8.0
     - python: 3.8
       env: LXML_VERSION=4.0.0       
-      
+    - python: 3.9
+      env: LXML_VERSION=3.7.3   
+    - python: 3.9
+      env: LXML_VERSION=3.8.0      
+    - python: 3.9
+      env: LXML_VERSION=4.0.0     
+    - python: 3.9
+      env: LXML_VERSION=4.1.1      
+    - python: 3.9
+      env: LXML_VERSION=4.2.6           
 
 # command to install dependencies
 install:
@@ -54,5 +64,6 @@ notifications:
         recipients:
             - jakub.filak@sap.com
             - michal.nezerka@sap.com
+            - petr.hanak@sap.com
     on_success: always
     on_failure: always
