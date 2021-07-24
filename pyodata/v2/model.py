@@ -1018,6 +1018,8 @@ class Schema:
             except KeyError:
                 return None
 
+        raise KeyError('Association does not exist')
+
     @property
     def associations(self):
         return list(itertools.chain(*(decl.list_associations() for decl in list(self._decls.values()))))
@@ -1047,6 +1049,8 @@ class Schema:
                 return decl.association_sets[set_name]
             except KeyError:
                 return None
+
+        raise KeyError('Association set does not exist')
 
     @property
     def association_sets(self):

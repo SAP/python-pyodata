@@ -6,6 +6,7 @@ import requests
 import pytest
 from unittest.mock import patch
 
+from pyodata.utils import RequestObserverLastCall
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError, ExpressionError, ProgramError
@@ -2372,3 +2373,33 @@ def test_custom_with_get_entity(service):
 
     entity = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar").execute()
     assert entity.Key == '12345'
+
+
+@responses.activate
+def test_request_observer(service):
+    """Test use of request observer"""
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/MasterEntities('12345')",
+        headers={'h1-key': 'h1-val', 'h2-key': 'h2-val'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    last = RequestObserverLastCall()
+    entity = service.entity_sets.MasterEntities.get_entity('12345').execute(last)
+
+    assert last.request is not None
+
+    assert len(last.request.headers) > 0
+    assert 'Accept' in last.request.headers
+
+    assert last.response is not None
+    assert last.response.status_code == 200
+    assert len(last.response.headers) == 3
+    assert 'Content-type' in last.response.headers
+    assert 'h1-key' in last.response.headers
+    assert 'h2-key' in last.response.headers
+    assert  last.response.headers['Content-type'] == 'application/json'
+    assert  last.response.headers['h1-key'] == 'h1-val'
+    assert  last.response.headers['h2-key'] == 'h2-val'

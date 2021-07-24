@@ -22,6 +22,7 @@ except ImportError:
     from urllib2 import quote
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
+from pyodata.utils import RequestObserver
 from . import model
 
 LOGGER_NAME = 'pyodata.service'
@@ -296,7 +297,7 @@ class ODataHttpRequest:
 
         self._headers.update(value)
 
-    def execute(self):
+    def execute(self, observer: RequestObserver = None):
         """Fetches HTTP response and returns processed result
 
            Sends the query-request to the OData service, returning a client-side Enumerable for
@@ -319,6 +320,9 @@ class ODataHttpRequest:
         params = "&".join("%s=%s" % (k, v) for k, v in self.get_query_params().items())
         response = self._connection.request(
             self.get_method(), url, headers=headers, params=params, data=body)
+
+        if observer:
+            observer.http_response(response, response.request)
 
         self._logger.debug('Received response')
         self._logger.debug('  url: %s', response.url)
