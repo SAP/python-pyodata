@@ -117,6 +117,17 @@ Print all employees and their count:
         print(employee.EmployeeID, employee.LastName)
 
 
+Get a count of entities using a getattr() function
+------------------------------------------------
+
+Print a count of all employees with getattr():
+
+.. code-block:: python
+
+    count = getattr(northwind.entity_sets, 'Employees').get_entities().count().execute()
+    print(count)
+    
+
 Get a count of entities via navigation property
 -----------------------------------------------
 
