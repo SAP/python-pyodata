@@ -95,3 +95,13 @@ it is enough to set log level to the desired value.
     logging.basicConfig()
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
+    
+Get a count of entities using a getattr() function
+------------------------------------------------
+
+Print a count of all employees with getattr():
+
+.. code-block:: python
+
+    count = getattr(northwind.entity_sets, 'Employees').get_entities().count().execute()
+    print(count)
