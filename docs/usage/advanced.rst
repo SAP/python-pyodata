@@ -96,10 +96,10 @@ it is enough to set log level to the desired value.
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
     
-Get a count of entities using a getattr() function
+Dynamically referenced EntitySet
 ------------------------------------------------
 
-Print a count of all employees with getattr():
+If you need to work with many Entity Sets the same way or if you just need to pick up the used Entity Set name in run-time, you may find out the ability to get an instance of Entity Set proxy dynamically. Here is an example of how you can print a count of all employees:
 
 .. code-block:: python
 
