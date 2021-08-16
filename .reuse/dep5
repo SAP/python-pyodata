@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: python-pyodata
+Upstream-Contact: Petr Hanak <petr.hanak@sap.com>, Jakub Filak <jakub.filak@sap.com>
+Source: https://github.com/SAP/python-pyodata
+
+Files: *
+Copyright: 2021 SAP SE or an SAP affiliate company and task-explorer contributors
+License: Apache-2.0
