@@ -379,6 +379,25 @@ def test_function_import_primitive(service):
 
 
 @responses.activate
+def test_function_import_escape_parameter(service):
+    """Simple function call with special URL characters in parameter value"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/retrieve?Param=%27%26|%2B|%3D|%2F|%3F|+|%40%27",
+        headers={'Content-type': 'application/json'},
+        json={'d': True},
+        status=200)
+
+    chars = "|".join("&+=/? @")
+    result = service.functions.retrieve.parameter('Param', chars).execute()
+    assert result is True
+
+
+
+@responses.activate
 @patch('logging.Logger.warning')
 def test_function_import_primitive_unexpected_status_code(mock_warning, service):
     """Simple function call should use status code 200"""

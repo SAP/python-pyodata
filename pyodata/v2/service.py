@@ -13,13 +13,8 @@ import random
 from email.parser import Parser
 from http.client import HTTPResponse
 from io import BytesIO
+from urllib.parse import urlencode
 
-try:
-    # For Python 3.0 and later
-    from urllib.parse import quote
-except ImportError:
-    # Fallback to urllib2
-    from urllib2 import quote
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
 from . import model
@@ -54,7 +49,7 @@ def encode_multipart(boundary, http_requests):
 
             # request  line (method + path + query params)
             line = f'{req.get_method()} {req.get_path()}'
-            query_params = '&'.join(['{}={}'.format(key, val) for key, val in req.get_query_params().items()])
+            query_params = urlencode(req.get_query_params())
             if query_params:
                 line += '?' + query_params
             line += ' HTTP/1.1'
@@ -316,7 +311,7 @@ class ODataHttpRequest:
         if body:
             self._logger.debug('  body: %s', body)
 
-        params = "&".join("%s=%s" % (k, v) for k, v in self.get_query_params().items())
+        params = urlencode(self.get_query_params())
         response = self._connection.request(
             self.get_method(), url, headers=headers, params=params, data=body)
 
@@ -1216,7 +1211,7 @@ class GetEntitySetFilterChainable:
     def __str__(self):
         expressions = self._process_expressions()
         result = self._combine_expressions(expressions)
-        return quote(result)
+        return result
 
 
 class GetEntitySetRequest(QueryRequest):
