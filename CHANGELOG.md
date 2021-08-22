@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Always escape special chars in URL query params - Simon Brulhart
 - Helper for obtaining a token for services coming from SAP BTP, ABAP environment - Stoyko Stoev
 
 ## [1.7.0]
