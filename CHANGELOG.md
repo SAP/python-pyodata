@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.1]
+
 ### Fixed
+- Workaround for screwed up date values - Timo S.
 - Always escape special chars in URL query params - Simon Brulhart
 - Helper for obtaining a token for services coming from SAP BTP, ABAP environment - Stoyko Stoev
 
@@ -115,7 +118,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.6.0...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.7.1...HEAD
+[1.7.1]: https://github.com/SAP/python-pyodata/compare/1.7.0...1.7.1
+[1.7.0]: https://github.com/SAP/python-pyodata/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/SAP/python-pyodata/compare/1.5.0...1.6.0
 [1.5.0]: https://github.com/SAP/python-pyodata/compare/1.4.0...1.5.0
 [1.4.0]: https://github.com/SAP/python-pyodata/compare/1.3.0...1.4.0
