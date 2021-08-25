@@ -7,4 +7,5 @@ pylint==2.8.3
 pytest-cov==2.11.1
 codecov==2.1.11
 flake8==3.8.4
+bandit==1.7.0
 sphinx
