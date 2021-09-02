@@ -2565,7 +2565,12 @@ class MetadataBuilder:
             raise TypeError(f'Expected bytes or str type on metadata_xml, got : {type(self._xml)}')
 
         namespaces = self._config.namespaces
-        xml = etree.parse(mdf)
+
+        try:
+            xml = etree.parse(mdf)
+        except etree.XMLSyntaxError as ex:
+            raise PyODataParserError('Metadata document syntax error') from ex
+
         edmx = xml.getroot()
 
         try:

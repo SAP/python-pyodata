@@ -1449,3 +1449,17 @@ def test_struct_type_has_property_yes():
     struct_type._properties['proprty'] = 'ugly test hack'
 
     assert struct_type.has_proprty('proprty')
+
+def test_invalid_xml(xml_builder_factory):
+    """Test for invalid XML"""
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema('Test', """
+        <EntityType Name="C_AssetTPType" sap:label="Asset" sap:content-version="1">
+            <Property Name="IN_AssetIsResearchAndDev" Type="Edm.String" sap:label="R & D Asset" sap:quickinfo="India: R & D Asset"/>
+        </EntityType>
+        """)
+    xml = xml_builder.serialize()
+
+    with pytest.raises(PyODataParserError) as e_info:
+        MetadataBuilder(xml).build()
+    assert str(e_info.value) == 'Metadata document syntax error'
