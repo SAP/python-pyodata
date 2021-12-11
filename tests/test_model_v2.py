@@ -367,10 +367,19 @@ def test_traits():
     """Test individual traits"""
 
     # generic
-    typ = Types.from_name('Edm.Binary')
+    typ = Types.from_name('Edm.Byte')
     assert repr(typ.traits) == 'TypTraits'
-    assert typ.traits.to_literal('bincontent') == 'bincontent'
-    assert typ.traits.from_literal('some bin content') == 'some bin content'
+    assert typ.traits.to_literal('85') == '85'
+    assert typ.traits.from_literal('170') == '170'
+
+    # binary
+    typ = Types.from_name('Edm.Binary')
+    assert repr(typ.traits) == 'EdmBinaryTypTraits'
+    assert typ.traits.to_literal('wAHK/rqt8A0=') == 'binary\'C001CAFEBAADF00D\''
+    assert typ.traits.from_literal('binary\'C001cafeBAADF00D\'') == 'wAHK/rqt8A0='
+    assert typ.traits.from_literal('X\'C001cafeBAADF00D\'') == 'wAHK/rqt8A0='
+    assert typ.traits.to_json('cHlvZGF0YQ==') == 'cHlvZGF0YQ=='
+    assert typ.traits.from_json('cHlvZGF0YQ==') == 'cHlvZGF0YQ=='
 
     # string
     typ = Types.from_name('Edm.String')
