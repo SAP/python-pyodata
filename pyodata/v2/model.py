@@ -6,6 +6,7 @@ Date:   2017-08-21
 """
 # pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines, too-many-public-methods
 
+import base64
 import collections
 import datetime
 from enum import Enum, auto
@@ -194,7 +195,7 @@ class Types:
             Types.Types = {}
 
             Types.register_type(Typ('Null', 'null'))
-            Types.register_type(Typ('Edm.Binary', 'binary\'\''))
+            Types.register_type(Typ('Edm.Binary', 'binary\'\'', EdmBinaryTypTraits('(?:binary|X)')))
             Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
             Types.register_type(Typ('Edm.Byte', '0'))
             Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
@@ -359,6 +360,18 @@ class EdmPrefixedTypTraits(TypTraits):
             raise PyODataModelError(
                 f"Malformed value {value} for primitive Edm type. Expected format is {self._prefix}'value'")
         return matches.group(1)
+
+
+class EdmBinaryTypTraits(EdmPrefixedTypTraits):
+    """Edm.Binary traits"""
+
+    def to_literal(self, value):
+        binary = base64.b64decode(value, validate=True)
+        return f"binary'{base64.b16encode(binary).decode()}'"
+
+    def from_literal(self, value):
+        binary = base64.b16decode(super().from_literal(value), casefold=True)
+        return base64.b64encode(binary).decode()
 
 
 class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
