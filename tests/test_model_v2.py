@@ -135,10 +135,17 @@ def test_edmx(schema):
     assert schema.typ('MasterEntity') == schema.entity_type('MasterEntity')
     assert schema.typ('MasterEntity', namespace='EXAMPLE_SRV') == schema.entity_type('MasterEntity',
                                                                                      namespace='EXAMPLE_SRV')
+    # check that the collection of this EntityType was generated
+    assert schema.typ('Collection(MasterEntity)', namespace='EXAMPLE_SRV') == schema._collections_entity_types('Collection(MasterEntity)',
+                                                                                     namespace='EXAMPLE_SRV')
 
     # ComplexType from the method typ
     assert schema.typ('Building') == schema.complex_type('Building')
     assert schema.typ('Building', namespace='EXAMPLE_SRV') == schema.complex_type('Building', namespace='EXAMPLE_SRV')
+
+    # check that the collection of this ComplexType was generated
+    assert schema.typ('Collection(Building)', namespace='EXAMPLE_SRV') == schema._collections_complex_types(
+                                            'Collection(Building)',namespace='EXAMPLE_SRV')
 
     # Error handling in the method typ - without namespace
     with pytest.raises(KeyError) as typ_ex_info:
