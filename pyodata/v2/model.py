@@ -782,7 +782,7 @@ class Schema:
 
             # generated collections for ease of lookup (e.g. function import return type)
             self._collections_entity_types = dict()
-            self._collections_complex_types = dict()  # TODO
+            self._collections_complex_types = dict()
 
         def list_entity_types(self):
             return list(self.entity_types.values())
@@ -805,8 +805,11 @@ class Schema:
         def list_association_sets(self):
             return list(self.association_sets.values())
 
-        def list__collections_entity_types(self):
+        def list_collections_entity_types(self):
             return list(self._collections_entity_types.values())
+
+        def list_collections_complex_types(self):
+            return list(self._collections_complex_types.values())
 
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
@@ -828,9 +831,9 @@ class Schema:
             # automatically create and register collection variant if not exists
             if isinstance(ctype, NullType):
                 return
-
             collection_type_name = f'Collection({ctype.name})'
-            self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
+            self._collections_complex_types[collection_type_name] = Collection(ctype.name, ctype)
+            # TODO performance memory: this is generating collection for every entity type encoutered, regardless of such collection is really used.
 
         def add_enum_type(self, etype):
             """Add new enum type to the type repository"""
@@ -874,7 +877,7 @@ class Schema:
         """Returns either EntityType, ComplexType or EnumType that matches the name.
         """
 
-        for type_space in (self.entity_type, self.complex_type, self.enum_type):
+        for type_space in (self.entity_type, self._collections_entity_types, self.complex_type, self._collections_complex_types, self.enum_type):
             try:
                 return type_space(type_name, namespace=namespace)
             except KeyError:
@@ -903,15 +906,15 @@ class Schema:
             try:
                 return self._decls[namespace]._collections_entity_types[type_name]
             except KeyError:
-                raise KeyError(f'EntityType Collection {type_name} does not exist in Schema Namespace {namespace}')
+                raise KeyError(f'EntityType collection {type_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
-                return decl.entity_types[type_name]
+                return decl._collections_entity_types[type_name]
             except KeyError:
                 pass
 
-        raise KeyError(f'EntityType {type_name} does not exist in any Schema Namespace')
+        raise KeyError(f'EntityType collection {type_name} does not exist in any Schema Namespace')
 
     def complex_type(self, type_name, namespace=None):
         if namespace is not None:
@@ -927,6 +930,21 @@ class Schema:
                 pass
 
         raise KeyError(f'ComplexType {type_name} does not exist in any Schema Namespace')
+
+    def _collections_complex_types(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace]._collections_complex_types[type_name]
+            except KeyError:
+                raise KeyError(f'ComplexType collection {type_name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl._collections_complex_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'ComplexType collection {type_name} does not exist in any Schema Namespace')
 
     def enum_type(self, type_name, namespace=None):
         if namespace is not None:
@@ -965,9 +983,14 @@ class Schema:
         except KeyError:
             pass
 
-        # then look for type in complex types
+        # then look for type in complex types and collections of complex types
         try:
             return self.complex_type(search_name, type_info.namespace)
+        except KeyError:
+            pass
+
+        try:
+            return self._collections_complex_types(search_name, type_info.namespace)
         except KeyError:
             pass
 
