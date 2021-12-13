@@ -175,7 +175,7 @@ class Identifier:
 
 
 class Types:
-    """Repository of all available OData types
+    """Repository of all available OData V2 primitive types + their Collection variants
 
        Since each type has instance of appropriate type, this
        repository acts as central storage for all instances. The
@@ -183,7 +183,6 @@ class Types:
        always reuse existing instances if possible
     """
 
-    # dictionary of all registered types (primitive, complex and collection variants)
     Types = None
 
     @staticmethod
@@ -781,6 +780,10 @@ class Schema:
             self.associations = dict()
             self.association_sets = dict()
 
+            #generated collections for ease of lookup (e.g. function import return type)
+            self._collections_entity_types = dict()
+            self._collections_complex_types = dict() #TODO
+
         def list_entity_types(self):
             return list(self.entity_types.values())
 
@@ -802,6 +805,9 @@ class Schema:
         def list_association_sets(self):
             return list(self.association_sets.values())
 
+        def list__collections_entity_types(self):
+            return list(self._collections_entity_types.values())
+
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
 
@@ -810,9 +816,10 @@ class Schema:
             # automatically create and register collection variant if not exists
             if isinstance(etype, NullType):
                 return
-
             collection_type_name = f'Collection({etype.name})'
-            self.entity_types[collection_type_name] = Collection(etype.name, etype)
+            self._collections_entity_types[collection_type_name] = Collection(etype.name, etype)
+            # TODO performance memory: this is generating collection for every entity type encoutered, regardless of such collection is really used.
+
 
         def add_complex_type(self, ctype):
             """Add new complex type to the type repository as well as its collection variant"""
@@ -892,6 +899,21 @@ class Schema:
 
         raise KeyError(f'EntityType {type_name} does not exist in any Schema Namespace')
 
+    def _collections_entity_types(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace]._collections_entity_types[type_name]
+            except KeyError:
+                raise KeyError(f'EntityType Collection {type_name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl.entity_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'EntityType {type_name} does not exist in any Schema Namespace')
+
     def complex_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
@@ -933,9 +955,14 @@ class Schema:
         except KeyError:
             pass
 
-        # then look for type in entity types
+        # then look for type in entity types and collections of entity types
         try:
             return self.entity_type(search_name, type_info.namespace)
+        except KeyError:
+            pass
+
+        try:
+            return self._collections_entity_types(search_name, type_info.namespace)
         except KeyError:
             pass
 
