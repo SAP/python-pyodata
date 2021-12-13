@@ -349,7 +349,7 @@ def test_edmx_complex_types(schema):
     assert str(real_prop) == 'StructTypeProperty(Real)'
     assert str(real_prop.struct_type) == 'ComplexType(ComplexNumber)'
 
-    #after correct parsing, new complex type is registered in metadata schema
+    # after correct parsing, new complex type is registered in metadata schema
     assert str(schema.typ('ComplexNumber')) == 'ComplexType(ComplexNumber)'
     assert str(schema.typ('Collection(ComplexNumber)')) == 'Collection(ComplexNumber)'
 

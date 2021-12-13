@@ -780,9 +780,9 @@ class Schema:
             self.associations = dict()
             self.association_sets = dict()
 
-            #generated collections for ease of lookup (e.g. function import return type)
+            # generated collections for ease of lookup (e.g. function import return type)
             self._collections_entity_types = dict()
-            self._collections_complex_types = dict() #TODO
+            self._collections_complex_types = dict()  # TODO
 
         def list_entity_types(self):
             return list(self.entity_types.values())
@@ -819,7 +819,6 @@ class Schema:
             collection_type_name = f'Collection({etype.name})'
             self._collections_entity_types[collection_type_name] = Collection(etype.name, etype)
             # TODO performance memory: this is generating collection for every entity type encoutered, regardless of such collection is really used.
-
 
         def add_complex_type(self, ctype):
             """Add new complex type to the type repository as well as its collection variant"""
