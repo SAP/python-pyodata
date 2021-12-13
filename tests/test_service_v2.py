@@ -2006,6 +2006,64 @@ def test_count_with_chainable_filter(service):
 
 
 @responses.activate
+def test_partial_listing(service):
+    """Using __next URI to fetch all entities in a collection"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees?$inlinecount=allpages",
+        json={'d': {
+            '__count': 3,
+            '__next': f"{service.url}/Employees?$inlinecount=allpages&$skiptoken='opaque'",
+            'results': [
+                {
+                    'ID': 21,
+                    'NameFirst': 'George',
+                    'NameLast': 'Doe'
+                },{
+                    'ID': 22,
+                    'NameFirst': 'John',
+                    'NameLast': 'Doe'
+                }
+            ]
+        }},
+        status=200)
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees?$inlinecount=allpages&$skiptoken='opaque'",
+        json={'d': {
+            '__count': 3,
+            'results': [
+                {
+                    'ID': 23,
+                    'NameFirst': 'Rob',
+                    'NameLast': 'Ickes'
+                }
+            ]
+        }},
+        status=200)
+
+    # Fetching (potentially) all entities, actually getting 2
+    request = service.entity_sets.Employees.get_entities().count(inline=True)
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+    result = request.execute()
+    assert len(result) == 2
+    assert result.total_count == 3
+    assert result.next_url is not None
+
+    # Fetching next batch, receive the one remaining entity
+    request = service.entity_sets.Employees.get_entities().next_url(result.next_url)
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+    result = request.execute()
+    assert len(result) == 1
+    assert result.total_count == 3, "(inline) count flag inherited from first request"
+    assert result.next_url is None
+
+
+@responses.activate
 def test_count_with_chainable_filter_lt_operator(service):
     """Check getting $count with $filter with new filter syntax using multiple filters"""
 
