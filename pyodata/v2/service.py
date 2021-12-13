@@ -238,6 +238,7 @@ class ODataHttpRequest:
         self._headers = headers or dict()
         self._logger = logging.getLogger(LOGGER_NAME)
         self._customs = {}  # string -> string hash
+        self._next_url = None
 
     @property
     def handler(self):
@@ -299,7 +300,10 @@ class ODataHttpRequest:
 
            Fetches HTTP response and returns processed result"""
 
-        url = urljoin(self._url, self.get_path())
+        if self._next_url:
+            url = self._next_url
+        else:
+            url = urljoin(self._url, self.get_path())
         # pylint: disable=assignment-from-none
         body = self.get_body()
 
@@ -616,6 +620,17 @@ class QueryRequest(ODataHttpRequest):
             self._count = True
         return self
 
+    def next_url(self, next_url):
+        """
+        Sets URL which identifies the next partial set of entities from the originally identified complete set. Once
+        set, this URL takes precedence over all query parameters.
+
+        For details, see section "6. Representing Collections of Entries" on
+        https://www.odata.org/documentation/odata-version-2-0/json-format/
+        """
+        self._next_url = next_url
+        return self
+
     def expand(self, expand):
         """Sets the expand expressions."""
         self._expand = expand
@@ -667,6 +682,9 @@ class QueryRequest(ODataHttpRequest):
         }
 
     def get_query_params(self):
+        if self._next_url:
+            return {}
+
         qparams = super(QueryRequest, self).get_query_params()
 
         if self._top is not None:
@@ -1250,11 +1268,24 @@ class GetEntitySetRequest(QueryRequest):
 
 
 class ListWithTotalCount(list):
-    """A list with the additional property total_count"""
+    """
+    A list with the additional property total_count and next_url.
 
-    def __init__(self, total_count):
+    If set, use next_url to fetch the next batch of entities.
+    """
+
+    def __init__(self, total_count, next_url):
         super(ListWithTotalCount, self).__init__()
         self._total_count = total_count
+        self._next_url = next_url
+
+    @property
+    def next_url(self):
+        """
+        URL which identifies the next partial set of entities from the originally identified complete set. None if no
+        entities remaining.
+        """
+        return self._next_url
 
     @property
     def total_count(self):
@@ -1390,7 +1421,8 @@ class EntitySetProxy:
         return EntityGetRequest(get_entity_handler, entity_key, self)
 
     def get_entities(self):
-        """Get all entities"""
+        """Get some, potentially all entities"""
+
         def get_entities_handler(response):
             """Gets entity set from HTTP Response"""
 
@@ -1405,15 +1437,18 @@ class EntitySetProxy:
 
             entities = content['d']
             total_count = None
+            next_url = None
 
             if isinstance(entities, dict):
                 if '__count' in entities:
                     total_count = int(entities['__count'])
+                if '__next' in entities:
+                    next_url = entities['__next']
                 entities = entities['results']
 
             self._logger.info('Fetched %d entities', len(entities))
 
-            result = ListWithTotalCount(total_count)
+            result = ListWithTotalCount(total_count, next_url)
             for props in entities:
                 entity = EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, props)
                 result.append(entity)
