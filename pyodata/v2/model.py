@@ -805,12 +805,6 @@ class Schema:
         def list_association_sets(self):
             return list(self.association_sets.values())
 
-        def list_collections_entity_types(self):
-            return list(self._collections_entity_types.values())
-
-        def list_collections_complex_types(self):
-            return list(self._collections_complex_types.values())
-
         def add_entity_type(self, etype):
             """Add new  type to the type repository as well as its collection variant"""
 
