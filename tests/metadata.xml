@@ -59,6 +59,8 @@
                           sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
                 <Property Name="Date" Type="Edm.DateTime" Nullable="false" sap:label="Data" sap:creatable="false"
                           sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
+                <Property Name="DateTimeWithOffset" Type="Edm.DateTimeOffset" Nullable="true" sap:label="Data"
+                          sap:creatable="false" sap:updatable="true" sap:sortable="true" sap:filterable="true"/>
                 <Property Name="Value" Type="Edm.Double" Nullable="false" sap:unicode="false" sap:label="Data"
                           sap:creatable="false" sap:updatable="false" sap:sortable="true" sap:filterable="true"/>
             </EntityType>

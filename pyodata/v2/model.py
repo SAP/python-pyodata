@@ -210,7 +210,8 @@ class Types:
             Types.register_type(Typ('Edm.SByte', '0'))
             Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
             Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
-            Types.register_type(Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\''))
+            Types.register_type(
+                Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00Z\'', EdmDateTimeOffsetTypTraits()))
 
     @staticmethod
     def register_type(typ):
@@ -373,6 +374,40 @@ class EdmBinaryTypTraits(EdmPrefixedTypTraits):
         return base64.b64encode(binary).decode()
 
 
+def ms_since_epoch_to_datetime(value, tzinfo):
+    """Convert milliseconds since midnight 1.1.1970 to datetime"""
+    try:
+        # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
+        return datetime.datetime(1970, 1, 1, tzinfo=tzinfo) + datetime.timedelta(milliseconds=int(value))
+    except (ValueError, OverflowError):
+        min_ticks = -62135596800000
+        max_ticks = 253402300799999
+        if FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE and int(value) < min_ticks:
+            # Some service providers return false minimal date values.
+            # -62135596800000 is the lowest value PyOData could read.
+            # This workaround fixes this issue and returns 0001-01-01 00:00:00+00:00 in such a case.
+            return datetime.datetime(year=1, day=1, month=1, tzinfo=tzinfo)
+        if FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE and int(value) > max_ticks:
+            return datetime.datetime(year=9999, day=31, month=12, tzinfo=tzinfo)
+        raise PyODataModelError(f'Cannot decode datetime from value {value}. '
+                                f'Possible value range: {min_ticks} to {max_ticks}. '
+                                f'You may fix this by setting `FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE` '
+                                f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
+
+
+def parse_datetime_literal(value):
+    try:
+        return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            try:
+                return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                raise PyODataModelError(f'Cannot decode datetime from value {value}.')
+
+
 class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
     """Emd.DateTime traits
 
@@ -423,26 +458,9 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         if not matches:
             raise PyODataModelError(
                 f"Malformed value {value} for primitive Edm type. Expected format is /Date(value)/")
-        value = matches.group(1)
 
-        try:
-            # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
-            value = datetime.datetime(1970, 1, 1, tzinfo=current_timezone()) + datetime.timedelta(milliseconds=int(value))
-        except (ValueError, OverflowError):
-            if FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE and int(value) < -62135596800000:
-                # Some service providers return false minimal date values.
-                # -62135596800000 is the lowest value PyOData could read.
-                # This workaroud fixes this issue and returns 0001-01-01 00:00:00+00:00 in such a case.
-                value = datetime.datetime(year=1, day=1, month=1, tzinfo=current_timezone())
-            elif FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE and int(value) > 253402300799999:
-                value = datetime.datetime(year=9999, day=31, month=12, tzinfo=current_timezone())
-            else:
-                raise PyODataModelError(f'Cannot decode datetime from value {value}. '
-                                        f'Possible value range: -62135596800000 to 253402300799999. '
-                                        f'You may fix this by setting `FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE` '
-                                        f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
-
-        return value
+        # Might raise a PyODataModelError exception
+        return ms_since_epoch_to_datetime(matches.group(1), current_timezone())
 
     def from_literal(self, value):
 
@@ -451,18 +469,85 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         value = super(EdmDateTimeTypTraits, self).from_literal(value)
 
-        try:
-            value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
-        except ValueError:
-            try:
-                value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                try:
-                    value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
-                except ValueError:
-                    raise PyODataModelError(f'Cannot decode datetime from value {value}.')
+        # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
+        return parse_datetime_literal(value).replace(tzinfo=current_timezone())
 
-        return value.replace(tzinfo=current_timezone())
+
+class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
+    """Emd.DateTimeOffset traits
+
+       Represents date and time, plus an offset in minutes from UTC, with values ranging from 12:00:00 midnight,
+       January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D
+
+       Literal forms:
+       datetimeoffset'yyyy-mm-ddThh:mm[:ss]±ii:nn' (works for all time zones)
+       datetimeoffset'yyyy-mm-ddThh:mm[:ss]Z' (works only for UTC)
+       NOTE: Spaces are not allowed between datetimeoffset and quoted portion.
+       The datetime part is case-insensitive, the offset one is not.
+
+       Example 1: datetimeoffset'1970-01-01T00:00:01+00:30'
+        - /Date(1000+0030)/ (As DateTime, but with a 30 minutes timezone offset)
+       Example 1: datetimeoffset'1970-01-01T00:00:01-00:60'
+        - /Date(1000-0030)/ (As DateTime, but with a negative 60 minutes timezone offset)
+       https://blogs.sap.com/2017/01/05/date-and-time-in-sap-gateway-foundation/
+    """
+
+    def __init__(self):
+        super(EdmDateTimeOffsetTypTraits, self).__init__('datetimeoffset')
+
+    def to_literal(self, value):
+        """Convert python datetime representation to literal format"""
+
+        if not isinstance(value, datetime.datetime) or value.utcoffset() is None:
+            raise PyODataModelError(
+                f'Cannot convert value of type {type(value)} to literal. Datetime format including offset is required.')
+
+        return super(EdmDateTimeOffsetTypTraits, self).to_literal(value.isoformat())
+
+    def to_json(self, value):
+        # datetime.timestamp() does not work due to its limited precision
+        offset_in_minutes = int(value.utcoffset() / datetime.timedelta(minutes=1))
+        ticks = int((value - datetime.datetime(1970, 1, 1, tzinfo=value.tzinfo)) / datetime.timedelta(milliseconds=1))
+        return f'/Date({ticks}{offset_in_minutes:+05})/'
+
+    def from_json(self, value):
+        matches = re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)(?P<offset_in_minutes>[+-]\d+)\)/$", value)
+        try:
+            milliseconds_since_epoch = matches.group('milliseconds_since_epoch')
+            offset_in_minutes = int(matches.group('offset_in_minutes'))
+        except (ValueError, AttributeError):
+            raise PyODataModelError(
+                f"Malformed value {value} for primitive Edm.DateTimeOffset type."
+                " Expected format is /Date(<ticks>±<offset>)/")
+
+        tzinfo = datetime.timezone(datetime.timedelta(minutes=offset_in_minutes))
+        # Might raise a PyODataModelError exception
+        return ms_since_epoch_to_datetime(milliseconds_since_epoch, tzinfo)
+
+    def from_literal(self, value):
+
+        if value is None:
+            return None
+
+        value = super(EdmDateTimeOffsetTypTraits, self).from_literal(value)
+
+        try:
+            # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
+            if re.match(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value, flags=re.ASCII | re.IGNORECASE):
+                datetime_part = value[:-1]
+                tz_info = datetime.timezone.utc
+            else:
+                match = re.match(r'(?P<datetime>.+)(?P<sign>[\\+-])(?P<hours>\d{2}):(?P<minutes>\d{2})',
+                                 value,
+                                 flags=re.ASCII)
+                datetime_part = match.group('datetime')
+                tz_offset = datetime.timedelta(hours=int(match.group('hours')),
+                                               minutes=int(match.group('minutes')))
+                tz_sign = -1 if match.group('sign') == '-' else 1
+                tz_info = datetime.timezone(tz_sign * tz_offset)
+            return parse_datetime_literal(datetime_part).replace(tzinfo=tz_info)
+        except (ValueError, AttributeError):
+            raise PyODataModelError(f'Cannot decode datetimeoffset from value {value}.')
 
 
 class EdmStringTypTraits(TypTraits):

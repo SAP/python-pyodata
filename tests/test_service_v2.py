@@ -2338,6 +2338,38 @@ def test_parsing_of_datetime_before_unix_time(service):
 
 
 @responses.activate
+@pytest.mark.parametrize("json_input,expected", [
+    ('/Date(981173106000+0001)/', datetime.datetime(2001, 2, 3, 4, 5, 6,
+                                                    tzinfo=datetime.timezone(datetime.timedelta(minutes=1)))),
+    ('/Date(981173106000-0001)/', datetime.datetime(2001, 2, 3, 4, 5, 6,
+                                                    tzinfo=datetime.timezone(-datetime.timedelta(minutes=1))))])
+def test_parsing_of_datetimeoffset(service, json_input, expected):
+    """Test DateTimeOffset handling."""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/TemperatureMeasurements",
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'results': [
+                {
+                    'Sensor': 'Sensor1',
+                    'Date': '/Date(-981173106000)/',
+                    'DateTimeWithOffset': json_input,
+                    'Value': '34.0d'
+                }
+            ]
+        }},
+        status=200)
+
+    result = service.entity_sets.TemperatureMeasurements.get_entities().execute()
+
+    assert result[0].DateTimeWithOffset == expected
+
+
+@responses.activate
 def test_mismatched_etags_in_body_and_header(service):
     """Test creating entity with missmatched etags"""
 
