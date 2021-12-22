@@ -69,7 +69,7 @@ class Client:
 
             # create service instance based on model we have
             logger.info('Creating OData Service (version: %d)', odata_version)
-            service = pyodata.v2.service.Service(url, schema, connection)
+            service = pyodata.v2.service.Service(url, schema, connection, config=config)
 
             return service
 

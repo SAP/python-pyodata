@@ -734,7 +734,7 @@ class EntityProxy:
        named values), and links (references to other entities).
     """
 
-    # pylint: disable=too-many-branches,too-many-nested-blocks
+    # pylint: disable=too-many-branches,too-many-nested-blocks,too-many-statements
 
     def __init__(self, service, entity_set, entity_type, proprties=None, entity_key=None, etag=None):
         self._logger = logging.getLogger(LOGGER_NAME)
@@ -761,11 +761,20 @@ class EntityProxy:
             # first, cache values of direct properties
             for type_proprty in self._entity_type.proprties():
                 if type_proprty.name in proprties:
+                    # Property value available
                     if proprties[type_proprty.name] is not None:
                         self._cache[type_proprty.name] = type_proprty.from_json(proprties[type_proprty.name])
-                    else:
+                        continue
+                    # Property value missing and user wants a type specific default value filled in
+                    if not self._service.retain_null:
                         # null value is in literal form for now, convert it to python representation
                         self._cache[type_proprty.name] = type_proprty.from_literal(type_proprty.typ.null_value)
+                        continue
+                    # Property is nullable - save it as such
+                    if type_proprty.nullable:
+                        self._cache[type_proprty.name] = None
+                        continue
+                    raise PyODataException(f'Value of non-nullable Property {type_proprty.name} is null')
 
             # then, assign all navigation properties
             for prop in self._entity_type.nav_proprties:
@@ -1581,10 +1590,11 @@ class FunctionContainer:
 class Service:
     """OData service"""
 
-    def __init__(self, url, schema, connection):
+    def __init__(self, url, schema, connection, config=None):
         self._url = url
         self._schema = schema
         self._connection = connection
+        self._retain_null = config.retain_null if config else False
         self._entity_container = EntityContainer(self)
         self._function_container = FunctionContainer(self)
 
@@ -1607,6 +1617,12 @@ class Service:
         """Service connection"""
 
         return self._connection
+
+    @property
+    def retain_null(self):
+        """Whether to respect null-ed values or to substitute them with type specific default values"""
+
+        return self._retain_null
 
     @property
     def entity_sets(self):
