@@ -91,7 +91,8 @@ class Config:
     def __init__(self,
                  custom_error_policies=None,
                  default_error_policy=None,
-                 xml_namespaces=None):
+                 xml_namespaces=None,
+                 retain_null=False):
 
         """
         :param custom_error_policies: {ParserError: ErrorPolicy} (default None)
@@ -102,6 +103,9 @@ class Config:
                                      If custom policy is not specified for the tag, the default policy will be used.
 
         :param xml_namespaces: {str: str} (default None)
+
+        :param retain_null: bool (default False)
+                            If true, do not substitute missing (and null-able) values with default value.
         """
 
         self._custom_error_policy = custom_error_policies
@@ -115,6 +119,8 @@ class Config:
             xml_namespaces = {}
 
         self._namespaces = xml_namespaces
+
+        self._retain_null = retain_null
 
     def err_policy(self, error: ParserError):
         if self._custom_error_policy is None:
@@ -136,6 +142,10 @@ class Config:
     @namespaces.setter
     def namespaces(self, value: dict):
         self._namespaces = value
+
+    @property
+    def retain_null(self):
+        return self._retain_null
 
 
 class Identifier:
