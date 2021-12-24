@@ -6,6 +6,7 @@ python:
   - "3.7"
   - "3.8"
   - "3.9"
+  - "3.10"
   
 env:
   - LXML_VERSION=3.7.3
@@ -16,7 +17,8 @@ env:
   - LXML_VERSION=4.3.5
   - LXML_VERSION=4.4.3
   - LXML_VERSION=4.5.2
-  - LXML_VERSION=4.6.3
+  - LXML_VERSION=4.6.5
+  - LXML_VERSION=4.7.1
 
 jobs:
   exclude:
