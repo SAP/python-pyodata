@@ -132,5 +132,10 @@ def assert_request_contains_header(headers, name, value):
 
 
 @pytest.fixture
+def type_date_time():
+    return Types.from_name('Edm.DateTime')
+
+
+@pytest.fixture
 def type_date_time_offset():
     return Types.from_name('Edm.DateTimeOffset')

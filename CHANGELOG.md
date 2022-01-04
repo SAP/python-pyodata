@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Datetime support for Edm.DateTimeOffset - Reto Schneider
+- Disallow creation of non-UTC Edm.DateTime - Reto Schneider
 
 ## [1.7.1]
 

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pyodata.v2.model
 import pyodata.v2.service
-from pyodata.exceptions import PyODataException, HttpError, ExpressionError, ProgramError
+from pyodata.exceptions import PyODataException, HttpError, ExpressionError, ProgramError, PyODataModelError
 from pyodata.v2.service import EntityKey, EntityProxy, GetEntitySetFilter, ODataHttpResponse, HTTP_CODE_OK
 
 from tests.conftest import assert_request_contains_header, contents_of_fixtures_file
@@ -286,7 +286,7 @@ def test_entity_key_complex(service):
 
     entity_key = {
         'Sensor': 'sensor1',
-        'Date': datetime.datetime(2017, 12, 24, 18, 0)
+        'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
     }
     key_properties = set(entity_key.keys())
 
@@ -345,7 +345,7 @@ def test_entity_key_complex_valid(service):
 
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
-        Sensor='sensor1', Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Sensor='sensor1', Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     assert key.to_key_string() == "(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
 
@@ -616,13 +616,13 @@ def test_update_entity(service):
 
     request = service.entity_sets.TemperatureMeasurements.update_entity(
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     assert isinstance(request, pyodata.v2.service.EntityModifyRequest)
 
     request.set(Value=34.0)
     # Tests if update entity correctly calls 'to_json' method
-    request.set(Date=datetime.datetime(2017, 12, 24, 19, 0))
+    request.set(Date=datetime.datetime(2017, 12, 24, 19, 0, tzinfo=datetime.timezone.utc))
 
     assert request._values['Value'] == '3.400000E+01'
     assert request._values['Date'] == '/Date(1514142000000)/'
@@ -684,7 +684,7 @@ def test_update_entity_with_entity_key(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
@@ -699,7 +699,7 @@ def test_update_entity_with_put_method_specified(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key, method="PUT")
     assert query.get_method() == "PUT"
@@ -714,7 +714,7 @@ def test_update_entity_with_patch_method_specified(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key, method="PATCH")
     assert query.get_method() == "PATCH"
@@ -728,7 +728,7 @@ def test_update_entity_with_merge_method_specified(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key, method='merge')
     assert query.get_method() == 'MERGE'
@@ -743,7 +743,7 @@ def test_update_entity_with_no_method_specified(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
     assert query.get_method() == "PATCH"
@@ -758,7 +758,7 @@ def test_update_entity_with_service_config_set_to_put(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     service.config['http']['update_method'] = "PUT"
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
@@ -774,7 +774,7 @@ def test_update_entity_with_wrong_method_specified(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     with pytest.raises(ValueError) as caught_ex:
         service.entity_sets.TemperatureMeasurements.update_entity(key, method='DELETE')
@@ -790,7 +790,7 @@ def test_get_entity_with_entity_key_and_other_params(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key=key, Foo='Bar')
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
@@ -807,7 +807,7 @@ def test_get_entity_with_custom_headers(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key)
     query.add_headers({"X-Foo": "bar"})
@@ -819,7 +819,7 @@ def test_update_entities_with_custom_headers(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
     query.add_headers({"X-Foo": "bar"})
@@ -1380,7 +1380,7 @@ def test_batch_request(service):
 
     temp_request = service.entity_sets.TemperatureMeasurements.update_entity(
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0)).set(Value=34.0)
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)).set(Value=34.0)
 
     batch.add_request(employee_request)
 
@@ -1480,7 +1480,7 @@ def test_get_entity_with_entity_key(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key)
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
@@ -1494,7 +1494,7 @@ def test_get_entity_with_entity_key_and_other_params(service):
     key = EntityKey(
         service.schema.entity_type('TemperatureMeasurement'),
         Sensor='sensor1',
-        Date=datetime.datetime(2017, 12, 24, 18, 0))
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key=key, Foo='Bar')
     assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
@@ -2259,9 +2259,38 @@ def test_count_with_chained_filters(service):
 
 
 @responses.activate
-def test_create_entity_with_datetime(service):
+def test_create_entity_with_utc_datetime(service):
+    """Basic test on creating entity with an UTC datetime object"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        f"{service.url}/TemperatureMeasurements",
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Sensor': 'Sensor1',
+            'Date': '/Date(1514138400000)/',
+            'Value': '34.0d'
+        }},
+        status=201)
+
+    request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
+        'Sensor': 'Sensor1',
+        'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc),
+        'Value': 34.0
+    })
+
+    assert request._values['Date'] == '/Date(1514138400000)/'
+
+    result = request.execute()
+    assert result.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
+
+
+@responses.activate
+def test_create_entity_with_non_utc_datetime(service):
     """
-        Basic test on creating entity with datetime
+        Basic test on creating entity with an non-UTC datetime object
         Also tzinfo is set to simulate user passing datetime object with different timezone than UTC
     """
 
@@ -2294,18 +2323,26 @@ def test_create_entity_with_datetime(service):
         }},
         status=201)
 
+    with pytest.raises(PyODataModelError) as e_info:
+        # Offset -18000 sec is for America/Chicago (CDT) timezone
+        service.entity_sets.TemperatureMeasurements.create_entity().set(**{
+            'Sensor': 'Sensor1',
+            'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=MyUTCOffsetTimezone(-18000)),
+            'Value': 34.0
+        })
 
-    # Offset -18000 sec is for America/Chicago (CDT) timezone
-    request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
-        'Sensor': 'Sensor1',
-        'Date': datetime.datetime(2017, 12, 24, 18, 0, tzinfo=MyUTCOffsetTimezone(-18000)),
-        'Value': 34.0
-    })
 
-    assert request._values['Date'] == '/Date(1514138400000)/'
+@responses.activate
+def test_create_entity_with_naive_datetime(service):
+    """Preventing creation/usage of an entity with an unaware datetime object"""
 
-    result = request.execute()
-    assert result.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
+    with pytest.raises(PyODataModelError) as e_info:
+        service.entity_sets.TemperatureMeasurements.create_entity().set(**{
+            'Sensor': 'Sensor1',
+            'Date': datetime.datetime(2017, 12, 24, 18, 0),
+            'Value': 34.0
+        })
+    assert str(e_info.value).startswith('Emd.DateTime accepts only UTC')
 
 
 @responses.activate
@@ -2327,7 +2364,7 @@ def test_parsing_of_datetime_before_unix_time(service):
 
     request = service.entity_sets.TemperatureMeasurements.create_entity().set(**{
         'Sensor': 'Sensor1',
-        'Date': datetime.datetime(1945, 5, 8, 19, 0),
+        'Date': datetime.datetime(1945, 5, 8, 19, 0, tzinfo=datetime.timezone.utc),
         'Value': 34.0
     })
 

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
     Association, AssociationSet, EndRole, AssociationSetEndRole, TypeInfo, MetadataBuilder, ParserError, PolicyWarning, \
-    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, current_timezone, StructType, parse_datetime_literal
+    PolicyIgnore, Config, PolicyFatal, NullType, NullAssociation, StructType, parse_datetime_literal
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 from tests.conftest import assert_logging_policy
 import pyodata.v2.model
@@ -498,30 +498,30 @@ def test_parse_datetime_literal_faulty(illegal_input):
     assert str(e_info.value).startswith(f'Cannot decode datetime from value {illegal_input}')
 
 
-def test_traits_datetime():
+def test_traits_datetime(type_date_time):
     """Test Edm.DateTime traits"""
 
-    typ = Types.from_name('Edm.DateTime')
-    assert repr(typ.traits) == 'EdmDateTimeTypTraits'
+    type_date_time = Types.from_name('Edm.DateTime')
+    assert repr(type_date_time.traits) == 'EdmDateTimeTypTraits'
 
     # 1. direction Python -> OData
 
-    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=current_timezone())
-    assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44.123456'"
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=timezone.utc)
+    assert type_date_time.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44.123456'"
 
     # without miliseconds part
-    testdate = datetime(2005, 1, 28, 18, 30, 44, 0)
-    assert typ.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44'"
+    testdate = datetime(2005, 1, 28, 18, 30, 44, 0, tzinfo=timezone.utc)
+    assert type_date_time.traits.to_literal(testdate) == "datetime'2005-01-28T18:30:44'"
 
     # serialization of invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.to_literal('xyz')
+        type_date_time.traits.to_literal('xyz')
     assert str(e_info.value).startswith('Cannot convert value of type')
 
     # 2. direction Literal -> python
 
     # parsing full representation
-    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33:06.654321'")
+    testdate = type_date_time.traits.from_literal("datetime'1976-11-23T03:33:06.654321'")
     assert testdate.year == 1976
     assert testdate.month == 11
     assert testdate.day == 23
@@ -529,36 +529,36 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 6
     assert testdate.microsecond == 654321
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing without miliseconds
-    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33:06'")
+    testdate = type_date_time.traits.from_literal("datetime'1976-11-23T03:33:06'")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing without seconds and miliseconds
-    testdate = typ.traits.from_literal("datetime'1976-11-23T03:33'")
+    testdate = type_date_time.traits.from_literal("datetime'1976-11-23T03:33'")
     assert testdate.year == 1976
     assert testdate.minute == 33
     assert testdate.second == 0
     assert testdate.microsecond == 0
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_literal('xyz')
+        type_date_time.traits.from_literal('xyz')
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_literal("datetime'xyz'")
+        type_date_time.traits.from_literal("datetime'xyz'")
     assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
 
     # 3. direction OData -> python
 
     # parsing full representation
-    testdate = typ.traits.from_json("/Date(217567986010)/")
+    testdate = type_date_time.traits.from_json("/Date(217567986010)/")
     assert testdate.year == 1976
     assert testdate.month == 11
     assert testdate.day == 23
@@ -566,38 +566,38 @@ def test_traits_datetime():
     assert testdate.minute == 33
     assert testdate.second == 6
     assert testdate.microsecond == 10000
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing without miliseconds
-    testdate = typ.traits.from_json("/Date(217567986000)/")
+    testdate = type_date_time.traits.from_json("/Date(217567986000)/")
     assert testdate.year == 1976
     assert testdate.second == 6
     assert testdate.microsecond == 0
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing without seconds and miliseconds
-    testdate = typ.traits.from_json("/Date(217567980000)/")
+    testdate = type_date_time.traits.from_json("/Date(217567980000)/")
     assert testdate.year == 1976
     assert testdate.minute == 33
     assert testdate.second == 0
     assert testdate.microsecond == 0
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing below lowest value with workaround
     pyodata.v2.model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = True
-    testdate = typ.traits.from_json("/Date(-62135596800001)/")
+    testdate = type_date_time.traits.from_json("/Date(-62135596800001)/")
     assert testdate.year == 1
     assert testdate.month == 1
     assert testdate.day == 1
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing the lowest value
     pyodata.v2.model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = False
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_json("/Date(-62135596800001)/")
+        type_date_time.traits.from_json("/Date(-62135596800001)/")
     assert str(e_info.value).startswith('Cannot decode datetime from value -62135596800001.')
        
-    testdate = typ.traits.from_json("/Date(-62135596800000)/")
+    testdate = type_date_time.traits.from_json("/Date(-62135596800000)/")
     assert testdate.year == 1
     assert testdate.month == 1
     assert testdate.day == 1
@@ -605,23 +605,23 @@ def test_traits_datetime():
     assert testdate.minute == 0
     assert testdate.second == 0
     assert testdate.microsecond == 0
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing above highest value with workaround
     pyodata.v2.model.FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = True
-    testdate = typ.traits.from_json("/Date(253402300800000)/")
+    testdate = type_date_time.traits.from_json("/Date(253402300800000)/")
     assert testdate.year == 9999
     assert testdate.month == 12
     assert testdate.day == 31
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing the highest value
     pyodata.v2.model.FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = False
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_json("/Date(253402300800000)/")
+        type_date_time.traits.from_json("/Date(253402300800000)/")
     assert str(e_info.value).startswith('Cannot decode datetime from value 253402300800000.')
 
-    testdate = typ.traits.from_json("/Date(253402300799999)/")
+    testdate = type_date_time.traits.from_json("/Date(253402300799999)/")
     assert testdate.year == 9999
     assert testdate.month == 12
     assert testdate.day == 31
@@ -629,16 +629,41 @@ def test_traits_datetime():
     assert testdate.minute == 59
     assert testdate.second == 59
     assert testdate.microsecond == 999000
-    assert testdate.tzinfo == current_timezone()
+    assert testdate.tzinfo == timezone.utc
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_json("xyz")
+        type_date_time.traits.from_json("xyz")
     assert str(e_info.value).startswith('Malformed value xyz for primitive')
 
     with pytest.raises(PyODataModelError) as e_info:
-        typ.traits.from_json("/Date(xyz)/")
-    assert str(e_info.value).startswith('Cannot decode datetime from value xyz')
+        type_date_time.traits.from_json("/Date(xyz)/")
+    assert str(e_info.value).startswith('Malformed value /Date(xyz)/ for primitive Edm.DateTime type.')
+
+
+def test_traits_datetime_with_offset_from_json(type_date_time):
+    """Test Edm.DateTime with offset"""
+
+    # +10 hours offset, yet must be converted to UTC
+    testdate = type_date_time.traits.from_json("/Date(217567986010+0600)/")
+    assert testdate.year == 1976
+    assert testdate.month == 11
+    assert testdate.day == 23
+    assert testdate.hour == 13 # 3 + 10 hours offset
+    assert testdate.minute == 33
+    assert testdate.second == 6
+    assert testdate.microsecond == 10000
+    assert testdate.tzinfo == timezone.utc
+
+
+@pytest.mark.parametrize('python_datetime,expected,comment', [
+    (datetime(1976, 11, 23, 3, 33, 6, microsecond=123000, tzinfo=timezone.utc), '/Date(217567986123)/', 'With milliseconds'),
+    (datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone.utc), '/Date(217567986000)/', 'No milliseconds'),
+    ])
+def test_traits_datetime_with_offset_to_json(type_date_time, python_datetime, expected, comment):
+    """Test Edm.DateTimeOffset trait: Python -> json"""
+
+    assert type_date_time.traits.to_json(python_datetime) == expected, comment
 
 
 def test_traits_datetimeoffset(type_date_time_offset):

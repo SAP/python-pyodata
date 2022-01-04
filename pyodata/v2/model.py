@@ -29,17 +29,6 @@ IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
 
 
-def current_timezone():
-    """Default Timezone for Python datetime instances when parsed from
-       Edm.DateTime values and vice versa.
-
-       OData V2 does not mention Timezones in the documentation of
-       Edm.DateTime and UTC was chosen because it is universal.
-    """
-
-    return datetime.timezone.utc
-
-
 def modlog():
     return logging.getLogger(LOGGER_NAME)
 
@@ -438,6 +427,9 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             raise PyODataModelError(
                 f'Cannot convert value of type {type(value)} to literal. Datetime format is required.')
 
+        if value.tzinfo != datetime.timezone.utc:
+            raise PyODataModelError('Emd.DateTime accepts only UTC')
+
         # Sets timezone to none to avoid including timezone information in the literal form.
         return super(EdmDateTimeTypTraits, self).to_literal(value.replace(tzinfo=None).isoformat())
 
@@ -445,22 +437,38 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         if isinstance(value, str):
             return value
 
+        if value.tzinfo != datetime.timezone.utc:
+            raise PyODataModelError('Emd.DateTime accepts only UTC')
+
         # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
         # https://www.odata.org/documentation/odata-version-2-0/json-format/
-        return f'/Date({int(value.replace(tzinfo=current_timezone()).timestamp()) * 1000})/'
+        # See also: https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
+        ticks = (value - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)) / datetime.timedelta(milliseconds=1)
+        return f'/Date({int(ticks)})/'
 
     def from_json(self, value):
 
         if value is None:
             return None
 
-        matches = re.match(r"^/Date\((.*)\)/$", value)
-        if not matches:
+        matches = re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)(?P<offset_in_minutes>[+-]\d+)?\)/$", value)
+        try:
+            milliseconds_since_epoch = matches.group('milliseconds_since_epoch')
+        except AttributeError:
             raise PyODataModelError(
-                f"Malformed value {value} for primitive Edm type. Expected format is /Date(value)/")
-
+                f"Malformed value {value} for primitive Edm.DateTime type."
+                " Expected format is /Date(<ticks>[±<offset>])/")
+        try:
+            offset_in_minutes = int(matches.group('offset_in_minutes') or 0)
+            timedelta = datetime.timedelta(minutes=offset_in_minutes)
+        except ValueError:
+            raise PyODataModelError(
+                f"Malformed value {value} for primitive Edm.DateTime type."
+                " Expected format is /Date(<ticks>[±<offset>])/")
+        except AttributeError:
+            timedelta = datetime.timedelta()  # Missing offset is interpreted as UTC
         # Might raise a PyODataModelError exception
-        return ms_since_epoch_to_datetime(matches.group(1), current_timezone())
+        return ms_since_epoch_to_datetime(milliseconds_since_epoch, datetime.timezone.utc) + timedelta
 
     def from_literal(self, value):
 
@@ -470,7 +478,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         value = super(EdmDateTimeTypTraits, self).from_literal(value)
 
         # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
-        return parse_datetime_literal(value).replace(tzinfo=current_timezone())
+        return parse_datetime_literal(value).replace(tzinfo=datetime.timezone.utc)
 
 
 class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
