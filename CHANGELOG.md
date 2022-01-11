@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - correctly serialize DateTime values to JSON in create/update methods - Martin Miksik
 - remove timezone info from DateTime URL literals - Martin Miksik
 
-# # [1.2.3]
+## [1.2.3]
 
 ### Added
 - add support for whitelisted and custom namespaces - Martin Miksik
