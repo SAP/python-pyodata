@@ -18,7 +18,7 @@ details.
 
 ## Requirements
 
-- [Python >= 3.6](https://www.python.org/downloads/release/python-368/)
+- [Python >= 3.7](https://www.python.org/downloads/)
 
 ## Download and Installation
 
