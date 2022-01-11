@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Fix Edm.Binary literal representation - Daniel Balko
 
+### Removed
+- Python 3.6 (after its EOL) is no longer supported by pyodata. Python 3.7 is now minimal supported version.
+
 ## [1.7.1]
 
 ### Fixed
