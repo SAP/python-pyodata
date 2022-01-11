@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Fix Edm.Binary literal representation - Daniel Balko
+
 ## [1.7.1]
 
 ### Fixed
