@@ -2,7 +2,7 @@
 import logging
 import os
 import pytest
-from pyodata.v2.model import schema_from_xml
+from pyodata.v2.model import schema_from_xml, Types
 
 
 def contents_of_fixtures_file(file_name):
@@ -129,3 +129,13 @@ def assert_logging_policy(mock_warning, *args):
 def assert_request_contains_header(headers, name, value):
     assert name in headers
     assert headers[name] == value
+
+
+@pytest.fixture
+def type_date_time():
+    return Types.from_name('Edm.DateTime')
+
+
+@pytest.fixture
+def type_date_time_offset():
+    return Types.from_name('Edm.DateTimeOffset')

@@ -5,13 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-- model: split properties schema.entity_types/complex_types and their generated Collections - Petr Hanak
 
 ### Fixed
 - Fix Edm.Binary literal representation - Daniel Balko
+- Datetime support for Edm.DateTimeOffset - Reto Schneider
+- Disallow creation of non-UTC Edm.DateTime - Reto Schneider
+- Split properties schema.entity_types/complex_types and their generated Collections - Petr Hanak
 
 ### Removed
-- Python 3.6 (after its EOL) is no longer supported by pyodata. Python 3.7 is now minimal supported version.
+- Python 3.6 (after its EOL) is no longer supported by pyodata. Python 3.7 is now minimal supported version. - Petr Hanak
 
 ## [1.7.1]
 
