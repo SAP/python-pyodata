@@ -19,9 +19,32 @@ def json_get(obj, member, typ, default=None):
 
     value = obj.get(member, default)
     if not isinstance(value, typ):
-        raise ValueError('%s is not a %s' % (member, typ.__name__))
+        raise ValueError(f'{member} is not a {typ.__name__}')
 
     return value
+
+
+def add_btp_token_to_session(session, key, user, password):
+    """Using the provided credentials, the function tries to add the
+       necessary token for establishing a connection to an OData service
+       coming from SAP BTP, ABAP environment.
+
+       If any of the provided credentials are invalid, the server will
+       respond with 401, and the function will raise HttpError.
+    """
+    token_url = key['uaa']['url'] + f'/oauth/token?grant_type=password&username={user}&password={password}'
+    token_response = session.post(token_url, auth=(key['uaa']['clientid'], key['uaa']['clientsecret']))
+
+    if token_response.status_code != 200:
+        raise HttpError(
+            f'Token request failed, status code: {token_response.status_code}, body:\n{token_response.content}',
+            token_response)
+
+    token_response = json.loads(token_response.text)
+    token = token_response['id_token']
+
+    session.headers.update({'Authorization': f'Bearer {token}'})
+    return session
 
 
 class BusinessGatewayError(HttpError):

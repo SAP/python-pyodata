@@ -6,6 +6,7 @@ Date:   2017-08-21
 """
 # pylint: disable=missing-docstring,too-many-instance-attributes,too-many-arguments,protected-access,no-member,line-too-long,logging-format-interpolation,too-few-public-methods,too-many-lines, too-many-public-methods
 
+import base64
 import collections
 import datetime
 from enum import Enum, auto
@@ -21,20 +22,11 @@ from lxml import etree
 from pyodata.exceptions import PyODataException, PyODataModelError, PyODataParserError
 
 LOGGER_NAME = 'pyodata.model'
+FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = False
+FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = False
 
 IdentifierInfo = collections.namedtuple('IdentifierInfo', 'namespace name')
 TypeInfo = collections.namedtuple('TypeInfo', 'namespace name is_collection')
-
-
-def current_timezone():
-    """Default Timezone for Python datetime instances when parsed from
-       Edm.DateTime values and vice versa.
-
-       OData V2 does not mention Timezones in the documentation of
-       Edm.DateTime and UTC was chosen because it is universal.
-    """
-
-    return datetime.timezone.utc
 
 
 def modlog():
@@ -153,10 +145,10 @@ class Identifier:
         self._name = name
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._name)
+        return f"{self.__class__.__name__}({self._name})"
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._name)
+        return f"{self.__class__.__name__}({self._name})"
 
     @property
     def name(self):
@@ -173,7 +165,7 @@ class Identifier:
 
 
 class Types:
-    """Repository of all available OData types
+    """Repository of all available OData V2 primitive types + their Collection variants
 
        Since each type has instance of appropriate type, this
        repository acts as central storage for all instances. The
@@ -181,7 +173,6 @@ class Types:
        always reuse existing instances if possible
     """
 
-    # dictionary of all registered types (primitive, complex and collection variants)
     Types = None
 
     @staticmethod
@@ -192,7 +183,7 @@ class Types:
             Types.Types = {}
 
             Types.register_type(Typ('Null', 'null'))
-            Types.register_type(Typ('Edm.Binary', 'binary\'\''))
+            Types.register_type(Typ('Edm.Binary', 'binary\'\'', EdmBinaryTypTraits('(?:binary|X)')))
             Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
             Types.register_type(Typ('Edm.Byte', '0'))
             Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
@@ -208,7 +199,8 @@ class Types:
             Types.register_type(Typ('Edm.SByte', '0'))
             Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
             Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
-            Types.register_type(Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00\''))
+            Types.register_type(
+                Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00Z\'', EdmDateTimeOffsetTypTraits()))
 
     @staticmethod
     def register_type(typ):
@@ -225,7 +217,7 @@ class Types:
             Types.Types[typ.name] = typ
 
         # automatically create and register collection variant if not exists
-        collection_name = 'Collection({})'.format(typ.name)
+        collection_name = f'Collection({typ.name})'
         # pylint: disable=unsupported-membership-test
         if collection_name not in Types.Types:
             collection_typ = Collection(typ.name, typ)
@@ -245,7 +237,7 @@ class Types:
         is_collection = name.lower().startswith('collection(') and name.endswith(')')
         if is_collection:
             name = name[11:-1]  # strip collection() decorator
-            search_name = 'Collection({})'.format(name)
+            search_name = f'Collection({name})'
 
         # pylint: disable=unsubscriptable-object
         return Types.Types[search_name]
@@ -282,7 +274,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
-            raise PyODataException('Cannot encode value {} without complex type information'.format(value))
+            raise PyODataException(f'Cannot encode value {value} without complex type information')
 
         result = {}
         for type_prop in edm_type.proprties():
@@ -296,7 +288,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
-            raise PyODataException('Cannot decode value {} without complex type information'.format(value))
+            raise PyODataException(f'Cannot decode value {value} without complex type information')
 
         result = {}
         for type_prop in edm_type.proprties():
@@ -310,7 +302,7 @@ class EdmStructTypeSerializer:
 
         # pylint: disable=no-self-use
         if not edm_type:
-            raise PyODataException('Cannot decode value {} without complex type information'.format(value))
+            raise PyODataException(f'Cannot decode value {value} without complex type information')
 
         result = {}
         for type_prop in edm_type.proprties():
@@ -352,11 +344,57 @@ class EdmPrefixedTypTraits(TypTraits):
         return '{}\'{}\''.format(self._prefix, value)
 
     def from_literal(self, value):
-        matches = re.match("^{}'(.*)'$".format(self._prefix), value)
+        matches = re.match(f"^{self._prefix}'(.*)'$", value)
         if not matches:
             raise PyODataModelError(
-                "Malformed value {0} for primitive Edm type. Expected format is {1}'value'".format(value, self._prefix))
+                f"Malformed value {value} for primitive Edm type. Expected format is {self._prefix}'value'")
         return matches.group(1)
+
+
+class EdmBinaryTypTraits(EdmPrefixedTypTraits):
+    """Edm.Binary traits"""
+
+    def to_literal(self, value):
+        binary = base64.b64decode(value, validate=True)
+        return f"binary'{base64.b16encode(binary).decode()}'"
+
+    def from_literal(self, value):
+        binary = base64.b16decode(super().from_literal(value), casefold=True)
+        return base64.b64encode(binary).decode()
+
+
+def ms_since_epoch_to_datetime(value, tzinfo):
+    """Convert milliseconds since midnight 1.1.1970 to datetime"""
+    try:
+        # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
+        return datetime.datetime(1970, 1, 1, tzinfo=tzinfo) + datetime.timedelta(milliseconds=int(value))
+    except (ValueError, OverflowError):
+        min_ticks = -62135596800000
+        max_ticks = 253402300799999
+        if FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE and int(value) < min_ticks:
+            # Some service providers return false minimal date values.
+            # -62135596800000 is the lowest value PyOData could read.
+            # This workaround fixes this issue and returns 0001-01-01 00:00:00+00:00 in such a case.
+            return datetime.datetime(year=1, day=1, month=1, tzinfo=tzinfo)
+        if FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE and int(value) > max_ticks:
+            return datetime.datetime(year=9999, day=31, month=12, tzinfo=tzinfo)
+        raise PyODataModelError(f'Cannot decode datetime from value {value}. '
+                                f'Possible value range: {min_ticks} to {max_ticks}. '
+                                f'You may fix this by setting `FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE` '
+                                f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
+
+
+def parse_datetime_literal(value):
+    try:
+        return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        try:
+            return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            try:
+                return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                raise PyODataModelError(f'Cannot decode datetime from value {value}.')
 
 
 class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
@@ -387,7 +425,10 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         if not isinstance(value, datetime.datetime):
             raise PyODataModelError(
-                'Cannot convert value of type {} to literal. Datetime format is required.'.format(type(value)))
+                f'Cannot convert value of type {type(value)} to literal. Datetime format is required.')
+
+        if value.tzinfo != datetime.timezone.utc:
+            raise PyODataModelError('Emd.DateTime accepts only UTC')
 
         # Sets timezone to none to avoid including timezone information in the literal form.
         return super(EdmDateTimeTypTraits, self).to_literal(value.replace(tzinfo=None).isoformat())
@@ -396,28 +437,38 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         if isinstance(value, str):
             return value
 
+        if value.tzinfo != datetime.timezone.utc:
+            raise PyODataModelError('Emd.DateTime accepts only UTC')
+
         # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
         # https://www.odata.org/documentation/odata-version-2-0/json-format/
-        return f'/Date({int(value.replace(tzinfo=current_timezone()).timestamp()) * 1000})/'
+        # See also: https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
+        ticks = (value - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)) / datetime.timedelta(milliseconds=1)
+        return f'/Date({int(ticks)})/'
 
     def from_json(self, value):
 
         if value is None:
             return None
 
-        matches = re.match(r"^/Date\((.*)\)/$", value)
-        if not matches:
-            raise PyODataModelError(
-                "Malformed value {0} for primitive Edm type. Expected format is /Date(value)/".format(value))
-        value = matches.group(1)
-
+        matches = re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)(?P<offset_in_minutes>[+-]\d+)?\)/$", value)
         try:
-            # https://stackoverflow.com/questions/36179914/timestamp-out-of-range-for-platform-localtime-gmtime-function
-            value = datetime.datetime(1970, 1, 1, tzinfo=current_timezone()) + datetime.timedelta(milliseconds=int(value))
+            milliseconds_since_epoch = matches.group('milliseconds_since_epoch')
+        except AttributeError:
+            raise PyODataModelError(
+                f"Malformed value {value} for primitive Edm.DateTime type."
+                " Expected format is /Date(<ticks>[±<offset>])/")
+        try:
+            offset_in_minutes = int(matches.group('offset_in_minutes') or 0)
+            timedelta = datetime.timedelta(minutes=offset_in_minutes)
         except ValueError:
-            raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
-
-        return value
+            raise PyODataModelError(
+                f"Malformed value {value} for primitive Edm.DateTime type."
+                " Expected format is /Date(<ticks>[±<offset>])/")
+        except AttributeError:
+            timedelta = datetime.timedelta()  # Missing offset is interpreted as UTC
+        # Might raise a PyODataModelError exception
+        return ms_since_epoch_to_datetime(milliseconds_since_epoch, datetime.timezone.utc) + timedelta
 
     def from_literal(self, value):
 
@@ -426,18 +477,85 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         value = super(EdmDateTimeTypTraits, self).from_literal(value)
 
-        try:
-            value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
-        except ValueError:
-            try:
-                value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                try:
-                    value = datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
-                except ValueError:
-                    raise PyODataModelError('Cannot decode datetime from value {}.'.format(value))
+        # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
+        return parse_datetime_literal(value).replace(tzinfo=datetime.timezone.utc)
 
-        return value.replace(tzinfo=current_timezone())
+
+class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
+    """Emd.DateTimeOffset traits
+
+       Represents date and time, plus an offset in minutes from UTC, with values ranging from 12:00:00 midnight,
+       January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D
+
+       Literal forms:
+       datetimeoffset'yyyy-mm-ddThh:mm[:ss]±ii:nn' (works for all time zones)
+       datetimeoffset'yyyy-mm-ddThh:mm[:ss]Z' (works only for UTC)
+       NOTE: Spaces are not allowed between datetimeoffset and quoted portion.
+       The datetime part is case-insensitive, the offset one is not.
+
+       Example 1: datetimeoffset'1970-01-01T00:00:01+00:30'
+        - /Date(1000+0030)/ (As DateTime, but with a 30 minutes timezone offset)
+       Example 1: datetimeoffset'1970-01-01T00:00:01-00:60'
+        - /Date(1000-0030)/ (As DateTime, but with a negative 60 minutes timezone offset)
+       https://blogs.sap.com/2017/01/05/date-and-time-in-sap-gateway-foundation/
+    """
+
+    def __init__(self):
+        super(EdmDateTimeOffsetTypTraits, self).__init__('datetimeoffset')
+
+    def to_literal(self, value):
+        """Convert python datetime representation to literal format"""
+
+        if not isinstance(value, datetime.datetime) or value.utcoffset() is None:
+            raise PyODataModelError(
+                f'Cannot convert value of type {type(value)} to literal. Datetime format including offset is required.')
+
+        return super(EdmDateTimeOffsetTypTraits, self).to_literal(value.isoformat())
+
+    def to_json(self, value):
+        # datetime.timestamp() does not work due to its limited precision
+        offset_in_minutes = int(value.utcoffset() / datetime.timedelta(minutes=1))
+        ticks = int((value - datetime.datetime(1970, 1, 1, tzinfo=value.tzinfo)) / datetime.timedelta(milliseconds=1))
+        return f'/Date({ticks}{offset_in_minutes:+05})/'
+
+    def from_json(self, value):
+        matches = re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)(?P<offset_in_minutes>[+-]\d+)\)/$", value)
+        try:
+            milliseconds_since_epoch = matches.group('milliseconds_since_epoch')
+            offset_in_minutes = int(matches.group('offset_in_minutes'))
+        except (ValueError, AttributeError):
+            raise PyODataModelError(
+                f"Malformed value {value} for primitive Edm.DateTimeOffset type."
+                " Expected format is /Date(<ticks>±<offset>)/")
+
+        tzinfo = datetime.timezone(datetime.timedelta(minutes=offset_in_minutes))
+        # Might raise a PyODataModelError exception
+        return ms_since_epoch_to_datetime(milliseconds_since_epoch, tzinfo)
+
+    def from_literal(self, value):
+
+        if value is None:
+            return None
+
+        value = super(EdmDateTimeOffsetTypTraits, self).from_literal(value)
+
+        try:
+            # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
+            if re.match(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value, flags=re.ASCII | re.IGNORECASE):
+                datetime_part = value[:-1]
+                tz_info = datetime.timezone.utc
+            else:
+                match = re.match(r'(?P<datetime>.+)(?P<sign>[\\+-])(?P<hours>\d{2}):(?P<minutes>\d{2})',
+                                 value,
+                                 flags=re.ASCII)
+                datetime_part = match.group('datetime')
+                tz_offset = datetime.timedelta(hours=int(match.group('hours')),
+                                               minutes=int(match.group('minutes')))
+                tz_sign = -1 if match.group('sign') == '-' else 1
+                tz_info = datetime.timezone(tz_sign * tz_offset)
+            return parse_datetime_literal(datetime_part).replace(tzinfo=tz_info)
+        except (ValueError, AttributeError):
+            raise PyODataModelError(f'Cannot decode datetimeoffset from value {value}.')
 
 
 class EdmStringTypTraits(TypTraits):
@@ -620,7 +738,7 @@ class Collection(Typ):
         self._item_type = item_type
 
     def __repr__(self):
-        return 'Collection({})'.format(repr(self._item_type))
+        return f'Collection({repr(self._item_type)})'
 
     @property
     def is_collection(self):
@@ -637,14 +755,14 @@ class Collection(Typ):
     # pylint: disable=no-self-use
     def to_literal(self, value):
         if not isinstance(value, list):
-            raise PyODataException('Bad format: invalid list value {}'.format(value))
+            raise PyODataException(f'Bad format: invalid list value {value}')
 
         return [self._item_type.traits.to_literal(v) for v in value]
 
     # pylint: disable=no-self-use
     def from_json(self, value):
         if not isinstance(value, list):
-            raise PyODataException('Bad format: invalid list value {}'.format(value))
+            raise PyODataException(f'Bad format: invalid list value {value}')
 
         return [self._item_type.traits.from_json(v) for v in value]
 
@@ -688,10 +806,10 @@ class VariableDeclaration(Identifier):
     @typ.setter
     def typ(self, value):
         if self._typ is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._typ, self, value))
+            raise RuntimeError(f'Cannot replace {self._typ} of {self} by {value}')
 
         if value.name != self._type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise RuntimeError(f'{value} cannot be the type of {self}')
 
         self._typ = value
 
@@ -768,6 +886,10 @@ class Schema:
             self.associations = dict()
             self.association_sets = dict()
 
+            # generated collections for ease of lookup (e.g. function import return type)
+            self._collections_entity_types = dict()
+            self._collections_complex_types = dict()
+
         def list_entity_types(self):
             return list(self.entity_types.values())
 
@@ -797,9 +919,9 @@ class Schema:
             # automatically create and register collection variant if not exists
             if isinstance(etype, NullType):
                 return
-
-            collection_type_name = 'Collection({})'.format(etype.name)
-            self.entity_types[collection_type_name] = Collection(etype.name, etype)
+            collection_type_name = f'Collection({etype.name})'
+            self._collections_entity_types[collection_type_name] = Collection(etype.name, etype)
+            # TODO performance memory: this is generating collection for every entity type encoutered, regardless of such collection is really used.
 
         def add_complex_type(self, ctype):
             """Add new complex type to the type repository as well as its collection variant"""
@@ -809,9 +931,9 @@ class Schema:
             # automatically create and register collection variant if not exists
             if isinstance(ctype, NullType):
                 return
-
-            collection_type_name = 'Collection({})'.format(ctype.name)
-            self.complex_types[collection_type_name] = Collection(ctype.name, ctype)
+            collection_type_name = f'Collection({ctype.name})'
+            self._collections_complex_types[collection_type_name] = Collection(ctype.name, ctype)
+            # TODO performance memory: this is generating collection for every entity type encoutered, regardless of such collection is really used.
 
         def add_enum_type(self, etype):
             """Add new enum type to the type repository"""
@@ -823,7 +945,7 @@ class Schema:
             try:
                 return super(Schema.Declarations, self).__getitem__(key)
             except KeyError:
-                raise KeyError('There is no Schema Namespace {}'.format(key))
+                raise KeyError(f'There is no Schema Namespace {key}')
 
     def __init__(self, config: Config):
         super(Schema, self).__init__()
@@ -833,7 +955,7 @@ class Schema:
         self._is_valid = False
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, ','.join(self.namespaces))
+        return f"{self.__class__.__name__}({','.join(self.namespaces)})"
 
     @property
     def namespaces(self):
@@ -855,7 +977,7 @@ class Schema:
         """Returns either EntityType, ComplexType or EnumType that matches the name.
         """
 
-        for type_space in (self.entity_type, self.complex_type, self.enum_type):
+        for type_space in (self.entity_type, self._collections_entity_types, self.complex_type, self._collections_complex_types, self.enum_type):
             try:
                 return type_space(type_name, namespace=namespace)
             except KeyError:
@@ -869,7 +991,7 @@ class Schema:
             try:
                 return self._decls[namespace].entity_types[type_name]
             except KeyError:
-                raise KeyError('EntityType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
+                raise KeyError(f'EntityType {type_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
@@ -877,14 +999,29 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('EntityType {} does not exist in any Schema Namespace'.format(type_name))
+        raise KeyError(f'EntityType {type_name} does not exist in any Schema Namespace')
+
+    def _collections_entity_types(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace]._collections_entity_types[type_name]
+            except KeyError:
+                raise KeyError(f'EntityType collection {type_name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl._collections_entity_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'EntityType collection {type_name} does not exist in any Schema Namespace')
 
     def complex_type(self, type_name, namespace=None):
         if namespace is not None:
             try:
                 return self._decls[namespace].complex_types[type_name]
             except KeyError:
-                raise KeyError('ComplexType {} does not exist in Schema Namespace {}'.format(type_name, namespace))
+                raise KeyError(f'ComplexType {type_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
@@ -892,7 +1029,22 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('ComplexType {} does not exist in any Schema Namespace'.format(type_name))
+        raise KeyError(f'ComplexType {type_name} does not exist in any Schema Namespace')
+
+    def _collections_complex_types(self, type_name, namespace=None):
+        if namespace is not None:
+            try:
+                return self._decls[namespace]._collections_complex_types[type_name]
+            except KeyError:
+                raise KeyError(f'ComplexType collection {type_name} does not exist in Schema Namespace {namespace}')
+
+        for decl in list(self._decls.values()):
+            try:
+                return decl._collections_complex_types[type_name]
+            except KeyError:
+                pass
+
+        raise KeyError(f'ComplexType collection {type_name} does not exist in any Schema Namespace')
 
     def enum_type(self, type_name, namespace=None):
         if namespace is not None:
@@ -912,7 +1064,7 @@ class Schema:
     def get_type(self, type_info):
 
         # construct search name based on collection information
-        search_name = type_info.name if not type_info.is_collection else 'Collection({})'.format(type_info.name)
+        search_name = type_info.name if not type_info.is_collection else f'Collection({type_info.name})'
 
         # first look for type in primitive types
         try:
@@ -920,15 +1072,25 @@ class Schema:
         except KeyError:
             pass
 
-        # then look for type in entity types
+        # then look for type in entity types and collections of entity types
         try:
             return self.entity_type(search_name, type_info.namespace)
         except KeyError:
             pass
 
-        # then look for type in complex types
+        try:
+            return self._collections_entity_types(search_name, type_info.namespace)
+        except KeyError:
+            pass
+
+        # then look for type in complex types and collections of complex types
         try:
             return self.complex_type(search_name, type_info.namespace)
+        except KeyError:
+            pass
+
+        try:
+            return self._collections_complex_types(search_name, type_info.namespace)
         except KeyError:
             pass
 
@@ -959,7 +1121,7 @@ class Schema:
             try:
                 return self._decls[namespace].entity_sets[set_name]
             except KeyError:
-                raise KeyError('EntitySet {} does not exist in Schema Namespace {}'.format(set_name, namespace))
+                raise KeyError(f'EntitySet {set_name} does not exist in Schema Namespace {namespace}')
 
         for decl in list(self._decls.values()):
             try:
@@ -967,7 +1129,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('EntitySet {} does not exist in any Schema Namespace'.format(set_name))
+        raise KeyError(f'EntitySet {set_name} does not exist in any Schema Namespace')
 
     @property
     def entity_sets(self):
@@ -987,7 +1149,7 @@ class Schema:
             except KeyError:
                 pass
 
-        raise KeyError('FunctionImport {} does not exist in any Schema Namespace'.format(function_import))
+        raise KeyError(f'FunctionImport {function_import} does not exist in any Schema Namespace')
 
     @property
     def function_imports(self):
@@ -998,12 +1160,12 @@ class Schema:
             try:
                 return self._decls[namespace].associations[association_name]
             except KeyError:
-                raise KeyError('Association {} does not exist in namespace {}'.format(association_name, namespace))
+                raise KeyError(f'Association {association_name} does not exist in namespace {namespace}')
         for decl in list(self._decls.values()):
             try:
                 return decl.associations[association_name]
             except KeyError:
-                pass
+                return None
 
     @property
     def associations(self):
@@ -1028,12 +1190,12 @@ class Schema:
             try:
                 return self._decls[namespace].association_sets[set_name]
             except KeyError:
-                raise KeyError('Association set {} does not exist in namespace {}'.format(set_name, namespace))
+                raise KeyError(f'Association set {set_name} does not exist in namespace {namespace}')
         for decl in list(self._decls.values()):
             try:
                 return decl.association_sets[set_name]
             except KeyError:
-                pass
+                return None
 
     @property
     def association_sets(self):
@@ -1049,7 +1211,7 @@ class Schema:
             try:
                 entity_type.proprty(proprty)
             except KeyError:
-                raise PyODataModelError('Property {} does not exist in {}'.format(proprty, entity_type.name))
+                raise PyODataModelError(f'Property {proprty} does not exist in {entity_type.name}')
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @staticmethod
@@ -1149,7 +1311,7 @@ class Schema:
                         if principal_role.name not in role_names:
                             schema._is_valid = False
                             raise RuntimeError(
-                                'Role {} was not defined in association {}'.format(principal_role.name, assoc.name))
+                                f'Role {principal_role.name} was not defined in association {assoc.name}')
 
                         # Check if principal role properties exist
                         role_name = principal_role.name
@@ -1162,7 +1324,7 @@ class Schema:
                         if dependent_role.name not in role_names:
                             schema._is_valid = False
                             raise RuntimeError(
-                                'Role {} was not defined in association {}'.format(dependent_role.name, assoc.name))
+                                f'Role {dependent_role.name} was not defined in association {assoc.name}')
 
                         # Check if dependent role properties exist
                         role_name = dependent_role.name
@@ -1329,7 +1491,7 @@ class StructType(Typ):
             stp = StructTypeProperty.from_etree(proprty)
 
             if stp.name in stype._properties:
-                raise KeyError('{0} already has property {1}'.format(stype, stp.name))
+                raise KeyError(f'{stype} already has property {stp.name}')
 
             stype._properties[stp.name] = stp
 
@@ -1509,7 +1671,7 @@ class EntityType(StructType):
             navp = NavigationTypeProperty.from_etree(proprty)
 
             if navp.name in etype._nav_properties:
-                raise KeyError('{0} already has navigation property {1}'.format(etype, navp.name))
+                raise KeyError(f'{etype} already has navigation property {navp.name}')
 
             etype._nav_properties[navp.name] = navp
 
@@ -1545,10 +1707,10 @@ class EntitySet(Identifier):
     @entity_type.setter
     def entity_type(self, value):
         if self._entity_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
+            raise RuntimeError(f'Cannot replace {self._entity_type} of {self} to {value}')
 
         if value.name != self.entity_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise RuntimeError(f'{value} cannot be the type of {self}')
 
         self._entity_type = value
 
@@ -1654,7 +1816,7 @@ class StructTypeProperty(VariableDeclaration):
     def struct_type(self, value):
 
         if self._struct_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} to {2}'.format(self._struct_type, self, value))
+            raise RuntimeError(f'Cannot replace {self._struct_type} of {self} to {value}')
 
         self._struct_type = value
 
@@ -1735,7 +1897,7 @@ class StructTypeProperty(VariableDeclaration):
     def value_helper(self, value):
         # Value Help property must not be changed
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace value helper {0} of {1} by {2}'.format(self._value_helper, self, value))
+            raise RuntimeError(f'Cannot replace value helper {self._value_helper} of {self} by {value}')
 
         self._value_helper = value
 
@@ -1804,10 +1966,10 @@ class NavigationTypeProperty(VariableDeclaration):
     def association(self, value):
 
         if self._association is not None:
-            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._association, self, value))
+            raise PyODataModelError(f'Cannot replace {self._association} of {self} to {value}')
 
         if value.name != self._association_info.name:
-            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
+            raise PyODataModelError(f'{value} cannot be the type of {self}')
 
         self._association = value
 
@@ -1838,7 +2000,7 @@ class EndRole:
         self._role = role
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.role)
+        return f"{self.__class__.__name__}({self.role})"
 
     @property
     def entity_type_info(self):
@@ -1856,10 +2018,10 @@ class EndRole:
     def entity_type(self, value):
 
         if self._entity_type is not None:
-            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_type, self, value))
+            raise PyODataModelError(f'Cannot replace {self._entity_type} of {self} to {value}')
 
         if value.name != self._entity_type_info.name:
-            raise PyODataModelError('{0} cannot be the type of {1}'.format(value, self))
+            raise PyODataModelError(f'{value} cannot be the type of {self}')
 
         self._entity_type = value
 
@@ -1929,7 +2091,7 @@ class ReferentialConstraint:
         for property_ref in principal[0].xpath('edm:PropertyRef', namespaces=config.namespaces):
             principal_refs.append(property_ref.get('Name'))
         if not principal_refs:
-            raise RuntimeError('In role {} should be at least one principal property defined'.format(principal_name))
+            raise RuntimeError(f'In role {principal_name} should be at least one principal property defined')
 
         dependent = referential_constraint_node.xpath('edm:Dependent', namespaces=config.namespaces)
         if len(dependent) != 1:
@@ -1967,7 +2129,7 @@ class Association:
         self._end_roles = list()
 
     def __str__(self):
-        return '{0}({1})'.format(self.__class__.__name__, self._name)
+        return f'{self.__class__.__name__}({self._name})'
 
     @property
     def name(self):
@@ -1981,7 +2143,7 @@ class Association:
         try:
             return next((item for item in self._end_roles if item.role == end_role))
         except StopIteration:
-            raise KeyError('Association {} has no End with Role {}'.format(self._name, end_role))
+            raise KeyError(f'Association {self._name} has no End with Role {end_role}')
 
     @property
     def referential_constraint(self):
@@ -1995,15 +2157,15 @@ class Association:
         for end in association_node.xpath('edm:End', namespaces=config.namespaces):
             end_role = EndRole.from_etree(end)
             if end_role.entity_type_info is None:
-                raise RuntimeError('End type is not specified in the association {}'.format(name))
+                raise RuntimeError(f'End type is not specified in the association {name}')
             association._end_roles.append(end_role)
 
         if len(association._end_roles) != 2:
-            raise RuntimeError('Association {} does not have two end roles'.format(name))
+            raise RuntimeError(f'Association {name} does not have two end roles')
 
         refer = association_node.xpath('edm:ReferentialConstraint', namespaces=config.namespaces)
         if len(refer) > 1:
-            raise RuntimeError('In association {} is defined more than one referential constraint'.format(name))
+            raise RuntimeError(f'In association {name} is defined more than one referential constraint')
 
         if not refer:
             referential_constraint = None
@@ -2022,7 +2184,7 @@ class AssociationSetEndRole:
         self._entity_set = None
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.role)
+        return f"{self.__class__.__name__}({self.role})"
 
     @property
     def role(self):
@@ -2039,11 +2201,11 @@ class AssociationSetEndRole:
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set:
-            raise PyODataModelError('Cannot replace {0} of {1} to {2}'.format(self._entity_set, self, value))
+            raise PyODataModelError(f'Cannot replace {self._entity_set} of {self} to {value}')
 
         if value.name != self._entity_set_name:
             raise PyODataModelError(
-                'Assigned entity set {0} differentiates from the declared {1}'.format(value, self._entity_set_name))
+                f'Assigned entity set {value} differentiates from the declared {self._entity_set_name}')
 
         self._entity_set = value
 
@@ -2064,7 +2226,7 @@ class AssociationSet:
         self._end_roles = end_roles
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self._name)
+        return f"{self.__class__.__name__}({self._name})"
 
     @property
     def name(self):
@@ -2090,18 +2252,18 @@ class AssociationSet:
         try:
             return next((end for end in self._end_roles if end.role == end_role))
         except StopIteration:
-            raise KeyError('Association set {} has no End with Role {}'.format(self._name, end_role))
+            raise KeyError(f'Association set {self._name} has no End with Role {end_role}')
 
     def end_by_entity_set(self, entity_set):
         try:
             return next((end for end in self._end_roles if end.entity_set_name == entity_set))
         except StopIteration:
-            raise KeyError('Association set {} has no End with Entity Set {}'.format(self._name, entity_set))
+            raise KeyError(f'Association set {self._name} has no End with Entity Set {entity_set}')
 
     @association_type.setter
     def association_type(self, value):
         if self._association_type is not None:
-            raise RuntimeError('Cannot replace {} of {} with {}'.format(self._association_type, self, value))
+            raise RuntimeError(f'Cannot replace {self._association_type} of {self} with {value}')
         self._association_type = value
 
     @staticmethod
@@ -2112,7 +2274,7 @@ class AssociationSet:
 
         end_roles_list = association_set_node.xpath('edm:End', namespaces=config.namespaces)
         if len(end_roles) > 2:
-            raise PyODataModelError('Association {} cannot have more than 2 end roles'.format(name))
+            raise PyODataModelError(f'Association {name} cannot have more than 2 end roles')
 
         for end_role in end_roles_list:
             end_roles.append(AssociationSetEndRole.from_etree(end_role))
@@ -2131,7 +2293,7 @@ class Annotation:
         self._qualifier = qualifier
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.target)
+        return f"{self.__class__.__name__}({self.target})"
 
     @property
     def element_namespace(self):
@@ -2143,7 +2305,7 @@ class Annotation:
 
     @property
     def target(self):
-        return '{0}.{1}'.format(self._element_namespace, self._element)
+        return f'{self._element_namespace}.{self._element}'
 
     @property
     def kind(self):
@@ -2192,7 +2354,7 @@ class ValueHelper(Annotation):
         self._parameters = list()
 
     def __str__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.element)
+        return f"{self.__class__.__name__}({self.element})"
 
     @property
     def proprty_name(self):
@@ -2209,10 +2371,10 @@ class ValueHelper(Annotation):
     @proprty.setter
     def proprty(self, value):
         if self._proprty is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._proprty, self, value))
+            raise RuntimeError(f'Cannot replace {self._proprty} of {self} with {value}')
 
         if value.struct_type.name != self.proprty_entity_type_name or value.name != self.proprty_name:
-            raise RuntimeError('{0} cannot be an annotation of {1}'.format(self, value))
+            raise RuntimeError(f'{self} cannot be an annotation of {value}')
 
         self._proprty = value
 
@@ -2236,10 +2398,10 @@ class ValueHelper(Annotation):
     @entity_set.setter
     def entity_set(self, value):
         if self._entity_set is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._entity_set, self, value))
+            raise RuntimeError(f'Cannot replace {self._entity_set} of {self} with {value}')
 
         if value.name != self.collection_path:
-            raise RuntimeError('{0} cannot be assigned to {1}'.format(self, value))
+            raise RuntimeError(f'{self} cannot be assigned to {value}')
 
         self._entity_set = value
 
@@ -2265,14 +2427,14 @@ class ValueHelper(Annotation):
             if prm.local_property.name == name:
                 return prm
 
-        raise KeyError('{0} has no local property {1}'.format(self, name))
+        raise KeyError(f'{self} has no local property {name}')
 
     def list_property_param(self, name):
         for prm in self._parameters:
             if prm.list_property.name == name:
                 return prm
 
-        raise KeyError('{0} has no list property {1}'.format(self, name))
+        raise KeyError(f'{self} has no list property {name}')
 
     @staticmethod
     def from_etree(target, annotation_node):
@@ -2319,9 +2481,9 @@ class ValueHelperParameter:
 
     def __str__(self):
         if self._direction in [ValueHelperParameter.Direction.DisplayOnly, ValueHelperParameter.Direction.FilterOnly]:
-            return "{0}({1})".format(self.__class__.__name__, self._list_property_name)
+            return f"{self.__class__.__name__}({self._list_property_name})"
 
-        return "{0}({1}={2})".format(self.__class__.__name__, self._local_property_name, self._list_property_name)
+        return f"{self.__class__.__name__}({self._local_property_name}={self._list_property_name})"
 
     @property
     def value_helper(self):
@@ -2330,7 +2492,7 @@ class ValueHelperParameter:
     @value_helper.setter
     def value_helper(self, value):
         if self._value_helper is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._value_helper, self, value))
+            raise RuntimeError(f'Cannot replace {self._value_helper} of {self} with {value}')
 
         self._value_helper = value
 
@@ -2349,7 +2511,7 @@ class ValueHelperParameter:
     @local_property.setter
     def local_property(self, value):
         if self._local_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._local_property, self, value))
+            raise RuntimeError(f'Cannot replace {self._local_property} of {self} with {value}')
 
         self._local_property = value
 
@@ -2364,7 +2526,7 @@ class ValueHelperParameter:
     @list_property.setter
     def list_property(self, value):
         if self._list_property is not None:
-            raise RuntimeError('Cannot replace {0} of {1} with {2}'.format(self._list_property, self, value))
+            raise RuntimeError(f'Cannot replace {self._list_property} of {self} with {value}')
 
         self._list_property = value
 
@@ -2405,10 +2567,10 @@ class FunctionImport(Identifier):
     @return_type.setter
     def return_type(self, value):
         if self._return_type is not None:
-            raise RuntimeError('Cannot replace {0} of {1} by {2}'.format(self._return_type, self, value))
+            raise RuntimeError(f'Cannot replace {self._return_type} of {self} by {value}')
 
         if value.name != self.return_type_info[1]:
-            raise RuntimeError('{0} cannot be the type of {1}'.format(value, self))
+            raise RuntimeError(f'{value} cannot be the type of {self}')
 
         self._return_type = value
 
@@ -2488,7 +2650,7 @@ def str_to_bool(value, attr, default):
     if value == 'false':
         return False
 
-    raise TypeError('Not a bool attribute: {0} = {1}'.format(attr, value))
+    raise TypeError(f'Not a bool attribute: {attr} = {value}')
 
 
 def attribute_get_bool(node, attr, default):
@@ -2549,10 +2711,15 @@ class MetadataBuilder:
         elif isinstance(self._xml, bytes):
             mdf = io.BytesIO(self._xml)
         else:
-            raise TypeError('Expected bytes or str type on metadata_xml, got : {0}'.format(type(self._xml)))
+            raise TypeError(f'Expected bytes or str type on metadata_xml, got : {type(self._xml)}')
 
         namespaces = self._config.namespaces
-        xml = etree.parse(mdf)
+
+        try:
+            xml = etree.parse(mdf)
+        except etree.XMLSyntaxError as ex:
+            raise PyODataParserError('Metadata document syntax error') from ex
+
         edmx = xml.getroot()
 
         try:

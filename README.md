@@ -1,7 +1,8 @@
-[![Build Status](https://travis-ci.org/SAP/python-pyodata.svg?branch=master)](https://travis-ci.org/SAP/python-pyodata)
+[![Build Status](https://travis-ci.com/SAP/python-pyodata.svg?branch=master)](https://travis-ci.com/SAP/python-pyodata)
 [![PyPI version](https://badge.fury.io/py/pyodata.svg)](https://badge.fury.io/py/pyodata)
 [![codecov](https://codecov.io/gh/SAP/python-pyodata/branch/master/graph/badge.svg)](https://codecov.io/gh/SAP/python-pyodata)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/SAP/python-pyodata.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/SAP/python-pyodata/alerts/)
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP/python-pyodata)](https://api.reuse.software/info/github.com/SAP/python-pyodata)
 
 # Python OData Client - pyodata
 
@@ -17,7 +18,7 @@ details.
 
 ## Requirements
 
-- [Python >= 3.6](https://www.python.org/downloads/release/python-368/)
+- [Python >= 3.7](https://www.python.org/downloads/)
 
 ## Download and Installation
 

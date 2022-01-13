@@ -13,13 +13,8 @@ import random
 from email.parser import Parser
 from http.client import HTTPResponse
 from io import BytesIO
+from urllib.parse import urlencode
 
-try:
-    # For Python 3.0 and later
-    from urllib.parse import quote
-except ImportError:
-    # Fallback to urllib2
-    from urllib2 import quote
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
 from . import model
@@ -45,7 +40,7 @@ def encode_multipart(boundary, http_requests):
 
     for req in http_requests:
 
-        lines.append('--{0}'.format(boundary))
+        lines.append(f'--{boundary}')
 
         if not isinstance(req, MultipartRequest):
             lines.extend(('Content-Type: application/http ', 'Content-Transfer-Encoding:binary'))
@@ -53,8 +48,8 @@ def encode_multipart(boundary, http_requests):
             lines.append('')
 
             # request  line (method + path + query params)
-            line = '{method} {path}'.format(method=req.get_method(), path=req.get_path())
-            query_params = '&'.join(['{}={}'.format(key, val) for key, val in req.get_query_params().items()])
+            line = f'{req.get_method()} {req.get_path()}'
+            query_params = urlencode(req.get_query_params())
             if query_params:
                 line += '?' + query_params
             line += ' HTTP/1.1'
@@ -63,7 +58,7 @@ def encode_multipart(boundary, http_requests):
 
         # request specific headers
         for hdr, hdr_val in req.get_headers().items():
-            lines.append('{}: {}'.format(hdr, hdr_val))
+            lines.append(f'{hdr}: {hdr_val}')
 
         lines.append('')
 
@@ -76,7 +71,7 @@ def encode_multipart(boundary, http_requests):
             # 400 Bad fromat from SAP gateway
             lines.append('')
 
-    lines.append('--{0}--'.format(boundary))
+    lines.append(f'--{boundary}--')
 
     return '\r\n'.join(lines)
 
@@ -96,7 +91,7 @@ def decode_multipart(data, content_type):
             messages.append(part.get_payload())
         return messages
 
-    data = "Content-Type: {}\n".format(content_type) + data
+    data = f"Content-Type: {content_type}\n" + data
     parser = Parser()
     parsed = parser.parsestr(data)
     decoded = decode(parsed)
@@ -196,7 +191,7 @@ class EntityKey:
         else:
             for key_prop in self._key:
                 if key_prop.name not in args:
-                    raise PyODataException('Missing value for key property {}'.format(key_prop.name))
+                    raise PyODataException(f'Missing value for key property {key_prop.name}')
 
             self._type = EntityKey.TYPE_COMPLEX
 
@@ -220,14 +215,14 @@ class EntityKey:
             #    raise RuntimeError('Entity key is not complete, missing value of property: {0}'.format(key_prop.name))
 
             key_pairs.append(
-                '{0}={1}'.format(key_prop.name, key_prop.to_literal(self._proprties[key_prop.name])))
+                f'{key_prop.name}={key_prop.to_literal(self._proprties[key_prop.name])}')
 
         return ','.join(key_pairs)
 
     def to_key_string(self):
         """Gets the string representation of the key, including parentheses"""
 
-        return '({})'.format(self.to_key_string_without_parentheses())
+        return f'({self.to_key_string_without_parentheses()})'
 
     def __repr__(self):
         return self.to_key_string()
@@ -292,7 +287,7 @@ class ODataHttpRequest:
         """
 
         if not isinstance(value, dict):
-            raise TypeError("Headers must be of type 'dict' not {}".format(type(value)))
+            raise TypeError(f"Headers must be of type 'dict' not {type(value)}")
 
         self._headers.update(value)
 
@@ -316,7 +311,7 @@ class ODataHttpRequest:
         if body:
             self._logger.debug('  body: %s', body)
 
-        params = "&".join("%s=%s" % (k, v) for k, v in self.get_query_params().items())
+        params = urlencode(self.get_query_params())
         response = self._connection.request(
             self.get_method(), url, headers=headers, params=params, data=body)
 
@@ -420,7 +415,7 @@ class NavEntityGetRequest(EntityGetRequest):
         self._nav_property = nav_property
 
     def get_path(self):
-        return "{}/{}".format(super(NavEntityGetRequest, self).get_path(), self._nav_property)
+        return f"{super(NavEntityGetRequest, self).get_path()}/{self._nav_property}"
 
 
 class EntityCreateRequest(ODataHttpRequest):
@@ -586,7 +581,7 @@ class EntityModifyRequest(ODataHttpRequest):
                 val = self._entity_type.proprty(key).to_json(val)
             except KeyError:
                 raise PyODataException(
-                    'Property {} is not declared in {} entity type'.format(key, self._entity_type.name))
+                    f'Property {key} is not declared in {self._entity_type.name} entity type')
 
             self._values[key] = val
 
@@ -858,7 +853,7 @@ class EntityProxy:
                 navigation_entity_set = self._service.schema.entity_set(end.entity_set_name, association_info.namespace)
 
         if not navigation_entity_set:
-            raise PyODataException('No association set for role {}'.format(navigation_property.to_role))
+            raise PyODataException(f'No association set for role {navigation_property.to_role}')
 
         roles = navigation_property.association.end_roles
         if all((role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
@@ -974,7 +969,7 @@ class GetEntitySetFilter:
         if len(operands) < 2:
             raise ExpressionError('The $filter operator \'{}\' needs at least two operands'.format(operator))
 
-        return '({})'.format(' {} '.format(operator).join(operands))
+        return f"({' {} '.format(operator).join(operands)})"
 
     @staticmethod
     def and_(*operands):
@@ -992,7 +987,7 @@ class GetEntitySetFilter:
     def format_filter(proprty, operator, value):
         """Creates a filter expression """
 
-        return '{} {} {}'.format(proprty.name, operator, proprty.to_literal(value))
+        return f'{proprty.name} {operator} {proprty.to_literal(value)}'
 
     def __eq__(self, value):
         return GetEntitySetFilter.format_filter(self._proprty, 'eq', value)
@@ -1194,7 +1189,7 @@ class GetEntitySetFilterChainable:
 
         if operator == 'range':
             if not isinstance(value, (tuple, list)):
-                raise TypeError('Range must be tuple or list not {}'.format(type(value)))
+                raise TypeError(f'Range must be tuple or list not {type(value)}')
 
             if len(value) != 2:
                 raise ValueError('Only two items can be passed in a range.')
@@ -1216,7 +1211,7 @@ class GetEntitySetFilterChainable:
     def __str__(self):
         expressions = self._process_expressions()
         result = self._combine_expressions(expressions)
-        return quote(result)
+        return result
 
 
 class GetEntitySetRequest(QueryRequest):
@@ -1321,7 +1316,7 @@ class EntitySetProxy:
 
         if not navigation_entity_set:
             raise PyODataException(
-                'No association set for role {} {}'.format(navigation_property.to_role, association_set.end_roles))
+                f'No association set for role {navigation_property.to_role} {association_set.end_roles}')
 
         roles = navigation_property.association.end_roles
         if all((role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
@@ -1498,7 +1493,7 @@ class EntityContainer:
             return self._entity_sets[name]
         except KeyError:
             raise AttributeError(
-                'EntitySet {0} not defined in {1}.'.format(name, ','.join(list(self._entity_sets.keys()))))
+                f"EntitySet {name} not defined in {','.join(list(self._entity_sets.keys()))}.")
 
 
 class FunctionContainer:
@@ -1519,7 +1514,7 @@ class FunctionContainer:
 
         if name not in self._functions:
             raise AttributeError(
-                'Function {0} not defined in {1}.'.format(name, ','.join(list(self._functions.keys()))))
+                f"Function {name} not defined in {','.join(list(self._functions.keys()))}.")
 
         fimport = self._service.schema.function_import(name)
 
@@ -1742,7 +1737,7 @@ class MultipartRequest(ODataHttpRequest):
 
     def get_default_headers(self):
         # pylint: disable=no-self-use
-        return {'Content-Type': 'multipart/mixed;boundary={}'.format(self.get_boundary())}
+        return {'Content-Type': f'multipart/mixed;boundary={self.get_boundary()}'}
 
     def get_body(self):
         return encode_multipart(self.get_boundary(), self.requests)
