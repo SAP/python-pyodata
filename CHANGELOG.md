@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.8.0]
+
 ### Fixed
 - Fix Edm.Binary literal representation - Daniel Balko
 - Datetime support for Edm.DateTimeOffset - Reto Schneider
