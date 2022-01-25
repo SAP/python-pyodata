@@ -22,7 +22,7 @@ def _fetch_metadata(connection, url, logger):
             f'Metadata request failed, status code: {resp.status_code}, body:\n{resp.content}', resp)
 
     mime_type = resp.headers['content-type']
-    if not any((typ in ['application/xml', 'text/xml'] for typ in mime_type.split(';'))):
+    if not any((typ in ['application/xml', 'application/atom+xml', 'text/xml'] for typ in mime_type.split(';'))):
         raise HttpError(
             f'Metadata request did not return XML, MIME type: {mime_type}, body:\n{resp.content}',
             resp)
