@@ -2379,7 +2379,9 @@ def test_parsing_of_datetime_before_unix_time(service):
     ('/Date(981173106000+0001)/', datetime.datetime(2001, 2, 3, 4, 5, 6,
                                                     tzinfo=datetime.timezone(datetime.timedelta(minutes=1)))),
     ('/Date(981173106000-0001)/', datetime.datetime(2001, 2, 3, 4, 5, 6,
-                                                    tzinfo=datetime.timezone(-datetime.timedelta(minutes=1))))])
+                                                    tzinfo=datetime.timezone(-datetime.timedelta(minutes=1)))),
+    (None, datetime.datetime(1753, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)),
+])
 def test_parsing_of_datetimeoffset(service, json_input, expected):
     """Test DateTimeOffset handling."""
 
