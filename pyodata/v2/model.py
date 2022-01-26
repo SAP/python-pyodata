@@ -200,7 +200,7 @@ class Types:
             Types.register_type(Typ('Edm.String', '\'\'', EdmStringTypTraits()))
             Types.register_type(Typ('Edm.Time', 'time\'PT00H00M\''))
             Types.register_type(
-                Typ('Edm.DateTimeOffset', 'datetimeoffset\'0000-00-00T00:00:00Z\'', EdmDateTimeOffsetTypTraits()))
+                Typ('Edm.DateTimeOffset', 'datetimeoffset\'1753-01-01T00:00:00Z\'', EdmDateTimeOffsetTypTraits()))
 
     @staticmethod
     def register_type(typ):
