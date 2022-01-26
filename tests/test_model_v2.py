@@ -32,7 +32,8 @@ def test_edmx(schema):
         'Customer',
         'Order',
         'EnumTest',
-        'Enumeration'
+        'Enumeration',
+        'MaterialEntityWithEmptyString',
     }
 
     assert set((entity_set.name for entity_set in schema.entity_sets)) == {

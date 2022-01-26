@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Fix Increased robustness when schema with empty properties is returned
 
 ## [1.8.0]
 

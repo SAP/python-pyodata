@@ -331,6 +331,14 @@
                 <Property Name="City" Type="Edm.String" Nullable="true"/>
             </EntityType>
 
+            <EntityType Name="MaterialEntityWithEmptyString">
+                <Key>
+                    <PropertyRef Name="ID"/>
+                </Key>
+                <Property Name="ID" Type="Edm.String" Nullable="false" sap:filterable="false" sap:updatable="false" sap:sortable="false"/>
+                <Property Name="Material_Type" Type="Edm.String" MaxLength="20" sap:text="" sap:updatable="false" sap:label="Material branding"/>
+            </EntityType>
+
             <Association Name="AssociationEmployeeAddress">
                 <End Type="EXAMPLE_SRV_SETS.Employee" Multiplicity="1" Role="EmployeeRole"/>
                 <End Type="EXAMPLE_SRV_SETS.Address" Multiplicity="*" Role="AddressRole"/>

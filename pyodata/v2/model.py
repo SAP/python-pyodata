@@ -1820,7 +1820,7 @@ class StructTypeProperty(VariableDeclaration):
 
         self._struct_type = value
 
-        if self._text_proprty_name is not None:
+        if self._text_proprty_name:
             try:
                 self._text_proprty = self._struct_type.proprty(self._text_proprty_name)
             except KeyError:
