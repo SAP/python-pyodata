@@ -1,3 +1,7 @@
+# The Default arch #
+arch: amd64        #
+####################
+
 dist: bionic 
 language: python
 python:
