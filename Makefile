@@ -21,6 +21,7 @@ FLAKE8_PARAMS=
 
 COVERAGE_BIN=coverage3
 COVERAGE_REPORT_ARGS=--skip-covered
+COVERAGE_CMD_REPORT=$(COVERAGE_BIN) report
 COVERAGE_CMD_HTML=$(COVERAGE_BIN) html
 COVERAGE_HTML_DIR=.htmlcov
 COVERAGE_HTML_ARGS=$(COVERAGE_REPORT_ARGS) -d $(COVERAGE_HTML_DIR)
@@ -39,6 +40,11 @@ test:
 
 .coverage: $(COVERAGE_REPORT_FILES) $(TESTS_UNIT_FILES)
 	$(MAKE) test PYTEST_PARAMS="--cov-report= --cov=$(PYTHON_MODULE)"
+
+.PHONY: report-coverage
+report-coverage: .coverage
+	@ echo "Generating code coverage report ..."
+	@ $(COVERAGE_CMD_REPORT) $(COVERAGE_REPORT_ARGS) $(COVERAGE_REPORT_FILES)
 
 .PHONY: report-coverage-html
 report-coverage-html: .coverage
