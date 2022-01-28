@@ -2346,6 +2346,28 @@ def test_create_entity_with_naive_datetime(service):
 
 
 @responses.activate
+def test_null_datetime(service):
+    """Test default value of DateTime. Default value gets inserted when a property is null"""
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/TemperatureMeasurements",
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'results': [
+                {
+                    'Date': None,
+                }
+            ]
+        }},
+        status=200)
+
+    result = service.entity_sets.TemperatureMeasurements.get_entities().execute()
+
+    assert result[0].Date == datetime.datetime(1753, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
+
+
+@responses.activate
 def test_parsing_of_datetime_before_unix_time(service):
     """Test DateTime handling of time before 1970"""
 
