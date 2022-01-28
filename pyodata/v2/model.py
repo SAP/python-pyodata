@@ -186,7 +186,7 @@ class Types:
             Types.register_type(Typ('Edm.Binary', 'binary\'\'', EdmBinaryTypTraits('(?:binary|X)')))
             Types.register_type(Typ('Edm.Boolean', 'false', EdmBooleanTypTraits()))
             Types.register_type(Typ('Edm.Byte', '0'))
-            Types.register_type(Typ('Edm.DateTime', 'datetime\'2000-01-01T00:00\'', EdmDateTimeTypTraits()))
+            Types.register_type(Typ('Edm.DateTime', 'datetime\'1753-01-01T00:00\'', EdmDateTimeTypTraits()))
             Types.register_type(Typ('Edm.Decimal', '0.0M'))
             Types.register_type(Typ('Edm.Double', '0.0d', EdmFPNumTypTraits.edm_double()))
             Types.register_type(Typ('Edm.Single', '0.0f', EdmFPNumTypTraits.edm_single()))
