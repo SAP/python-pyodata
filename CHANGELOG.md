@@ -86,7 +86,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - support deleting Entities - Martin Miksik
 
 ### Changed
-- Emd.Int64 literals do no need to have the suffix L - Jakub Filak
+- Edm.Int64 literals do no need to have the suffix L - Jakub Filak
 - more user friendly Function call errors - Jakub Filak
 
 ### Fixed
