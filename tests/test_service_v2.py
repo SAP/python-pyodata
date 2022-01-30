@@ -2342,7 +2342,7 @@ def test_create_entity_with_naive_datetime(service):
             'Date': datetime.datetime(2017, 12, 24, 18, 0),
             'Value': 34.0
         })
-    assert str(e_info.value).startswith('Emd.DateTime accepts only UTC')
+    assert str(e_info.value).startswith('Edm.DateTime accepts only UTC')
 
 
 @responses.activate
