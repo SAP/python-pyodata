@@ -398,7 +398,7 @@ def parse_datetime_literal(value):
 
 
 class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
-    """Emd.DateTime traits
+    """Edm.DateTime traits
 
        Represents date and time with values ranging from 12:00:00 midnight,
        January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D.
@@ -428,7 +428,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
                 f'Cannot convert value of type {type(value)} to literal. Datetime format is required.')
 
         if value.tzinfo != datetime.timezone.utc:
-            raise PyODataModelError('Emd.DateTime accepts only UTC')
+            raise PyODataModelError('Edm.DateTime accepts only UTC')
 
         # Sets timezone to none to avoid including timezone information in the literal form.
         return super(EdmDateTimeTypTraits, self).to_literal(value.replace(tzinfo=None).isoformat())
@@ -438,7 +438,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             return value
 
         if value.tzinfo != datetime.timezone.utc:
-            raise PyODataModelError('Emd.DateTime accepts only UTC')
+            raise PyODataModelError('Edm.DateTime accepts only UTC')
 
         # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
         # https://www.odata.org/documentation/odata-version-2-0/json-format/
@@ -482,7 +482,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
 
 class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
-    """Emd.DateTimeOffset traits
+    """Edm.DateTimeOffset traits
 
        Represents date and time, plus an offset in minutes from UTC, with values ranging from 12:00:00 midnight,
        January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D
