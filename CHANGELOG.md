@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0]
+
 ### Added
 - Prevent substitution of missing, nullable values - Reto Schneider
 
 ### Fixed
-- Fix Increased robustness when schema with empty properties is returned
+- Fix Increased robustness when schema with empty properties is returned - Andre Gensler
 - Use valid default value for Edm.DateTimeOffset - Reto Schneider
 
 ### Changed
@@ -22,6 +24,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fix Edm.Binary literal representation - Daniel Balko
 - Datetime support for Edm.DateTimeOffset - Reto Schneider
 - Disallow creation of non-UTC Edm.DateTime - Reto Schneider
+
+### Changed
 - Split properties schema.entity_types/complex_types and their generated Collections - Petr Hanak
 
 ### Removed
@@ -139,7 +143,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.7.1...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.9.0...HEAD
+[1.9.0]: https://github.com/SAP/python-pyodata/compare/1.8.0...1.9.0
+[1.8.0]: https://github.com/SAP/python-pyodata/compare/1.7.1...1.8.0
 [1.7.1]: https://github.com/SAP/python-pyodata/compare/1.7.0...1.7.1
 [1.7.0]: https://github.com/SAP/python-pyodata/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/SAP/python-pyodata/compare/1.5.0...1.6.0
