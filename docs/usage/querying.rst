@@ -59,7 +59,7 @@ Print unique identification (Id) of all employees with name John Smith:
     from pyodata.v2.service import GetEntitySetFilter as esf
 
     smith_employees_request = northwind.entity_sets.Employees.get_entities()
-    smith_employees_request = smith_employees_request.filter(sef.and_(
+    smith_employees_request = smith_employees_request.filter(esf.and_(
                                                              smith_employees_request.FirstName == 'Jonh',
                                                              smith_employees_request.LastName == 'Smith'))
     for smith in smith_employees_request.execute():
