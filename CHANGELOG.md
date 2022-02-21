@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Client: Accept content type application/atom+xml - OmniTroid
+
 ## [1.9.0]
 
 ### Added

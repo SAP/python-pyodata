@@ -35,13 +35,14 @@ def test_create_client_for_local_metadata(metadata):
 
 
 @responses.activate
-def test_create_service_application_xml(metadata):
-    """Check client creation for valid use case with MIME type 'application/xml'"""
+@pytest.mark.parametrize("content_type", ['application/xml', 'application/atom+xml', 'text/xml'])
+def test_create_service_application(metadata, content_type):
+    """Check client creation for valid MIME types"""
 
     responses.add(
         responses.GET,
         f"{SERVICE_URL}/$metadata",
-        content_type='application/xml',
+        content_type=content_type,
         body=metadata,
         status=200)
 
@@ -49,34 +50,13 @@ def test_create_service_application_xml(metadata):
 
     assert isinstance(client, pyodata.v2.service.Service)
 
-    # onw more test for '/' terminated url
+    # one more test for '/' terminated url
 
     client = pyodata.Client(SERVICE_URL + '/', requests)
 
     assert isinstance(client, pyodata.v2.service.Service)
-    assert client.schema.is_valid == True
+    assert client.schema.is_valid
 
-@responses.activate
-def test_create_service_text_xml(metadata):
-    """Check client creation for valid use case with MIME type 'text/xml'"""
-
-    responses.add(
-        responses.GET,
-        f"{SERVICE_URL}/$metadata",
-        content_type='text/xml',
-        body=metadata,
-        status=200)
-
-    client = pyodata.Client(SERVICE_URL, requests)
-
-    assert isinstance(client, pyodata.v2.service.Service)
-
-    # onw more test for '/' terminated url
-
-    client = pyodata.Client(SERVICE_URL + '/', requests)
-
-    assert isinstance(client, pyodata.v2.service.Service)
-    assert client.schema.is_valid == True
 
 @responses.activate
 def test_metadata_not_reachable():
