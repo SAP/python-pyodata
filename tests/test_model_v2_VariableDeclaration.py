@@ -7,13 +7,13 @@ from pyodata.exceptions import PyODataException
 
 @pytest.fixture
 def variable_of_string_nullable():
-    variable = VariableDeclaration('TestVariable', Types.parse_type_name('Edm.String'), True, None, None, None)
+    variable = VariableDeclaration('TestVariable', Types.parse_type_name('Edm.String'), True, None, None, None, None)
     variable.typ = Types.from_name(variable.type_info.name)
     return variable
 
 @pytest.fixture
 def variable_of_string():
-    variable = VariableDeclaration('TestVariable', Types.parse_type_name('Edm.String'), False, None, None, None)
+    variable = VariableDeclaration('TestVariable', Types.parse_type_name('Edm.String'), False, None, None, None, None)
     variable.typ = Types.from_name(variable.type_info.name)
     return variable
 

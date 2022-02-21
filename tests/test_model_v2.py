@@ -171,6 +171,18 @@ def test_schema_entity_type_nullable(schema):
     assert nickname_property.nullable
 
 
+@pytest.mark.parametrize('property_name,is_fixed_length,comment', [
+    ('Name', False, 'Name has no FixedLength property, defaults to false'),
+    ('ID', True, 'Customer ID length is fixed'),
+    ('City', False, 'City names have arbitrary lengths'),
+])
+def test_schema_entity_type_fixed_length(schema, property_name, is_fixed_length, comment):
+    customer_entity = schema.entity_type('Customer')
+
+    property_ = customer_entity.proprty(property_name)
+    assert property_.fixed_length == is_fixed_length, comment
+
+
 def test_schema_entity_sets(schema):
     """Test Schema methods for EntitySets"""
 
