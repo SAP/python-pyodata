@@ -780,7 +780,7 @@ class Collection(Typ):
 class VariableDeclaration(Identifier):
     MAXIMUM_LENGTH = -1
 
-    def __init__(self, name, type_info, nullable, max_length, precision, scale):
+    def __init__(self, name, type_info, nullable, max_length, precision, scale, fixed_length=None):
         super(VariableDeclaration, self).__init__(name)
 
         self._type_info = type_info
@@ -804,6 +804,7 @@ class VariableDeclaration(Identifier):
         else:
             self._scale = int(scale)
         self._check_scale_value()
+        self._fixed_length = bool(fixed_length)
 
     @property
     def type_info(self):
@@ -838,6 +839,10 @@ class VariableDeclaration(Identifier):
     @property
     def scale(self):
         return self._scale
+
+    @property
+    def fixed_length(self):
+        return self._fixed_length
 
     def from_literal(self, value):
         if value is None:
@@ -1797,8 +1802,9 @@ class StructTypeProperty(VariableDeclaration):
 
     # pylint: disable=too-many-locals
     def __init__(self, name, type_info, nullable, max_length, precision, scale, uncode, label, creatable, updatable,
-                 sortable, filterable, filter_restr, req_in_filter, text, visible, display_format, value_list):
-        super(StructTypeProperty, self).__init__(name, type_info, nullable, max_length, precision, scale)
+                 sortable, filterable, filter_restr, req_in_filter, text, visible, display_format, value_list,
+                 fixed_length=None):
+        super(StructTypeProperty, self).__init__(name, type_info, nullable, max_length, precision, scale, fixed_length)
 
         self._value_helper = None
         self._struct_type = None
@@ -1933,7 +1939,10 @@ class StructTypeProperty(VariableDeclaration):
             sap_attribute_get_string(entity_type_property_node, 'text'),
             sap_attribute_get_bool(entity_type_property_node, 'visible', True),
             sap_attribute_get_string(entity_type_property_node, 'display-format'),
-            sap_attribute_get_string(entity_type_property_node, 'value-list'), )
+            sap_attribute_get_string(entity_type_property_node, 'value-list'),
+            # Back to regular, non-SAP attributes.
+            attribute_get_bool(entity_type_property_node, 'FixedLength', False),
+        )
 
 
 class NavigationTypeProperty(VariableDeclaration):
@@ -1956,7 +1965,7 @@ class NavigationTypeProperty(VariableDeclaration):
     """
 
     def __init__(self, name, from_role_name, to_role_name, association_info):
-        super(NavigationTypeProperty, self).__init__(name, None, False, None, None, None)
+        super(NavigationTypeProperty, self).__init__(name, None, False, None, None, None, None)
 
         self.from_role_name = from_role_name
         self.to_role_name = to_role_name
@@ -2629,7 +2638,7 @@ class FunctionImportParameter(VariableDeclaration):
     Modes = Enum('Modes', 'In Out InOut')
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale, mode):
-        super(FunctionImportParameter, self).__init__(name, type_info, nullable, max_length, precision, scale)
+        super(FunctionImportParameter, self).__init__(name, type_info, nullable, max_length, precision, scale, None)
 
         self._mode = mode
 

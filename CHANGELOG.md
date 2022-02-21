@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Client: Accept content type application/atom+xml - OmniTroid
+- Model: Extract property 'FixedLength' - Reto Schneider
 
 ## [1.9.0]
 

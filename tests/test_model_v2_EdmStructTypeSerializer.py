@@ -22,7 +22,7 @@ def define_complex_type(complex_type_property_declarations, nullable = True):
 
     for name, prop_decl in complex_type_property_declarations.items():
         prop = StructTypeProperty(name, prop_decl[0], nullable, None, None, None,
-            None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None, None)
 
         prop.typ = Types.from_name(prop.type_info.name)
         complex_typ._properties[prop.name] = prop

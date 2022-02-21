@@ -105,6 +105,8 @@
                     <PropertyRef Name="Name"/>
                 </Key>
                 <Property Name="Name" Type="Edm.String" Nullable="false"/>
+                <Property Name="ID" Type="Edm.String" MaxLength="5" FixedLength="true" />
+                <Property Name="City" Type="Edm.String" MaxLength="15" FixedLength="false" />
                 <NavigationProperty Name="Orders" Relationship="EXAMPLE_SRV.CustomerOrders" FromRole="CustomerRole"
                                     ToRole="OrdersRole"/>
             </EntityType>
