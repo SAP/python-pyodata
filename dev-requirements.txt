@@ -1,5 +1,6 @@
 requests==2.23.0
 pytest>=4.6.0
+pytest-aiohttp>=1.0.4
 responses>=0.8.1
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
