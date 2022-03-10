@@ -6,18 +6,16 @@ import warnings
 import pyodata.v2.model
 import pyodata.v2.service
 from pyodata.exceptions import PyODataException, HttpError
-from pyodata.v2.response import Response
 
 
 async def _async_fetch_metadata(connection, url, logger):
     logger.info('Fetching metadata')
 
     async with connection.get(url + '$metadata') as async_response:
-        resp = Response()
-        resp.url = async_response.url
-        resp.headers = async_response.headers
-        resp.status_code = async_response.status
-        resp.content = await async_response.read()
+        resp = pyodata.v2.service.ODataHttpResponse(url=async_response.url,
+                                                    headers=async_response.headers,
+                                                    status_code=async_response.status,
+                                                    content=await async_response.read())
 
         return _common_fetch_metadata(resp, logger)
 

@@ -18,7 +18,6 @@ from urllib.parse import urlencode
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
 from . import model
-from .response import Response
 
 LOGGER_NAME = 'pyodata.service'
 
@@ -103,7 +102,8 @@ def decode_multipart(data, content_type):
 class ODataHttpResponse:
     """Representation of http response"""
 
-    def __init__(self, headers, status_code, content=None):
+    def __init__(self, headers, status_code, content=None, url=None):
+        self.url = url
         self.headers = headers
         self.status_code = status_code
         self.content = content
@@ -327,11 +327,10 @@ class ODataHttpRequest:
                                             headers=headers,
                                             params=params,
                                             data=body) as async_response:
-            response = Response()
-            response.url = async_response.url
-            response.headers = async_response.headers
-            response.status_code = async_response.status
-            response.content = await async_response.read()
+            response = ODataHttpResponse(url=async_response.url,
+                                         headers=async_response.headers,
+                                         status_code=async_response.status,
+                                         content=await async_response.read())
         return self._call_handler(response)
 
     def execute(self):
@@ -889,7 +888,7 @@ class EntityProxy:
                 raise AttributeError('EntityType {0} does not have Property {1}: {2}'
                                      .format(self._entity_type.name, attr, str(ex)))
 
-    async def getattr(self, attr):
+    async def async_getattr(self, attr):
         """Get cached value of attribute or do async call to service to recover attribute value"""
         try:
             return self._cache[attr]
