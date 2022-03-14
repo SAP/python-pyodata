@@ -1,5 +1,5 @@
 """PyOData Client tests"""
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 import aiohttp
 import pytest
@@ -106,7 +106,8 @@ async def test_client_custom_configuration(mock_warning, aiohttp_client, metadat
         })
 
     app = web.Application()
-    app.router.add_get('/$metadata', generate_metadata_response(headers={'content-type': 'application/xml'},body=metadata))
+    app.router.add_get('/$metadata',
+                       generate_metadata_response(headers={'content-type': 'application/xml'}, body=metadata))
     client = await aiohttp_client(app)
 
     with pytest.raises(PyODataException) as e_info:

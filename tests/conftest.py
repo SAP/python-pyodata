@@ -1,8 +1,9 @@
 """PyTest Fixtures"""
-import asyncio
 import logging
 import os
+
 import pytest
+
 from pyodata.v2.model import schema_from_xml, Types
 
 
@@ -140,10 +141,3 @@ def type_date_time():
 @pytest.fixture
 def type_date_time_offset():
     return Types.from_name('Edm.DateTimeOffset')
-
-
-@pytest.fixture
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.run_until_complete(asyncio.sleep(0.1, loop=loop))
