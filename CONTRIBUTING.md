@@ -42,6 +42,18 @@
 
 * Update [CHANGELOG.md](CHANGELOG.md) (Unreleased section)
 
+* Please use following (testing) workflow for your local work (same run on CI Github Actions but should pass locally before creating new PR):
+
+  * use virtualenv, so you are isolated from your system-level installed packages
+  * activate the virtualenv according your OS
+  * pip install -r dev-requirements.txt
+  * pip install -r requirements.txt
+  * pytest --cov-report term --cov=pyodata
+  * pylint --rcfile=.pylintrc --output-format=parseable --reports=no pyodata
+  * flake8 --config=.flake8 pyodata
+
+  There is a Makefile with all targets that can be used as well, if you are fan of makefiles.
+
 ## **Did you fix whitespace, format code, or make a purely cosmetic patch?**
 
 Changes that are cosmetic in nature and do not add anything substantial to the
