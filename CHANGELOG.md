@@ -6,9 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.9.1]
+
 ### Added
 - Client: Accept content type application/atom+xml - OmniTroid
 - Model: Extract property 'FixedLength' - Reto Schneider
+
+### Experimental, possible subject to backward incompatible changes
+- Service: Support for server-side pagination (partial listings trough _next field) - Reto Schneider
 
 ## [1.9.0]
 
