@@ -2632,3 +2632,57 @@ def test_custom_with_get_entity(service):
 
     entity = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar").execute()
     assert entity.Key == '12345'
+
+@responses.activate
+def test_custom_with_get_entity_url_params(service):
+    """ Test that `custom` after `get_entity` is setting up correctly URL parts """
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/MasterEntities('12345')?foo=bar",
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    oDataHttpRequest = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar")
+    assert oDataHttpRequest.get_query_params() == {'foo': 'bar'}
+    assert oDataHttpRequest.get_path() == "MasterEntities('12345')"
+
+    entity = oDataHttpRequest.execute()
+    assert entity.Key == '12345'
+
+@responses.activate
+def test_multiple_custom_with_get_entity_url_params(service):
+    """ Test that `custom` after `get_entity` called several times is setting up correctly URL parts """
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/MasterEntities('12345')?foo=bar&$fizz=buzz",
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '12345'}},
+        status=200)
+
+    oDataHttpRequest = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar").custom("$fizz", "buzz")
+    assert oDataHttpRequest.get_query_params() == {'foo': 'bar', '$fizz': 'buzz'}
+    assert oDataHttpRequest.get_path() == "MasterEntities('12345')"
+
+    entity = oDataHttpRequest.execute()
+    assert entity.Key == '12345'
+
+
+@responses.activate
+def test_custom_with_get_entities_and_chained_filters_url_params(service):
+    """ Test that `custom` after `get_entities` works with complex query (count, filter) """
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees/$count?foo=bar&$fizz=buzz&$filter=ID%20gte%2020%20and%20ID%20lte%2050%20and%20NickName%20eq%20%27Tim%27",
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities().custom("foo", "bar").custom("$fizz", "buzz")
+    request = employees.filter(ID__range=(20, 50)).filter(NickName="Tim").count()
+
+    assert request.get_query_params() == {'foo': 'bar', '$fizz': 'buzz', '$filter': "ID gte 20 and ID lte 50 and NickName eq 'Tim'"}
+    assert request.get_path() == 'Employees/$count'
