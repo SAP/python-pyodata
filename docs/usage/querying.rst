@@ -144,8 +144,13 @@ Use non-standard OData URL Query parameters
 
 Sometimes services implement extension to OData model and require addition URL
 query parameters. In such a case, you can enrich HTTP request made by pyodata with
-these parameters by the method `custom(name: str, value: str)`.
+these parameters by the method `custom(name: str, value: str)`. 
 
 .. code-block:: python
 
     employee = northwind.entity_sets.Employees.get_entity(1).custom('sap-client', '100').execute()
+    
+.. code-block:: python
+
+    employees = northwind.entity_sets.Employees.get_entities().custom('sap-client', '100').custom('$skiptoken', 'ABCD').top(10).execute() 
+    
