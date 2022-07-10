@@ -1,8 +1,8 @@
 Initialization
 ==============
 
-.. _Requests: https://2.python-requests.org/en/master/
-.. _Session: https://2.python-requests.org/en/master/user/advanced/#session-objects
+.. _Requests: https://requests.readthedocs.io/en/latest/
+.. _Session: https://requests.readthedocs.io/en/latest/user/advanced/#session-objects
 
 **PyOData** requires an external HTTP library which has API compatible with
 Session_ from Requests_.
