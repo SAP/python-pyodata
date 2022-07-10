@@ -9,3 +9,4 @@ The User Guide
 * [Function Imports](function_imports.rst)
 * [Metadata](metadata.rst)
 * [Advanced](advanced.rst)
+* [URLs](urls.rst)
