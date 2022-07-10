@@ -2686,3 +2686,39 @@ def test_custom_with_get_entities_and_chained_filters_url_params(service):
 
     assert request.get_query_params() == {'foo': 'bar', '$fizz': 'buzz', '$filter': "ID gte 20 and ID lte 50 and NickName eq 'Tim'"}
     assert request.get_path() == 'Employees/$count'
+
+
+@responses.activate
+def test_custom_with_create_entity_url_params(service):
+    """Test that `custom` after creating entity works correctly"""
+
+    # pylint: dispyable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        f"{service.url}/MasterEntities?foo=bar",
+        headers={
+            'Content-type': 'application/json',
+            'ETag':  'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
+        },
+        json={'d': {
+            '__metadata': {
+                'etag': 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"',
+            },
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=201)
+
+    oDataHttpRequest = service.entity_sets.MasterEntities.create_entity().set(**{'Key': '1234', 'Data': 'abcd'}).custom("foo", "bar")
+
+    assert oDataHttpRequest.get_query_params() == {'foo': 'bar'}
+    assert oDataHttpRequest.get_path() == 'MasterEntities'
+    assert oDataHttpRequest.get_method() == 'POST'
+    assert oDataHttpRequest.get_body() == '{"Key": "1234", "Data": "abcd"}'
+
+    result = oDataHttpRequest.execute()
+
+    assert result.Key == '12345'
+    assert result.Data == 'abcd'
+    assert result.etag == 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
