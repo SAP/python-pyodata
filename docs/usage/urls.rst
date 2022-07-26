@@ -25,9 +25,11 @@ Following is example of integration of pyodata as url provider for Locust_ load 
 
   import requests
   import pyodata
+  import os  
   from locust import HttpUser, task, between
+  
   SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
-
+  
   odataClient = pyodata.Client(SERVICE_URL, requests.Session())
   smith_employees_query = odataClient.entity_sets.Employees.get_entities().filter("FirstName eq 'John' and LastName eq 'Smith'")
 
@@ -38,6 +40,6 @@ Following is example of integration of pyodata as url provider for Locust_ load 
       @task(1)
       def filter_query(self):
           urlpath = smith_employees_query.get_path()
-          url = SERVICE_URL + urlpath
+          url = os.path.join(SERVICE_URL,urlpath)
           params = smith_employees_query.get_query_params()
           self.client.get(url,params=params)
