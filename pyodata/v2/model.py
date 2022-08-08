@@ -92,7 +92,8 @@ class Config:
                  custom_error_policies=None,
                  default_error_policy=None,
                  xml_namespaces=None,
-                 retain_null=False):
+                 retain_null=False,
+                 add_format_query_option=False):
 
         """
         :param custom_error_policies: {ParserError: ErrorPolicy} (default None)
@@ -106,6 +107,10 @@ class Config:
 
         :param retain_null: bool (default False)
                             If true, do not substitute missing (and null-able) values with default value.
+
+        :param add_format_query_option: bool (default False)
+                                        If true, the $format query option is added with the value json to all requests
+                                        which expects a response in the json format.
         """
 
         self._custom_error_policy = custom_error_policies
@@ -121,6 +126,8 @@ class Config:
         self._namespaces = xml_namespaces
 
         self._retain_null = retain_null
+
+        self._add_format_query_option = add_format_query_option
 
     def err_policy(self, error: ParserError):
         if self._custom_error_policy is None:
@@ -146,6 +153,10 @@ class Config:
     @property
     def retain_null(self):
         return self._retain_null
+
+    @property
+    def add_format_query_option(self):
+        return self._add_format_query_option
 
 
 class Identifier:

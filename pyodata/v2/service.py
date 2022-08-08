@@ -381,6 +381,9 @@ class EntityGetRequest(ODataHttpRequest):
     def get_query_params(self):
         qparams = super(EntityGetRequest, self).get_query_params()
 
+        if self._entity_set_proxy.service.add_format_query_option:
+            qparams['$format'] = 'json'
+
         if self._select is not None:
             qparams['$select'] = self._select
 
@@ -428,7 +431,7 @@ class EntityCreateRequest(ODataHttpRequest):
        Call execute() to send the create-request to the OData service
        and get the newly created entity."""
 
-    def __init__(self, url, connection, handler, entity_set, last_segment=None):
+    def __init__(self, url, connection, handler, entity_set, last_segment=None, add_format_query_option=False):
         super(EntityCreateRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
@@ -438,6 +441,8 @@ class EntityCreateRequest(ODataHttpRequest):
             self._last_segment = self._entity_set.name
         else:
             self._last_segment = last_segment
+
+        self._add_format_query_option = add_format_query_option
 
         self._values = {}
 
@@ -474,6 +479,14 @@ class EntityCreateRequest(ODataHttpRequest):
 
     def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'X'}
+
+    def get_query_params(self):
+        qparams = super(EntityCreateRequest, self).get_query_params()
+
+        if self._add_format_query_option:
+            qparams['$format'] = 'json'
+
+        return qparams
 
     @staticmethod
     def _build_values(entity_type, entity):
@@ -531,6 +544,7 @@ class EntityDeleteRequest(ODataHttpRequest):
         return 'DELETE'
 
 
+# pylint: disable=too-many-instance-attributes
 class EntityModifyRequest(ODataHttpRequest):
     """Used for modyfing entities (UPDATE/MERGE operations on a single entity)
 
@@ -539,7 +553,8 @@ class EntityModifyRequest(ODataHttpRequest):
 
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
 
-    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH"):
+    # pylint: disable=too-many-arguments
+    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", add_format_query_option=False):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
@@ -550,6 +565,8 @@ class EntityModifyRequest(ODataHttpRequest):
         if self._method not in EntityModifyRequest.ALLOWED_HTTP_METHODS:
             raise ValueError('The value "{}" is not on the list of allowed Entity Update HTTP Methods: {}'
                              .format(method, ', '.join(EntityModifyRequest.ALLOWED_HTTP_METHODS)))
+
+        self._add_format_query_option = add_format_query_option
 
         self._values = {}
 
@@ -575,6 +592,14 @@ class EntityModifyRequest(ODataHttpRequest):
     def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
+    def get_query_params(self):
+        qparams = super(EntityModifyRequest, self).get_query_params()
+
+        if self._add_format_query_option:
+            qparams['$format'] = 'json'
+
+        return qparams
+
     def set(self, **kwargs):
         """Set properties to be changed."""
 
@@ -597,7 +622,7 @@ class QueryRequest(ODataHttpRequest):
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, url, connection, handler, last_segment):
+    def __init__(self, url, connection, handler, last_segment, add_format_query_option=False):
         super(QueryRequest, self).__init__(url, connection, handler)
 
         self._logger = logging.getLogger(LOGGER_NAME)
@@ -610,6 +635,7 @@ class QueryRequest(ODataHttpRequest):
         self._select = None
         self._expand = None
         self._last_segment = last_segment
+        self._add_format_query_option = add_format_query_option
         self._logger.debug('New instance of QueryRequest for last segment: %s', self._last_segment)
 
     def count(self, inline=False):
@@ -687,6 +713,9 @@ class QueryRequest(ODataHttpRequest):
 
         qparams = super(QueryRequest, self).get_query_params()
 
+        if self._add_format_query_option and not self._count:
+            qparams['$format'] = 'json'
+
         if self._top is not None:
             qparams['$top'] = self._top
 
@@ -714,8 +743,8 @@ class QueryRequest(ODataHttpRequest):
 class FunctionRequest(QueryRequest):
     """Function import request (Service call)"""
 
-    def __init__(self, url, connection, handler, function_import):
-        super(FunctionRequest, self).__init__(url, connection, handler, function_import.name)
+    def __init__(self, url, connection, handler, function_import, add_format_query_option=False):
+        super(FunctionRequest, self).__init__(url, connection, handler, function_import.name, add_format_query_option)
 
         self._function_import = function_import
 
@@ -1238,8 +1267,8 @@ class GetEntitySetFilterChainable:
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
 
-    def __init__(self, url, connection, handler, last_segment, entity_type):
-        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment)
+    def __init__(self, url, connection, handler, last_segment, entity_type, add_format_query_option=False):
+        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment, add_format_query_option)
 
         self._entity_type = entity_type
 
@@ -1444,7 +1473,8 @@ class EntitySetProxy:
 
         entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
-                                   self._parent_last_segment + entity_set_name, self._entity_set.entity_type)
+                                   self._parent_last_segment + entity_set_name, self._entity_set.entity_type,
+                                   self._service.add_format_query_option)
 
     def create_entity(self, return_code=HTTP_CODE_CREATED):
         """Creates a new entity in the given entity-set."""
@@ -1462,7 +1492,7 @@ class EntitySetProxy:
             return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props, etag=etag)
 
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
-                                   self.last_segment)
+                                   self.last_segment, add_format_query_option=self._service.add_format_query_option)
 
     def update_entity(self, key=None, method=None, **kwargs):
         """Updates an existing entity in the given entity-set."""
@@ -1485,7 +1515,8 @@ class EntitySetProxy:
             method = self._service.config['http']['update_method']
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
-                                   entity_key, method=method)
+                                   entity_key, method=method,
+                                   add_format_query_option=self._service.add_format_query_option)
 
     def delete_entity(self, key: EntityKey = None, **kwargs):
         """Delete the entity"""
@@ -1617,6 +1648,7 @@ class Service:
         self._schema = schema
         self._connection = connection
         self._retain_null = config.retain_null if config else False
+        self._add_format_query_option = config.add_format_query_option if config else False
         self._entity_container = EntityContainer(self)
         self._function_container = FunctionContainer(self)
 
@@ -1645,6 +1677,12 @@ class Service:
         """Whether to respect null-ed values or to substitute them with type specific default values"""
 
         return self._retain_null
+
+    @property
+    def add_format_query_option(self):
+        """Whether to add the format query option to requests which expects a response in json format"""
+
+        return self._add_format_query_option
 
     @property
     def entity_sets(self):

@@ -32,6 +32,13 @@ def service_retain_null(schema):
     return pyodata.v2.service.Service(URL_ROOT, schema, requests, model.Config(retain_null=True))
 
 
+@pytest.fixture
+def service_add_format_query_option(schema):
+    """Service fixture which adds format query option to requests"""
+    assert schema.namespaces
+    return pyodata.v2.service.Service(URL_ROOT, schema, requests, model.Config(add_format_query_option=True))
+
+
 @responses.activate
 def test_create_entity(service):
     """Basic test on creating entity"""
@@ -2750,3 +2757,123 @@ def test_custom_with_create_entity_url_params(service):
     assert result.Key == '12345'
     assert result.Data == 'abcd'
     assert result.etag == 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
+
+
+@responses.activate
+def test_format_query_option_with_get_entity(service_add_format_query_option):
+    """Check whether the $format query option is added when getting an entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service_add_format_query_option.url}/MasterEntities('12345')?$format=json",
+        headers={'Content-type': 'application/json'},
+        json={'d': {
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=200)
+
+    request = service_add_format_query_option.entity_sets.MasterEntities.get_entity('12345')
+
+    query_params = request.get_query_params()
+
+    assert '$format' in query_params
+    assert query_params['$format'] == 'json'
+
+    entity = request.execute()
+
+    assert entity.Key == '12345'
+    assert entity.Data == 'abcd'
+
+@responses.activate
+def test_format_query_option_with_get_entities(service_add_format_query_option):
+    """Check whether the $format query option is added when getting multiple entities"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service_add_format_query_option.url}/MasterEntities?$format=json",
+        json={'d': {
+            'results': [
+                {
+                    'Key': '12345',
+                    'Data': 'abcd'
+                }
+            ]
+        }},
+        status=200)
+
+    request = service_add_format_query_option.entity_sets.MasterEntities.get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    query_params = request.get_query_params()
+
+    assert '$format' in query_params
+    assert query_params['$format'] == 'json'
+
+    entities = request.execute()
+
+    assert entities[0].Key == '12345'
+    assert entities[0].Data == 'abcd'
+
+
+@responses.activate
+def test_format_query_option_with_create_entity(service_add_format_query_option):
+    """Check whether the $format query option is added when creating an entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.POST,
+        f"{service_add_format_query_option.url}/MasterEntities?$format=json",
+        headers={
+            'Content-type': 'application/json',
+        },
+        json={'d': {
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=201)
+
+    request = service_add_format_query_option.entity_sets.MasterEntities.create_entity().set(**{'Key': '1234', 'Data': 'abcd'})
+    query_params = request.get_query_params()
+
+    assert '$format' in query_params
+    assert query_params['$format'] == 'json'
+
+    result = request.execute()
+
+    assert result.Key == '12345'
+    assert result.Data == 'abcd'
+
+
+@responses.activate
+def test_format_query_option_with_update_entity(service_add_format_query_option):
+    """Check whether the $format query option is added when updating an entity"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.PATCH,
+        f"{service_add_format_query_option.url}/MasterEntities('12345')?$format=json",
+        json={'d': {
+            'Key': '12345',
+            'Data': 'abcd'
+        }},
+        status=204)
+
+    request = service_add_format_query_option.entity_sets.MasterEntities.update_entity('12345')
+
+    assert isinstance(request, pyodata.v2.service.EntityModifyRequest)
+
+    query_params = request.get_query_params()
+
+    assert '$format' in query_params
+    assert query_params['$format'] == 'json'
+
+    request.set(Data='abcd')
+    request.execute()
