@@ -109,6 +109,8 @@
                 <Property Name="City" Type="Edm.String" MaxLength="15" FixedLength="false" />
                 <NavigationProperty Name="Orders" Relationship="EXAMPLE_SRV.CustomerOrders" FromRole="CustomerRole"
                                     ToRole="OrdersRole"/>
+                <NavigationProperty Name="ReferredBy" Relationship="EXAMPLE_SRV.CustomerReferredBy" FromRole="CustomerRole"
+                                    ToRole="ReferredByRole"/>
             </EntityType>
 
             <EntityType Name="Order">
@@ -185,6 +187,16 @@
                         <PropertyRef Name="Owner"/>
                     </Dependent>
                 </ReferentialConstraint>
+            </Association>
+            <Association Name="CustomerReferredBy">
+                <End Type="EXAMPLE_SRV.Customer" Multiplicity="*" Role="CustomerRole"/>
+                <End Type="EXAMPLE_SRV.Customer" Multiplicity="0..1" Role="ReferredByRole"/>
+                <Principal Role="CustomerRole">
+                    <PropertyRef Name="Name"/>
+                </Principal>
+                <Dependent Role="ReferredByRole">
+                    <PropertyRef Name="Name"/>
+                </Dependent>
             </Association>
             <Association Name="toSelfMaster" sap:content-version="1">
                 <End Type="EXAMPLE_SRV.MasterEntity" Multiplicity="1" Role="FromRole_toSelfMaster"/>
@@ -394,6 +406,11 @@
                 <AssociationSet Name="CustomerOrder_AssocSet" Association="EXAMPLE_SRV.CustomerOrders">
                     <End Role="CustomerRole" EntitySet="Customers"/>
                     <End Role="OrdersRole" EntitySet="Orders"/>
+                </AssociationSet>
+
+                <AssociationSet Name="CustomerReferredBy_AssocSet" Association="EXAMPLE_SRV.CustomerReferredBy">
+                    <End Role="CustomerRole" EntitySet="Customers"/>
+                    <End Role="ReferredByRole" EntitySet="Customers"/>
                 </AssociationSet>
 
             </EntityContainer>

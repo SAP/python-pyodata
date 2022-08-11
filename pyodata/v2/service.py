@@ -874,16 +874,10 @@ class EntityProxy:
             association_info.name,
             association_info.namespace)
 
-        navigation_entity_set = None
-        for end in association_set.end_roles:
-            if association_set.end_by_entity_set(end.entity_set_name).role == navigation_property.to_role.role:
-                navigation_entity_set = self._service.schema.entity_set(end.entity_set_name, association_info.namespace)
+        end = association_set.end_by_role(navigation_property.to_role.role)
+        navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
 
-        if not navigation_entity_set:
-            raise PyODataException(f'No association set for role {navigation_property.to_role}')
-
-        roles = navigation_property.association.end_roles
-        if all((role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        if navigation_property.to_role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
             return NavEntityProxy(self, nav_property, navigation_entity_set.entity_type, {})
 
         return EntitySetProxy(
@@ -1349,17 +1343,10 @@ class EntitySetProxy:
         association_set = self._service.schema.association_set_by_association(
             association_info.name)
 
-        navigation_entity_set = None
-        for end in association_set.end_roles:
-            if association_set.end_by_entity_set(end.entity_set_name).role == navigation_property.to_role.role:
-                navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
+        end = association_set.end_by_role(navigation_property.to_role.role)
+        navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
 
-        if not navigation_entity_set:
-            raise PyODataException(
-                f'No association set for role {navigation_property.to_role} {association_set.end_roles}')
-
-        roles = navigation_property.association.end_roles
-        if all((role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE for role in roles)):
+        if navigation_property.to_role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
             return self._get_nav_entity(key, nav_property, navigation_entity_set)
 
         return EntitySetProxy(

@@ -214,6 +214,7 @@ def test_edmx_associations(schema):
         'toCarIDPic',
         'toDataEntity',
         'CustomerOrders',
+        'CustomerReferredBy',
         'AssociationEmployeeAddress',
         'toSelfMaster'
     }
@@ -241,6 +242,7 @@ def test_edmx_associations(schema):
         'toDataEntitySet',
         'AssociationEmployeeAddress_AssocSet',
         'CustomerOrder_AssocSet',
+        'CustomerReferredBy_AssocSet',
         'toCarIDPicSet',
         'toSelfMasterSet'
     }

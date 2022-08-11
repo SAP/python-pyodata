@@ -1046,6 +1046,34 @@ def test_navigation(service):
 
 
 @responses.activate
+def test_navigation_multi_on1(service):
+    """Check getting entity via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Customers('Mammon')/ReferredBy",
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'Name': 'John',
+            }
+        },
+        status=200)
+
+    request = service.entity_sets.Customers.get_entity('Mammon').nav('ReferredBy')
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    referred_by_proxy = request.execute()
+    assert isinstance(referred_by_proxy, pyodata.v2.service.NavEntityProxy)
+
+    assert referred_by_proxy.entity_set._name == 'Customers'
+    assert referred_by_proxy._entity_type.name == 'Customer'
+
+    assert referred_by_proxy.Name == 'John'
+
+
+@responses.activate
 def test_navigation_1on1(service):
     """Check getting entity via navigation property"""
 
