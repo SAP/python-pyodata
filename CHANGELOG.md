@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Service: associations relationship fixes - Masterchen09
 
 ## [1.9.1]
 
