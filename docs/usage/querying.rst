@@ -154,3 +154,23 @@ these parameters by the method `custom(name: str, value: str)`.
 
     employees = northwind.entity_sets.Employees.get_entities().custom('sap-client', '100').custom('$skiptoken', 'ABCD').top(10).execute() 
     
+
+
+(Experimental) Query server-side paginations using the __next field
+-------------------------------------------------------------------
+Response may contains ony partial listings of the Collection. In this case, "__next" name/value
+pair is included, where the value is a URI which identifies the next partial set of entities.
+
+
+.. code-block:: python
+    employees = northwind.entity_sets.Employees.get_entities().select('EmployeeID,LastName').execute()
+    while True:
+        for employee in employees:
+         print(employee.EmployeeID, employee.LastName)
+
+        # Stop if server has no more entities left
+        if employees.next_url is None:
+          break
+
+        # We got a partial answer - continue with next page
+        employees = northwind.entity_sets.Employees.get_entities().next_url(employees.next_url).execute()
