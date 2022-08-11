@@ -163,6 +163,7 @@ pair is included, where the value is a URI which identifies the next partial set
 
 
 .. code-block:: python
+
     employees = northwind.entity_sets.Employees.get_entities().select('EmployeeID,LastName').execute()
     while True:
         for employee in employees:
