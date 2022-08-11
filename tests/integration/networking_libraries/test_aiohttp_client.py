@@ -1,4 +1,7 @@
-"""PyOData Client tests"""
+""" Test the pyodata integration with aiohttp client, based on asyncio
+
+https://docs.aiohttp.org/en/stable/
+"""
 from unittest.mock import patch
 
 import aiohttp
@@ -12,7 +15,7 @@ from pyodata.v2.model import ParserError, PolicyWarning, PolicyFatal, PolicyIgno
 
 SERVICE_URL = ''
 
-
+@pytest.mark.asyncio
 async def test_invalid_odata_version():
     """Check handling of request for invalid OData version implementation"""
 
@@ -22,7 +25,7 @@ async def test_invalid_odata_version():
 
     assert str(e_info.value).startswith('No implementation for selected odata version')
 
-
+@pytest.mark.asyncio
 async def test_create_client_for_local_metadata(metadata):
     """Check client creation for valid use case with local metadata"""
 
@@ -34,7 +37,7 @@ async def test_create_client_for_local_metadata(metadata):
 
         assert len(service_client.schema.entity_sets) != 0
 
-
+@pytest.mark.asyncio
 def generate_metadata_response(headers=None, body=None, status=200):
     async def metadata_repsonse(request):
         return web.Response(status=status, headers=headers, body=body)
@@ -43,6 +46,7 @@ def generate_metadata_response(headers=None, body=None, status=200):
 
 
 @pytest.mark.parametrize("content_type", ['application/xml', 'application/atom+xml', 'text/xml'])
+@pytest.mark.asyncio
 async def test_create_service_application(aiohttp_client, metadata, content_type):
     """Check client creation for valid MIME types"""
 
@@ -62,6 +66,7 @@ async def test_create_service_application(aiohttp_client, metadata, content_type
     assert service_client.schema.is_valid
 
 
+@pytest.mark.asyncio
 async def test_metadata_not_reachable(aiohttp_client):
     """Check handling of not reachable service metadata"""
 
@@ -74,7 +79,7 @@ async def test_metadata_not_reachable(aiohttp_client):
 
     assert str(e_info.value).startswith('Metadata request failed')
 
-
+@pytest.mark.asyncio
 async def test_metadata_saml_not_authorized(aiohttp_client):
     """Check handling of not SAML / OAuth unauthorized response"""
 
@@ -89,6 +94,7 @@ async def test_metadata_saml_not_authorized(aiohttp_client):
 
 
 @patch('warnings.warn')
+@pytest.mark.asyncio
 async def test_client_custom_configuration(mock_warning, aiohttp_client, metadata):
     """Check client creation for custom configuration"""
 

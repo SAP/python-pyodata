@@ -1,4 +1,7 @@
-"""PyOData Client tests"""
+""" Test the pyodata integration with Requests library.
+
+https://requests.readthedocs.io/en/latest/
+"""
 
 import responses
 import requests
@@ -10,6 +13,7 @@ from pyodata.exceptions import PyODataException, HttpError
 from pyodata.v2.model import ParserError, PolicyWarning, PolicyFatal, PolicyIgnore, Config
 
 SERVICE_URL = 'http://example.com'
+
 
 
 @responses.activate
