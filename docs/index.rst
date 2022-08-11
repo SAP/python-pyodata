@@ -60,3 +60,4 @@ The User Guide
    usage/function_imports.rst
    usage/metadata.rst
    usage/advanced.rst
+   usage/urls.rst

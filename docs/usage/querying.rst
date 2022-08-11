@@ -45,7 +45,7 @@ Print unique identification (Id) of all employees with name John Smith:
     smith_employees_request = northwind.entity_sets.Employees.get_entities()
     smith_employees_request = smith_employees_request.filter("FirstName eq 'John' and LastName eq 'Smith'")
 
-    for smith in smith_employees.execute():
+    for smith in smith_employees_request.execute():
         print(smith.EmployeeID)
 
 
@@ -144,8 +144,34 @@ Use non-standard OData URL Query parameters
 
 Sometimes services implement extension to OData model and require addition URL
 query parameters. In such a case, you can enrich HTTP request made by pyodata with
-these parameters by the method `custom(name: str, value: str)`.
+these parameters by the method `custom(name: str, value: str)`. 
 
 .. code-block:: python
 
     employee = northwind.entity_sets.Employees.get_entity(1).custom('sap-client', '100').execute()
+    
+.. code-block:: python
+
+    employees = northwind.entity_sets.Employees.get_entities().custom('sap-client', '100').custom('$skiptoken', 'ABCD').top(10).execute() 
+    
+
+
+(Experimental) Query server-side paginations using the __next field
+-------------------------------------------------------------------
+Response may contains ony partial listings of the Collection. In this case, "__next" name/value
+pair is included, where the value is a URI which identifies the next partial set of entities.
+
+
+.. code-block:: python
+
+    employees = northwind.entity_sets.Employees.get_entities().select('EmployeeID,LastName').execute()
+    while True:
+        for employee in employees:
+         print(employee.EmployeeID, employee.LastName)
+
+        # Stop if server has no more entities left
+        if employees.next_url is None:
+          break
+
+        # We got a partial answer - continue with next page
+        employees = northwind.entity_sets.Employees.get_entities().next_url(employees.next_url).execute()
