@@ -878,13 +878,39 @@ class EntityProxy:
         navigation_entity_set = self._service.schema.entity_set(end.entity_set_name)
 
         if navigation_property.to_role.multiplicity != model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
-            return NavEntityProxy(self, nav_property, navigation_entity_set.entity_type, {})
+            return self._get_nav_entity(nav_property, navigation_entity_set)
 
         return EntitySetProxy(
             self._service,
             self._service.schema.entity_set(navigation_entity_set.name),
             nav_property,
             self._entity_set.name + self._entity_key.to_key_string())
+
+    def _get_nav_entity(self, nav_property, navigation_entity_set):
+        """Get entity based on Navigation property name"""
+
+        def get_entity_handler(parent, nav_property, navigation_entity_set, response):
+            """Gets entity from HTTP response"""
+
+            if response.status_code != HTTP_CODE_OK:
+                raise HttpError('HTTP GET for Entity {0} failed with status code {1}'
+                                .format(self._name, response.status_code), response)
+
+            entity = response.json()['d']
+
+            return NavEntityProxy(parent, nav_property, navigation_entity_set.entity_type, entity)
+
+        self._logger.info(
+            'Getting the nav property %s of the entity %s for the key %s',
+            nav_property,
+            self._entity_set,
+            self.entity_key)
+
+        return NavEntityGetRequest(
+            partial(get_entity_handler, self, nav_property, navigation_entity_set),
+            self.entity_key,
+            getattr(self._service.entity_sets, self.entity_set.name),
+            nav_property)
 
     def get_path(self):
         """Returns this entity's relative path - e.g. EntitySet(KEY)"""
