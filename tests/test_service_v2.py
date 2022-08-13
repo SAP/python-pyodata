@@ -1104,6 +1104,51 @@ def test_navigation_1on1(service):
 
 
 @responses.activate
+def test_navigation_1on1_from_entity_proxy(service):
+    """Check getting entity via navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Cars('Hadraplan')",
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'Name': 'Hadraplan',
+            }
+        },
+        status=200)
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Cars('Hadraplan')/IDPic",
+        headers={'Content-type': 'application/json'},
+        json = { 'd': {
+            'CarName': 'Hadraplan',
+            'Content': 'DEADBEAF',
+            }
+        },
+        status=200)
+
+    request = service.entity_sets.Cars.get_entity('Hadraplan')
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    car_proxy = request.execute()
+    assert isinstance(car_proxy, pyodata.v2.service.EntityProxy)
+
+    assert car_proxy.Name == 'Hadraplan'
+
+    idpic_proxy = car_proxy.nav('IDPic').execute()
+    assert isinstance(idpic_proxy, pyodata.v2.service.NavEntityProxy)
+
+    assert idpic_proxy.entity_set._name == 'Cars'
+    assert idpic_proxy._entity_type.name == 'CarIDPic'
+
+    assert idpic_proxy.CarName == 'Hadraplan'
+    assert idpic_proxy.Content == 'DEADBEAF'
+
+
+@responses.activate
 def test_navigation_1on1_get_value_without_proxy(service):
     """Check getting $value via navigation property"""
 
