@@ -2,11 +2,9 @@
 
 https://docs.aiohttp.org/en/stable/
 """
-from unittest.mock import patch
-
 import aiohttp
-import pytest
 from aiohttp import web
+import pytest
 
 import pyodata.v2.service
 from pyodata import Client
@@ -93,9 +91,8 @@ async def test_metadata_saml_not_authorized(aiohttp_client):
     assert str(e_info.value).startswith('Metadata request did not return XML, MIME type:')
 
 
-@patch('warnings.warn')
 @pytest.mark.asyncio
-async def test_client_custom_configuration(mock_warning, aiohttp_client, metadata):
+async def test_client_custom_configuration(aiohttp_client, metadata):
     """Check client creation for custom configuration"""
 
     namespaces = {
@@ -121,12 +118,9 @@ async def test_client_custom_configuration(mock_warning, aiohttp_client, metadat
 
     assert str(e_info.value) == 'You cannot pass namespaces and config at the same time'
 
-    service = await Client.build_async_client(SERVICE_URL, client, namespaces=namespaces)
+    with pytest.warns(DeprecationWarning,match='Passing namespaces directly is deprecated. Use class Config instead'):
+        service = await Client.build_async_client(SERVICE_URL, client, namespaces=namespaces)
 
-    mock_warning.assert_called_with(
-        'Passing namespaces directly is deprecated. Use class Config instead',
-        DeprecationWarning
-    )
     assert isinstance(service, pyodata.v2.service.Service)
     assert service.schema.config.namespaces == namespaces
 
