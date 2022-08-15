@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.9.2]
+
 ### Fixed
 - Service: associations relationship fixes - Masterchen09
 
@@ -155,7 +158,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.9.0...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.9.2...HEAD
+[1.9.2]: https://github.com/SAP/python-pyodata/compare/1.9.1...1.9.2
+[1.9.1]: https://github.com/SAP/python-pyodata/compare/1.9.0...1.9.1
 [1.9.0]: https://github.com/SAP/python-pyodata/compare/1.8.0...1.9.0
 [1.8.0]: https://github.com/SAP/python-pyodata/compare/1.7.1...1.8.0
 [1.7.1]: https://github.com/SAP/python-pyodata/compare/1.7.0...1.7.1
