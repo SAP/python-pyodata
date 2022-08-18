@@ -37,10 +37,11 @@ async def test_create_client_for_local_metadata(metadata):
 
 @pytest.mark.asyncio
 def generate_metadata_response(headers=None, body=None, status=200):
-    async def metadata_repsonse(request):
+
+    async def metadata_response(request):
         return web.Response(status=status, headers=headers, body=body)
 
-    return metadata_repsonse
+    return metadata_response
 
 
 @pytest.mark.parametrize("content_type", ['application/xml', 'application/atom+xml', 'text/xml'])
