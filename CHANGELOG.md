@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Service: fix navigation in EntityProxy - Masterchen09
 
 ## [1.9.2]
 
