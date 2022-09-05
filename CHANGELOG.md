@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Service: Add async networking libraries support - mnunzio, Albo90, Petr Hanak
+
+### Fixed
 - Service: fix navigation in EntityProxy - Masterchen09
 
 ## [1.9.2]
