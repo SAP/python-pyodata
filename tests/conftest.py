@@ -1,7 +1,9 @@
 """PyTest Fixtures"""
 import logging
 import os
+
 import pytest
+
 from pyodata.v2.model import schema_from_xml, Types
 
 

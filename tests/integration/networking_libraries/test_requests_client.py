@@ -1,15 +1,18 @@
-"""PyOData Client tests"""
+""" Test the pyodata integration with Requests library.
+
+https://requests.readthedocs.io/en/latest/
+"""
 
 import responses
 import requests
 import pytest
 import pyodata
 import pyodata.v2.service
-from unittest.mock import patch
 from pyodata.exceptions import PyODataException, HttpError
 from pyodata.v2.model import ParserError, PolicyWarning, PolicyFatal, PolicyIgnore, Config
 
 SERVICE_URL = 'http://example.com'
+
 
 
 @responses.activate
@@ -90,8 +93,7 @@ def test_metadata_saml_not_authorized():
 
 
 @responses.activate
-@patch('warnings.warn')
-def test_client_custom_configuration(mock_warning, metadata):
+def test_client_custom_configuration(metadata):
     """Check client creation for custom configuration"""
 
     responses.add(
@@ -119,12 +121,9 @@ def test_client_custom_configuration(mock_warning, metadata):
 
     assert str(e_info.value) == 'You cannot pass namespaces and config at the same time'
 
-    client = pyodata.Client(SERVICE_URL, requests, namespaces=namespaces)
+    with pytest.warns(DeprecationWarning,match='Passing namespaces directly is deprecated. Use class Config instead'):
+        client = pyodata.Client(SERVICE_URL, requests, namespaces=namespaces)
 
-    mock_warning.assert_called_with(
-        'Passing namespaces directly is deprecated. Use class Config instead',
-        DeprecationWarning
-    )
     assert isinstance(client, pyodata.v2.service.Service)
     assert client.schema.config.namespaces == namespaces
 

@@ -102,7 +102,8 @@ def decode_multipart(data, content_type):
 class ODataHttpResponse:
     """Representation of http response"""
 
-    def __init__(self, headers, status_code, content=None):
+    def __init__(self, headers, status_code, content=None, url=None):
+        self.url = url
         self.headers = headers
         self.status_code = status_code
         self.content = content
@@ -292,14 +293,7 @@ class ODataHttpRequest:
 
         self._headers.update(value)
 
-    def execute(self):
-        """Fetches HTTP response and returns processed result
-
-           Sends the query-request to the OData service, returning a client-side Enumerable for
-           subsequent in-memory operations.
-
-           Fetches HTTP response and returns processed result"""
-
+    def _build_request(self):
         if self._next_url:
             url = self._next_url
         else:
@@ -315,10 +309,46 @@ class ODataHttpRequest:
         if body:
             self._logger.debug('  body: %s', body)
 
-        params = urlencode(self.get_query_params())
-        response = self._connection.request(
-            self.get_method(), url, headers=headers, params=params, data=body)
+        params = self.get_query_params()
 
+        return url, body, headers, params
+
+    async def async_execute(self):
+        """Fetches HTTP response and returns processed result
+
+                  Sends the query-request to the OData service, returning a client-side Enumerable for
+                  subsequent in-memory operations.
+
+                  Fetches HTTP response and returns processed result"""
+
+        url, body, headers, params = self._build_request()
+        async with self._connection.request(self.get_method(),
+                                            url,
+                                            headers=headers,
+                                            params=params,
+                                            data=body) as async_response:
+            response = ODataHttpResponse(url=async_response.url,
+                                         headers=async_response.headers,
+                                         status_code=async_response.status,
+                                         content=await async_response.read())
+        return self._call_handler(response)
+
+    def execute(self):
+        """Fetches HTTP response and returns processed result
+
+           Sends the query-request to the OData service, returning a client-side Enumerable for
+           subsequent in-memory operations.
+
+           Fetches HTTP response and returns processed result"""
+
+        url, body, headers, params = self._build_request()
+
+        response = self._connection.request(
+            self.get_method(), url, headers=headers, params=urlencode(params), data=body)
+
+        return self._call_handler(response)
+
+    def _call_handler(self, response):
         self._logger.debug('Received response')
         self._logger.debug('  url: %s', response.url)
         self._logger.debug('  headers: %s', response.headers)
@@ -852,6 +882,19 @@ class EntityProxy:
         except KeyError:
             try:
                 value = self.get_proprty(attr).execute()
+                self._cache[attr] = value
+                return value
+            except KeyError as ex:
+                raise AttributeError('EntityType {0} does not have Property {1}: {2}'
+                                     .format(self._entity_type.name, attr, str(ex)))
+
+    async def async_getattr(self, attr):
+        """Get cached value of attribute or do async call to service to recover attribute value"""
+        try:
+            return self._cache[attr]
+        except KeyError:
+            try:
+                value = await self.get_proprty(attr).async_execute()
                 self._cache[attr] = value
                 return value
             except KeyError as ex:
@@ -1698,6 +1741,16 @@ class Service:
             conn = self._connection
 
         return conn.get(urljoin(self._url, path))
+
+    async def async_http_get(self, path, connection=None):
+        """HTTP GET response for the passed path in the service"""
+
+        conn = connection
+        if conn is None:
+            conn = self._connection
+
+        async with conn.get(urljoin(self._url, path)) as resp:
+            return resp
 
     def http_get_odata(self, path, handler, connection=None):
         """HTTP GET request proxy for the passed path in the service"""
