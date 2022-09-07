@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.10.0]
+
 ### Added
 - Service: Add async networking libraries support - mnunzio, Albo90, Petr Hanak
 
@@ -163,7 +165,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.9.2...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.10.0...HEAD
+[1.10.0]: https://github.com/SAP/python-pyodata/compare/1.9.2...1.10.0
 [1.9.2]: https://github.com/SAP/python-pyodata/compare/1.9.1...1.9.2
 [1.9.1]: https://github.com/SAP/python-pyodata/compare/1.9.0...1.9.1
 [1.9.0]: https://github.com/SAP/python-pyodata/compare/1.8.0...1.9.0
