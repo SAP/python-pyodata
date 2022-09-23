@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- model: fix edge case for Edm.DateTimeOffset.from_json() without offset - Petr Hanak
+
 ## [1.10.0]
 
 ### Added
