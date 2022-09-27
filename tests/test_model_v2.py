@@ -690,6 +690,9 @@ def test_traits_datetimeoffset(type_date_time_offset):
 def test_traits_datetimeoffset_to_literal(type_date_time_offset):
     """Test Edm.DateTimeOffset trait: Python -> literal"""
 
+    testdate = datetime(1, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    assert type_date_time_offset.traits.to_literal(testdate) == "datetimeoffset'0001-01-01T00:00:00+00:00'"
+
     testdate = datetime(2005, 1, 28, 18, 30, 44, 123456, tzinfo=timezone(timedelta(hours=3, minutes=40)))
     assert type_date_time_offset.traits.to_literal(testdate) == "datetimeoffset'2005-01-28T18:30:44.123456+03:40'"
 
@@ -746,7 +749,7 @@ def test_traits_datetimeoffset_from_invalid_literal(type_date_time_offset):
     assert str(e_info.value).startswith('Cannot decode datetimeoffset from value xyz')
 
 
-def test_traits_datetimeoffset_from_odata(type_date_time_offset):
+def test_traits_datetimeoffset_from_json(type_date_time_offset):
     """Test Edm.DateTimeOffset trait: OData -> Python"""
 
     # parsing full representation
@@ -767,6 +770,14 @@ def test_traits_datetimeoffset_from_odata(type_date_time_offset):
     assert testdate.second == 6
     assert testdate.microsecond == 0
     assert testdate.tzinfo == timezone(-timedelta(minutes=5))
+
+    # parsing special edge case with no offset provided, defaults to UTC
+    testdate = type_date_time_offset.traits.from_json("/Date(217567986000)/")
+    assert testdate.year == 1976
+    assert testdate.minute == 33
+    assert testdate.second == 6
+    assert testdate.microsecond == 0
+    assert testdate.tzinfo == timezone.utc
 
     # parsing below lowest value with workaround
     pyodata.v2.model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = True

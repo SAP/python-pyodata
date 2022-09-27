@@ -529,6 +529,12 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
         return f'/Date({ticks}{offset_in_minutes:+05})/'
 
     def from_json(self, value):
+        # special edge case:
+        # datetimeoffset'yyyy-mm-ddThh:mm[:ss]' = defaults to UTC, when offset value is not provided in responde data by service but the metadata is EdmDateTimeOffset
+        # intentionally just for from_json, generation of to_json should always provide timezone info
+        if re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)\)/$", value):
+            value = value.replace(')', '+0000)')
+
         matches = re.match(r"^/Date\((?P<milliseconds_since_epoch>-?\d+)(?P<offset_in_minutes>[+-]\d+)\)/$", value)
         try:
             milliseconds_since_epoch = matches.group('milliseconds_since_epoch')
