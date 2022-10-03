@@ -1,4 +1,5 @@
-![Build Status](https://github.com/SAP/python-pyodata/actions/workflows/python-package.yml/badge.svg)
+![Build Status](https://github.com/SAP/python-pyodata/actions/workflows/python-tests-compatibility.yml/badge.svg)
+![Lint Status](https://github.com/SAP/python-pyodata/actions/workflows/python-linters.yml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/pyodata.svg)](https://badge.fury.io/py/pyodata)
 [![codecov](https://codecov.io/gh/SAP/python-pyodata/branch/master/graph/badge.svg)](https://codecov.io/gh/SAP/python-pyodata)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/SAP/python-pyodata.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/SAP/python-pyodata/alerts/)
