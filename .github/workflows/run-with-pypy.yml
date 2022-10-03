@@ -1,0 +1,38 @@
+name: try the package on pypy interpeter
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["pypy3.9"]
+        lxml-version: ["4.9.1"]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install lxml dependencies
+      run: sudo apt-get install -y libxml2-dev libxslt-dev
+
+    - name: Set up Python ${{ matrix.python-version }}
+    - uses: actions/setup-python@v4 
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install lxml==${{ matrix.lxml-version }}
+        python -m pip install -r dev-requirements.txt
+        python -m pip install -r requirements.txt
+    - name: Test
+      run: |
+        make test report-coverage
