@@ -6,7 +6,7 @@ httpx>=0.23.0
 respx>=0.19.2
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
-pylint==2.8.3
+pylint==2.15.3
 pytest-cov==3.0.0
 codecov==2.1.11
 flake8==5.0.4
