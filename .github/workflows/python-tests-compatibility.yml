@@ -33,6 +33,23 @@ jobs:
             lxml-version: 4.4.3
           - python-version: 3.10
             lxml-version: 4.5.2
+          - python-version: 3.10
+            lxml-version: 4.1.1
+          - python-version: 3.11
+            lxml-version: 4.2.6
+          - python-version: 3.11
+            lxml-version: 4.3.5
+          - python-version: 3.11
+            lxml-version: 4.4.3
+          - python-version: 3.11
+            lxml-version: 4.5.2
+          - python-version: 3.11
+            lxml-version: 4.6.5
+          - python-version: 3.11
+            lxml-version: 4.7.1  
+          - python-version: 3.11
+            lxml-version: 4.8.0             
+
 
     steps:
     - uses: actions/checkout@v2
