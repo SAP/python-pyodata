@@ -235,6 +235,22 @@ class Types:
             Types.Types[collection_name] = collection_typ
 
     @staticmethod
+    def overwrite_type(typ):
+        """Add new  type to the type repository as well as its collection variant"""
+
+        # build types hierarchy on first use (lazy creation)
+        if Types.Types is None:
+            Types._build_types()
+
+        # pylint: disable=unsupported-assignment-operation
+        Types.Types[typ.name] = typ
+
+        collection_name = f'Collection({typ.name})'
+        collection_typ = Collection(typ.name, typ)
+        # pylint: disable=unsupported-assignment-operation
+        Types.Types[collection_name] = collection_typ
+
+    @staticmethod
     def from_name(name):
 
         # build types hierarchy on first use (lazy creation)
@@ -755,7 +771,7 @@ class Collection(Typ):
         self._item_type = item_type
 
     def __repr__(self):
-        return f'Collection({repr(self._item_type)})'
+        return f'Collection({self._item_type.name})'
 
     @property
     def is_collection(self):
@@ -778,8 +794,23 @@ class Collection(Typ):
 
     # pylint: disable=no-self-use
     def from_json(self, value):
-        if not isinstance(value, list):
+        if not isinstance(value, list) and not isinstance(value, dict):
             raise PyODataException(f'Bad format: invalid list value {value}')
+
+        if isinstance(value, dict):
+            if "__metadata" not in value and "results" not in value:
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            if not isinstance(value["results"], list):
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            if not isinstance(value["__metadata"], dict):
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            if "type" not in value["__metadata"]:
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            if not isinstance(value["__metadata"]["type"], str):
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            if value["__metadata"]["type"] != self.__repr__():
+                raise PyODataException(f'Bad format: invalid list value {value}')
+            value = value["results"]
 
         return [self._item_type.traits.from_json(v) for v in value]
 
