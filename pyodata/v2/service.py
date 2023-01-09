@@ -406,7 +406,7 @@ class EntityGetRequest(ODataHttpRequest):
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
-        return {'Accept': 'application/json'}
+        return {'Accept': 'application/json; odata=verbose'}
 
     def get_query_params(self):
         qparams = super(EntityGetRequest, self).get_query_params()
@@ -503,7 +503,7 @@ class EntityCreateRequest(ODataHttpRequest):
         return json.dumps(self._get_body())
 
     def get_default_headers(self):
-        return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'X'}
+        return {'Accept': 'application/json; odata=verbose', 'Content-Type': 'application/json', 'X-Requested-With': 'X'}
 
     @staticmethod
     def _build_values(entity_type, entity):
@@ -603,7 +603,7 @@ class EntityModifyRequest(ODataHttpRequest):
         return json.dumps(body)
 
     def get_default_headers(self):
-        return {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        return {'Accept': 'application/json; odata=verbose', 'Content-Type': 'application/json'}
 
     def set(self, **kwargs):
         """Set properties to be changed."""
@@ -708,7 +708,7 @@ class QueryRequest(ODataHttpRequest):
             return {}
 
         return {
-            'Accept': 'application/json',
+            'Accept': 'application/json; odata=verbose',
         }
 
     def get_query_params(self):
@@ -771,7 +771,7 @@ class FunctionRequest(QueryRequest):
 
     def get_default_headers(self):
         return {
-            'Accept': 'application/json'
+            'Accept': 'application/json; odata=verbose'
         }
 
 
@@ -1763,7 +1763,7 @@ class Service:
             urljoin(self._url, path),
             conn,
             handler,
-            headers={'Accept': 'application/json'})
+            headers={'Accept': 'application/json; odata=verbose'})
 
     def create_batch(self, batch_id=None):
         """Create instance of OData batch request"""
