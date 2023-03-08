@@ -442,10 +442,11 @@ class EntityGetRequest(ODataHttpRequest):
             urljoin(self._url, self.get_path(), '/$value'),
             connection,
             stream_handler)
-    
+
     def get_encode_path(self):
         """Getter for encode path flag"""
         return self._encode_path
+
 
 class NavEntityGetRequest(EntityGetRequest):
     """Used for GET operations of a single entity accessed via a Navigation property"""
@@ -615,7 +616,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    
+
     def get_encode_path(self):
         """Getter for encode path flag"""
         return self._encode_path
