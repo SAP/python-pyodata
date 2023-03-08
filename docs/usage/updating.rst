@@ -34,3 +34,15 @@ then you can consider setting the default service's update method to *PUT*.
 .. code-block:: python
 
     northwind.config['http']['update_method'] = 'PUT'
+
+Encode OData URL Path
+-------------------------------------------
+
+Sometimes services expect the path to be percent encoded. This can especially be important 
+when special variable types are key fields like Date type, where a ':' will appear in the path. 
+In this case you can use an optional parameter to make the request encode the path.
+Per default the variable encode_path is set to False.
+
+.. code-block:: python
+
+    update_request = northwind.entity_sets.Customers.update_entity(CustomerID='ALFKI', encode_path=True)

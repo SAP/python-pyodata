@@ -1457,6 +1457,32 @@ def test_get_entity(service):
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
 
+@responses.activate
+def test_get_entity_with_encoded_path(service):
+    """Check getting entities"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/TemperatureMeasurements%28Sensor%3D%27sensor1%27%2CDate%3Ddatetime%272017-12-24T18%3A00%3A00%27%29",
+        json={'d': {
+            'Sensor': 'sensor1',
+            'Date': '/Date(1514138400000)/',
+            'Value': 34.0
+        }},
+        status=200)
+
+    request = service.entity_sets.TemperatureMeasurements.get_entity(Sensor='sensor1', Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc), encode_path=True)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+    assert request.get_path() == 'TemperatureMeasurements%28Sensor%3D%27sensor1%27%2CDate%3Ddatetime%272017-12-24T18%3A00%3A00%27%29'
+
+    emp = request.execute()
+    assert emp.Sensor == 'sensor1'
+    assert emp.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
+    assert emp.Value == 34.0
+
 
 @responses.activate
 def test_get_entity_expanded(service):
@@ -1563,6 +1589,77 @@ def test_batch_request(service):
     assert len(chset_response) == 1
     assert chset_response[0] is None   # response to update request is None
 
+@responses.activate
+def test_batch_request_with_encoded_path(service):
+    """Batch requests"""
+
+    # pylint: disable=redefined-outer-name
+
+    response_body = (b'--batch_r1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 200 OK\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b'{"d": {"ID": 23, "NameFirst": "Rob", "NameLast": "Ickes", "Address": { "ID": 456, "Street": "Baker Street", "City": "London"} }}'
+                     b'\n'
+                     b'--batch_r1\n'
+                     b'Content-Type: multipart/mixed; boundary=changeset_1\n'
+                     b'\n'
+                     b'--changeset_1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 204 Updated\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b"{b'd': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': '34.0d'}}"
+                     b'\n'
+                     b'--changeset_1--\n'
+                     b'\n'
+                     b'--batch_r1--')
+
+    responses.add(
+        responses.POST,
+        f'{URL_ROOT}/$batch',
+        body=response_body,
+        content_type='multipart/mixed; boundary=batch_r1',
+        status=202)
+
+    batch = service.create_batch('batch1')
+
+    chset = service.create_changeset('chset1')
+
+    employee_request = service.entity_sets.Employees.get_entity(23, encode_path=True)
+
+    assert employee_request.get_path() == 'Employees%2823%29'
+
+    temp_request = service.entity_sets.TemperatureMeasurements.update_entity(
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc),
+        encode_path=True).set(Value=34.0)
+
+    batch.add_request(employee_request)
+
+    chset.add_request(temp_request)
+
+    assert f'{temp_request.get_method()} TemperatureMeasurements%28Sensor%3D%27sensor1%27%2CDate%3Ddatetime%272017-12-24T18%3A00%3A00%27%29' in chset.get_body()
+
+    batch.add_request(chset)
+    batch.add_request(temp_request)
+
+    response = batch.execute()
+
+    assert len(response) == 2
+
+    employee_response = response[0]
+    assert isinstance(employee_response, pyodata.v2.service.EntityProxy)
+
+    chset_response = response[1]
+    assert isinstance(chset_response, list)
+    assert len(chset_response) == 1
+    assert chset_response[0] is None   # response to update request is None
 
 @responses.activate
 def test_enormous_batch_request(service):

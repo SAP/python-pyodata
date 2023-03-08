@@ -154,7 +154,17 @@ these parameters by the method `custom(name: str, value: str)`.
 
     employees = northwind.entity_sets.Employees.get_entities().custom('sap-client', '100').custom('$skiptoken', 'ABCD').top(10).execute() 
     
+Encode OData URL Path
+-------------------------------------------
 
+Sometimes services expect the path to be percent encoded. This can especially be important 
+when special variable types are key fields like Date type, where a ':' will appear in the path. 
+In this case you can use an optional parameter to make the request encode the path.
+Per default the variable encode_path is set to False.
+
+.. code-block:: python
+
+    employee = northwind.entity_sets.Employees.get_entity(1, encode_path=True).execute()
 
 (Experimental) Query server-side paginations using the __next field
 -------------------------------------------------------------------

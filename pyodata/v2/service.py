@@ -13,7 +13,7 @@ import random
 from email.parser import Parser
 from http.client import HTTPResponse
 from io import BytesIO
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
@@ -371,7 +371,7 @@ class ODataHttpRequest:
 class EntityGetRequest(ODataHttpRequest):
     """Used for GET operations of a single entity"""
 
-    def __init__(self, handler, entity_key, entity_set_proxy):
+    def __init__(self, handler, entity_key, entity_set_proxy, encode_path=False):
         super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection,
                                                handler)
         self._logger = logging.getLogger(LOGGER_NAME)
@@ -379,6 +379,7 @@ class EntityGetRequest(ODataHttpRequest):
         self._entity_set_proxy = entity_set_proxy
         self._select = None
         self._expand = None
+        self._encode_path = encode_path
 
         self._logger.debug('New instance of EntityGetRequest for last segment: %s', self._entity_set_proxy.last_segment)
 
@@ -403,7 +404,10 @@ class EntityGetRequest(ODataHttpRequest):
         return self
 
     def get_path(self):
-        return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
+        if self.get_encode_path():
+            return quote(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
+        else:
+            return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
         return {'Accept': 'application/json'}
@@ -438,7 +442,10 @@ class EntityGetRequest(ODataHttpRequest):
             urljoin(self._url, self.get_path(), '/$value'),
             connection,
             stream_handler)
-
+    
+    def get_encode_path(self):
+        """Getter for encode path flag"""
+        return self._encode_path
 
 class NavEntityGetRequest(EntityGetRequest):
     """Used for GET operations of a single entity accessed via a Navigation property"""
@@ -569,12 +576,13 @@ class EntityModifyRequest(ODataHttpRequest):
 
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
 
-    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH"):
+    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=False):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
         self._entity_key = entity_key
+        self._encode_path = encode_path
 
         self._method = method.upper()
         if self._method not in EntityModifyRequest.ALLOWED_HTTP_METHODS:
@@ -589,7 +597,10 @@ class EntityModifyRequest(ODataHttpRequest):
         self._logger.debug('New instance of EntityModifyRequest for entity type: %s', self._entity_type.name)
 
     def get_path(self):
-        return self._entity_set.name + self._entity_key.to_key_string()
+        if self.get_encode_path():
+            return quote(self._entity_set.name + self._entity_key.to_key_string())
+        else:
+            return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
         # pylint: disable=no-self-use
@@ -604,6 +615,10 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_default_headers(self):
         return {'Accept': 'application/json', 'Content-Type': 'application/json'}
+    
+    def get_encode_path(self):
+        """Getter for encode path flag"""
+        return self._encode_path
 
     def set(self, **kwargs):
         """Set properties to be changed."""
@@ -1452,7 +1467,7 @@ class EntitySetProxy:
             self,
             nav_property)
 
-    def get_entity(self, key=None, **args):
+    def get_entity(self, key=None, encode_path=False, **args):
         """Get entity based on provided key properties"""
 
         def get_entity_handler(response):
@@ -1474,7 +1489,7 @@ class EntitySetProxy:
 
         self._logger.info('Getting entity %s for key %s and args %s', self._entity_set.entity_type.name, key, args)
 
-        return EntityGetRequest(get_entity_handler, entity_key, self)
+        return EntityGetRequest(get_entity_handler, entity_key, self, encode_path=encode_path)
 
     def get_entities(self):
         """Get some, potentially all entities"""
@@ -1533,7 +1548,7 @@ class EntitySetProxy:
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, method=None, **kwargs):
+    def update_entity(self, key=None, method=None, encode_path=False, **kwargs):
         """Updates an existing entity in the given entity-set."""
 
         def update_entity_handler(response):
@@ -1554,7 +1569,7 @@ class EntitySetProxy:
             method = self._service.config['http']['update_method']
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
-                                   entity_key, method=method)
+                                   entity_key, method=method, encode_path=encode_path)
 
     def delete_entity(self, key: EntityKey = None, **kwargs):
         """Delete the entity"""
