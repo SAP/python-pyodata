@@ -371,7 +371,7 @@ class ODataHttpRequest:
 class EntityGetRequest(ODataHttpRequest):
     """Used for GET operations of a single entity"""
 
-    def __init__(self, handler, entity_key, entity_set_proxy, encode_path=False):
+    def __init__(self, handler, entity_key, entity_set_proxy, encode_path=True):
         super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection,
                                                handler)
         self._logger = logging.getLogger(LOGGER_NAME)
@@ -406,8 +406,7 @@ class EntityGetRequest(ODataHttpRequest):
     def get_path(self):
         if self.get_encode_path():
             return quote(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
-        else:
-            return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
+        return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
         return {'Accept': 'application/json'}
@@ -553,16 +552,23 @@ class EntityCreateRequest(ODataHttpRequest):
 class EntityDeleteRequest(ODataHttpRequest):
     """Used for deleting entity (DELETE operations on a single entity)"""
 
-    def __init__(self, url, connection, handler, entity_set, entity_key):
+    def __init__(self, url, connection, handler, entity_set, entity_key, encode_path=True):
         super(EntityDeleteRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_key = entity_key
+        self._encode_path = encode_path
 
         self._logger.debug('New instance of EntityDeleteRequest for entity type: %s', entity_set.entity_type.name)
 
     def get_path(self):
+        if self.get_encode_path():
+            return quote(self._entity_set.name + self._entity_key.to_key_string())
         return self._entity_set.name + self._entity_key.to_key_string()
+
+    def get_encode_path(self):
+        """Getter for encode path flag"""
+        return self._encode_path
 
     def get_method(self):
         # pylint: disable=no-self-use
@@ -577,7 +583,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
 
-    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=False):
+    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
@@ -600,8 +606,7 @@ class EntityModifyRequest(ODataHttpRequest):
     def get_path(self):
         if self.get_encode_path():
             return quote(self._entity_set.name + self._entity_key.to_key_string())
-        else:
-            return self._entity_set.name + self._entity_key.to_key_string()
+        return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
         # pylint: disable=no-self-use
@@ -1323,10 +1328,11 @@ class GetEntitySetFilterChainable:
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
 
-    def __init__(self, url, connection, handler, last_segment, entity_type):
+    def __init__(self, url, connection, handler, last_segment, entity_type, encode_path=True):
         super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment)
 
         self._entity_type = entity_type
+        self._encode_path = encode_path
 
     def __getattr__(self, name):
         proprty = self._entity_type.proprty(name)
@@ -1344,6 +1350,20 @@ class GetEntitySetRequest(QueryRequest):
             self._set_filter(str(GetEntitySetFilterChainable(self._entity_type, args, kwargs)))
 
         return self
+
+    def get_path(self):
+        if self.get_encode_path():
+            path = quote(self._last_segment)
+        else:
+            path = self._last_segment
+
+        if self._count:
+            return urljoin(path, '/$count')
+        return path
+
+    def get_encode_path(self):
+        """Getter for encode path flag"""
+        return self._encode_path
 
 
 class ListWithTotalCount(list):
@@ -1468,7 +1488,7 @@ class EntitySetProxy:
             self,
             nav_property)
 
-    def get_entity(self, key=None, encode_path=False, **args):
+    def get_entity(self, key=None, encode_path=True, **args):
         """Get entity based on provided key properties"""
 
         def get_entity_handler(response):
@@ -1492,7 +1512,7 @@ class EntitySetProxy:
 
         return EntityGetRequest(get_entity_handler, entity_key, self, encode_path=encode_path)
 
-    def get_entities(self):
+    def get_entities(self, encode_path=True):
         """Get some, potentially all entities"""
 
         def get_entities_handler(response):
@@ -1529,7 +1549,8 @@ class EntitySetProxy:
 
         entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
-                                   self._parent_last_segment + entity_set_name, self._entity_set.entity_type)
+                                   self._parent_last_segment + entity_set_name, self._entity_set.entity_type,
+                                   encode_path=encode_path)
 
     def create_entity(self, return_code=HTTP_CODE_CREATED):
         """Creates a new entity in the given entity-set."""
@@ -1549,7 +1570,7 @@ class EntitySetProxy:
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
                                    self.last_segment)
 
-    def update_entity(self, key=None, method=None, encode_path=False, **kwargs):
+    def update_entity(self, key=None, method=None, encode_path=True, **kwargs):
         """Updates an existing entity in the given entity-set."""
 
         def update_entity_handler(response):
@@ -1572,7 +1593,7 @@ class EntitySetProxy:
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
                                    entity_key, method=method, encode_path=encode_path)
 
-    def delete_entity(self, key: EntityKey = None, **kwargs):
+    def delete_entity(self, key: EntityKey = None, encode_path=True, **kwargs):
         """Delete the entity"""
 
         def delete_entity_handler(response):
@@ -1589,7 +1610,7 @@ class EntitySetProxy:
             entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
         return EntityDeleteRequest(self._service.url, self._service.connection, delete_entity_handler, self._entity_set,
-                                   entity_key)
+                                   entity_key, encode_path=encode_path)
 
 
 # pylint: disable=too-few-public-methods
