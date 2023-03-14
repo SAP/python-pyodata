@@ -157,7 +157,7 @@ these parameters by the method `custom(name: str, value: str)`.
 Encode OData URL Path
 -------------------------------------------
 
-By default the paths of requests are percent encoded. However if this is not what your API expects, 
+By default the resource paths of requests are percent encoded. However if this is not what your API expects, 
 you can disable the encoding with the variable encode_path by setting it to False.
 
 .. code-block:: python
