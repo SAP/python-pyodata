@@ -1232,7 +1232,7 @@ def test_entity_get_value_1on1_with_proxy(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/{path}/IDPic/$value/",
+        f"{service.url}/Cars('Hadraplan')/IDPic/$value/",
         headers={'Content-type': 'application/jpeg'},
         body='DEADBEAF',
         status=200)
@@ -1283,7 +1283,7 @@ def test_entity_get_value_with_proxy(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/{path}/$value/",
+        f"{service.url}/CarIDPics('Hadraplan')/$value/",
         headers={'Content-type': 'application/jpeg'},
         body='DEADBEAF',
         status=200)
