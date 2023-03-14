@@ -658,7 +658,7 @@ def test_delete_entity(service):
     assert request.execute() is None
 
 @responses.activate
-def test_delete_entity_with_decoded_path(service):
+def test_delete_entity_not_encoded_path(service):
     """Check deleting of entity"""
 
     responses.add(responses.DELETE, f"{service.url}/Employees(23)", status=204)
@@ -1475,7 +1475,7 @@ def test_get_entity(service):
     assert emp.NameLast == 'Ickes'
 
 @responses.activate
-def test_get_entity_with_decoded_path(service):
+def test_get_entity_not_encoded_path(service):
     """Check getting entities"""
 
     # pylint: disable=redefined-outer-name
@@ -1607,7 +1607,7 @@ def test_batch_request(service):
     assert chset_response[0] is None   # response to update request is None
 
 @responses.activate
-def test_batch_request_with_decoded_path(service):
+def test_batch_request_not_encoded_path(service):
     """Batch requests"""
 
     # pylint: disable=redefined-outer-name
