@@ -575,6 +575,7 @@ class EntityDeleteRequest(ODataHttpRequest):
         return 'DELETE'
 
 
+# pylint: disable=too-many-instance-attributes
 class EntityModifyRequest(ODataHttpRequest):
     """Used for modyfing entities (UPDATE/MERGE operations on a single entity)
 
@@ -582,7 +583,7 @@ class EntityModifyRequest(ODataHttpRequest):
        and get the modified entity."""
 
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
-
+    # pylint: disable=too-many-arguments
     def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
         self._logger = logging.getLogger(LOGGER_NAME)

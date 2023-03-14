@@ -157,14 +157,12 @@ these parameters by the method `custom(name: str, value: str)`.
 Encode OData URL Path
 -------------------------------------------
 
-Sometimes services expect the path to be percent encoded. This can especially be important 
-when special variable types are key fields like Date type, where a ':' will appear in the path. 
-In this case you can use an optional parameter to make the request encode the path.
-Per default the variable encode_path is set to False.
+By default the paths of requests are percent encoded. However if this is not what you API expects, 
+you can disable the encoding with the variable encode_path by setting it to False.
 
 .. code-block:: python
 
-    employee = northwind.entity_sets.Employees.get_entity(1, encode_path=True).execute()
+    employee = northwind.entity_sets.Employees.get_entity(1, encode_path=False).execute()
 
 (Experimental) Query server-side paginations using the __next field
 -------------------------------------------------------------------
