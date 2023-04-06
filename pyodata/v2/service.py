@@ -583,6 +583,7 @@ class EntityModifyRequest(ODataHttpRequest):
        and get the modified entity."""
 
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
+
     # pylint: disable=too-many-arguments
     def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True):
         super(EntityModifyRequest, self).__init__(url, connection, handler)
