@@ -34,3 +34,14 @@ then you can consider setting the default service's update method to *PUT*.
 .. code-block:: python
 
     northwind.config['http']['update_method'] = 'PUT'
+
+Encode OData URL Path
+-------------------------------------------
+
+By default the resource paths of requests are percent encoded. However if this is not what your API expects, 
+you can disable the encoding with the variable encode_path by setting it to False.
+
+
+.. code-block:: python
+
+    update_request = northwind.entity_sets.Customers.update_entity(CustomerID='ALFKI', encode_path=False)

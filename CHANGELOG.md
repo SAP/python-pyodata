@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Service: Encode paths with entity keys with option to disable it - linda-sap
 
 ## [1.10.1]
 

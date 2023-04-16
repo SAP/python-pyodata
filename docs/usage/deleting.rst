@@ -42,3 +42,15 @@ or by passing the EntityKey object
     key = EntityKey(service.schema.entity_type('Employee'), ID=23)
     request = service.entity_sets.Employees.delete_entity(key=key)
     request.execute()
+
+
+Encode OData URL Path
+-------------------------------------------
+
+By default the resource paths of requests are percent encoded. However if this is not what your API expects, 
+you can disable the encoding with the variable encode_path by setting it to False.
+
+
+.. code-block:: python
+
+   request = service.entity_sets.Employees.delete_entity(key=key, encode_path=False)

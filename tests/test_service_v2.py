@@ -4,6 +4,7 @@ import datetime
 import responses
 import requests
 import pytest
+from urllib.parse import quote
 from unittest.mock import patch
 
 import pyodata.v2.model
@@ -143,9 +144,10 @@ def test_create_entity_nested(service):
         }},
         status=201)
 
+    path = quote("Cars('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')/IDPic/$value/",
+        f"{service.url}/{path}/IDPic/$value/",
         headers={'Content-type': 'application/jpeg'},
         body='DEADBEEF',
         status=200)
@@ -209,9 +211,10 @@ def test_get_entity_property(service):
 
     # pylint: disable=redefined-outer-name
 
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')",
+        f"{service.url}/{path}",
         headers={
             'ETag': 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"',
             'Content-type': 'application/json',
@@ -229,10 +232,10 @@ def test_entity_url(service):
     """Test correct build of entity url"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
@@ -246,10 +249,10 @@ def test_entity_entity_set_name(service):
     """Test correct entity set name"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
@@ -263,10 +266,10 @@ def test_entity_key_simple(service):
     """Test simple key of entity"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
@@ -281,10 +284,10 @@ def test_entity_key_complex(service):
     """Test complex key of entity"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')")
     responses.add(
         responses.GET,
-        f"{service.url}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json={'d': {
             'Sensor': 'sensor1',
@@ -611,10 +614,10 @@ def test_update_entity(service):
     """Check updating of entity properties"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')")
     responses.add(
         responses.PATCH,
-        f"{service.url}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')",
+        f"{service.url}/{path}",
         json={'d': {
             'Sensor': 'Sensor-address',
             'Date': "/Date(1714138400000)/",
@@ -647,8 +650,19 @@ def test_update_entity(service):
 def test_delete_entity(service):
     """Check deleting of entity"""
 
-    responses.add(responses.DELETE, f"{service.url}/Employees(23)", status=204)
+    path = quote("Employees(23)")
+    responses.add(responses.DELETE, f"{service.url}/{path}", status=204)
     request = service.entity_sets.Employees.delete_entity(23)
+
+    assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
+    assert request.execute() is None
+
+@responses.activate
+def test_delete_entity_not_encoded_path(service):
+    """Check deleting of entity"""
+
+    responses.add(responses.DELETE, f"{service.url}/Employees(23)", status=204)
+    request = service.entity_sets.Employees.delete_entity(23, encode_path=False)
 
     assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
     assert request.execute() is None
@@ -658,7 +672,8 @@ def test_delete_entity(service):
 def test_delete_entity_with_key(service):
     """Check deleting of entity with key"""
 
-    responses.add(responses.DELETE, f"{service.url}/Employees(ID=23)", status=204)
+    path = quote("Employees(ID=23)")
+    responses.add(responses.DELETE, f"{service.url}/{path}", status=204)
     key = EntityKey(service.schema.entity_type('Employee'), ID=23)
     request = service.entity_sets.Employees.delete_entity(key=key)
 
@@ -670,7 +685,8 @@ def test_delete_entity_with_key(service):
 def test_delete_entity_http_error(service):
     """Check if error is raisen when deleting unknown entity"""
 
-    responses.add(responses.DELETE, f"{service.url}/Employees(ID=23)", status=404)
+    path = quote("Employees(ID=23)")
+    responses.add(responses.DELETE, f"{service.url}/{path}", status=404)
     key = EntityKey(service.schema.entity_type('Employee'), ID=23)
     request = service.entity_sets.Employees.delete_entity(key=key)
 
@@ -695,7 +711,7 @@ def test_update_entity_with_entity_key(service):
         Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.update_entity(key)
-    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+    assert query.get_path() == quote("TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')")
 
 
 def test_update_entity_with_put_method_specified(service):
@@ -980,10 +996,10 @@ def test_navigation_multi(service):
     """Get entities via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses",
+        f"{service.url}/{path}",
         json={'d': {
             'results': [
                 {
@@ -1024,10 +1040,10 @@ def test_navigation(service):
     """Check getting entity via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses(456)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses(456)",
+        f"{service.url}/{path}",
         json={'d': {
             'ID': 456,
             'Street': 'Baker Street',
@@ -1050,10 +1066,10 @@ def test_navigation_multi_on1(service):
     """Check getting entity via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Customers('Mammon')/ReferredBy")
     responses.add(
         responses.GET,
-        f"{service.url}/Customers('Mammon')/ReferredBy",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'Name': 'John',
@@ -1078,10 +1094,10 @@ def test_navigation_1on1(service):
     """Check getting entity via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Cars('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')/IDPic",
+        f"{service.url}/{path}/IDPic",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'CarName': 'Hadraplan',
@@ -1108,10 +1124,10 @@ def test_navigation_1on1_from_entity_proxy(service):
     """Check getting entity via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Cars('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'Name': 'Hadraplan',
@@ -1121,7 +1137,7 @@ def test_navigation_1on1_from_entity_proxy(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')/IDPic",
+        f"{service.url}/{path}/IDPic",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'CarName': 'Hadraplan',
@@ -1153,10 +1169,10 @@ def test_navigation_1on1_get_value_without_proxy(service):
     """Check getting $value via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Cars('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')/IDPic/$value/",
+        f"{service.url}/{path}/IDPic/$value/",
         headers={'Content-type': 'application/jpeg'},
         body='DEADBEAF',
         status=200)
@@ -1175,10 +1191,10 @@ def test_navigation_when_nes_in_another_ns(service):
    """
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Customers('Mammon')/Orders")
     responses.add(
         responses.GET,
-        f"{service.url}/Customers('Mammon')/Orders",
+        f"{service.url}/{path}",
         json={'d': {'results' : [{
             'Number': '456',
             'Owner': 'Mammon',
@@ -1202,10 +1218,10 @@ def test_entity_get_value_1on1_with_proxy(service):
     """Check getting $value"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Cars('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/Cars('Hadraplan')/IDPic",
+        f"{service.url}/{path}/IDPic",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'CarName': 'Hadraplan',
@@ -1233,10 +1249,10 @@ def test_entity_get_value_without_proxy(service):
     """Check getting $value without proxy"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("CarIDPics('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/CarIDPics('Hadraplan')/$value/",
+        f"{service.url}/{path}/$value/",
         headers={'Content-type': 'application/jpeg'},
         body='DEADBEAF',
         status=200)
@@ -1253,10 +1269,10 @@ def test_entity_get_value_with_proxy(service):
     """Check getting $value with proxy"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("CarIDPics('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/CarIDPics('Hadraplan')",
+        f"{service.url}/{path}",
         headers={'Content-type': 'application/json'},
         json = { 'd': {
             'CarName': 'Hadraplan',
@@ -1284,10 +1300,10 @@ def test_entity_get_value_without_proxy_error(service):
     """Check getting $value without proxy"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("CarIDPics('Hadraplan')")
     responses.add(
         responses.GET,
-        f"{service.url}/CarIDPics('Hadraplan')/$value/",
+        f"{service.url}/{path}/$value/",
         headers={'Content-type': 'text/plain'},
         body='Internal Server Error',
         status=500)
@@ -1334,10 +1350,10 @@ def test_navigation_from_entity_multi(service):
     """Get entities via navigation property from entity proxy"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)",
+        f"{service.url}/{path}",
         json={'d': {
             'ID': 23,
             'NameFirst': 'Rob',
@@ -1347,7 +1363,7 @@ def test_navigation_from_entity_multi(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses",
+        f"{service.url}/{path}/Addresses",
         json={'d': {
             'results': [
                 {
@@ -1394,10 +1410,10 @@ def test_navigation_from_entity(service):
     """Check getting entity via navigation property from entity proxy"""
 
     # pylint: disable=redefined-outer-name
-
+    path_employes = quote("Employees(23)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)",
+        f"{service.url}/{path_employes}",
         json={'d': {
             'ID': 23,
             'NameFirst': 'Rob',
@@ -1405,9 +1421,10 @@ def test_navigation_from_entity(service):
         }},
         status=200)
 
+    path_employes_adresses = quote("Employees(23)/Addresses(456)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses(456)",
+        f"{service.url}/{path_employes_adresses}",
         json={'d': {
             'ID': 456,
             'Street': 'Baker Street',
@@ -1437,10 +1454,10 @@ def test_get_entity(service):
     """Check getting entities"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)",
+        f"{service.url}/{path}",
         json={'d': {
             'ID': 23,
             'NameFirst': 'Rob',
@@ -1457,16 +1474,42 @@ def test_get_entity(service):
     assert emp.NameFirst == 'Rob'
     assert emp.NameLast == 'Ickes'
 
+@responses.activate
+def test_get_entity_not_encoded_path(service):
+    """Check getting entities"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')",
+        json={'d': {
+            'Sensor': 'sensor1',
+            'Date': '/Date(1514138400000)/',
+            'Value': 34.0
+        }},
+        status=200)
+
+    request = service.entity_sets.TemperatureMeasurements.get_entity(Sensor='sensor1', Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc), encode_path=False)
+
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+    assert request.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+
+    emp = request.execute()
+    assert emp.Sensor == 'sensor1'
+    assert emp.Date == datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc)
+    assert emp.Value == 34.0
+
 
 @responses.activate
 def test_get_entity_expanded(service):
     """Check getting entities with expanded navigation properties"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)",
+        f"{service.url}/{path}",
         json={'d': {
             'ID': 23,
             'NameFirst': 'Rob',
@@ -1563,6 +1606,77 @@ def test_batch_request(service):
     assert len(chset_response) == 1
     assert chset_response[0] is None   # response to update request is None
 
+@responses.activate
+def test_batch_request_not_encoded_path(service):
+    """Batch requests"""
+
+    # pylint: disable=redefined-outer-name
+
+    response_body = (b'--batch_r1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 200 OK\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b'{"d": {"ID": 23, "NameFirst": "Rob", "NameLast": "Ickes", "Address": { "ID": 456, "Street": "Baker Street", "City": "London"} }}'
+                     b'\n'
+                     b'--batch_r1\n'
+                     b'Content-Type: multipart/mixed; boundary=changeset_1\n'
+                     b'\n'
+                     b'--changeset_1\n'
+                     b'Content-Type: application/http\n'
+                     b'Content-Transfer-Encoding: binary\n'
+                     b'\n'
+                     b'HTTP/1.1 204 Updated\n'
+                     b'Content-Type: application/json\n'
+                     b'\n'
+                     b"{b'd': {'Sensor': 'Sensor-address', 'Date': datetime\'2017-12-24T18:00\', 'Value': '34.0d'}}"
+                     b'\n'
+                     b'--changeset_1--\n'
+                     b'\n'
+                     b'--batch_r1--')
+
+    responses.add(
+        responses.POST,
+        f'{URL_ROOT}/$batch',
+        body=response_body,
+        content_type='multipart/mixed; boundary=batch_r1',
+        status=202)
+
+    batch = service.create_batch('batch1')
+
+    chset = service.create_changeset('chset1')
+
+    employee_request = service.entity_sets.Employees.get_entity(23, encode_path=False)
+
+    assert employee_request.get_path() == 'Employees(23)'
+
+    temp_request = service.entity_sets.TemperatureMeasurements.update_entity(
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc),
+        encode_path=True).set(Value=34.0)
+
+    batch.add_request(employee_request)
+
+    chset.add_request(temp_request)
+
+    assert f'{temp_request.get_method()} TemperatureMeasurements%28Sensor%3D%27sensor1%27%2CDate%3Ddatetime%272017-12-24T18%3A00%3A00%27%29' in chset.get_body()
+
+    batch.add_request(chset)
+    batch.add_request(temp_request)
+
+    response = batch.execute()
+
+    assert len(response) == 2
+
+    employee_response = response[0]
+    assert isinstance(employee_response, pyodata.v2.service.EntityProxy)
+
+    chset_response = response[1]
+    assert isinstance(chset_response, list)
+    assert len(chset_response) == 1
+    assert chset_response[0] is None   # response to update request is None
 
 @responses.activate
 def test_enormous_batch_request(service):
@@ -1646,7 +1760,7 @@ def test_get_entity_with_entity_key(service):
         Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key)
-    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+    assert query.get_path() == quote("TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')")
 
 
 def test_get_entity_with_entity_key_and_other_params(service):
@@ -1660,7 +1774,7 @@ def test_get_entity_with_entity_key_and_other_params(service):
         Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
 
     query = service.entity_sets.TemperatureMeasurements.get_entity(key=key, Foo='Bar')
-    assert query.get_path() == "TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')"
+    assert query.get_path() == quote("TemperatureMeasurements(Sensor='sensor1',Date=datetime'2017-12-24T18:00:00')")
 
 
 def test_entity_proxy_equals(service):
@@ -1876,10 +1990,10 @@ def test_navigation_inlinecount(service):
     """Check getting entities with $inlinecount via navigation property"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses?$inlinecount=allpages",
+        f"{service.url}/{path}?$inlinecount=allpages",
         json={'d': {
             '__count': 3,
             'results': [
@@ -1913,10 +2027,10 @@ def test_inlinecount_with_filter(service):
     """Check getting entities with $inlinecount and $filter"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses?$inlinecount=allpages&%24filter=City%20eq%20%27London%27",
+        f"{service.url}/{path}?$inlinecount=allpages&%24filter=City%20eq%20%27London%27",
         json={'d': {
             '__count': 2,
             'results': [
@@ -2024,9 +2138,10 @@ def test_navigation_count(service):
 
     # pylint: disable=redefined-outer-name
 
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses/$count",
+        f"{service.url}/{path}/$count",
         json=458,
         status=200)
 
@@ -2043,10 +2158,10 @@ def test_count_with_filter(service):
     """Check getting $count with $filter"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses/$count?%24filter=City%20eq%20%27London%27",
+        f"{service.url}/{path}/$count?%24filter=City%20eq%20%27London%27",
         json=3,
         status=200)
 
@@ -2063,10 +2178,10 @@ def test_count_with_chainable_filter(service):
     """Check getting $count with $filter and using new filter syntax"""
 
     # pylint: disable=redefined-outer-name
-
+    path = quote("Employees(23)/Addresses")
     responses.add(
         responses.GET,
-        f"{service.url}/Employees(23)/Addresses/$count?%24filter=City%20eq%20%27London%27",
+        f"{service.url}/{path}/$count?%24filter=City%20eq%20%27London%27",
         json=3,
         status=200)
 
@@ -2696,9 +2811,10 @@ def test_odata_http_response():
 def test_custom_with_get_entity(service):
     """ Test that `custom` can be called after `get_entity`"""
 
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')?foo=bar",
+        f"{service.url}/{path}?foo=bar",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
@@ -2710,16 +2826,17 @@ def test_custom_with_get_entity(service):
 def test_custom_with_get_entity_url_params(service):
     """ Test that `custom` after `get_entity` is setting up correctly URL parts """
 
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')?foo=bar",
+        f"{service.url}/{path}?foo=bar",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
 
     oDataHttpRequest = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar")
     assert oDataHttpRequest.get_query_params() == {'foo': 'bar'}
-    assert oDataHttpRequest.get_path() == "MasterEntities('12345')"
+    assert oDataHttpRequest.get_path() == quote("MasterEntities('12345')")
 
     entity = oDataHttpRequest.execute()
     assert entity.Key == '12345'
@@ -2728,16 +2845,17 @@ def test_custom_with_get_entity_url_params(service):
 def test_multiple_custom_with_get_entity_url_params(service):
     """ Test that `custom` after `get_entity` called several times is setting up correctly URL parts """
 
+    path = quote("MasterEntities('12345')")
     responses.add(
         responses.GET,
-        f"{service.url}/MasterEntities('12345')?foo=bar&$fizz=buzz",
+        f"{service.url}/{path}?foo=bar&$fizz=buzz",
         headers={'Content-type': 'application/json'},
         json={'d': {'Key': '12345'}},
         status=200)
 
     oDataHttpRequest = service.entity_sets.MasterEntities.get_entity('12345').custom("foo", "bar").custom("$fizz", "buzz")
     assert oDataHttpRequest.get_query_params() == {'foo': 'bar', '$fizz': 'buzz'}
-    assert oDataHttpRequest.get_path() == "MasterEntities('12345')"
+    assert oDataHttpRequest.get_path() == quote("MasterEntities('12345')")
 
     entity = oDataHttpRequest.execute()
     assert entity.Key == '12345'
