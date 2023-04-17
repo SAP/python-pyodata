@@ -72,6 +72,3 @@ jobs:
     - name: Test
       run: |
         make test report-coverage
-
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v1
