@@ -464,27 +464,6 @@ def test_function_import_without_return_type_wrong_code(mock_warning, service):
 
 
 @responses.activate
-@patch('logging.Logger.warning')
-def test_function_import_without_return_type_wrong_code(mock_warning, service):
-    """A simple function call without return type should not return any data"""
-
-    # pylint: disable=redefined-outer-name
-
-    responses.add(
-        responses.GET,
-        f"{service.url}/refresh",
-        body=b'unexpected',
-        status=204)
-
-    result = service.functions.refresh.execute()
-    assert result is None
-
-    mock_warning.assert_called_with(
-        'The No Return Function Import %s has returned content:\n%s',
-        'refresh', 'unexpected')
-
-
-@responses.activate
 def test_function_import_http_redirect(service):
     """Function Imports do not support Redirects"""
 
@@ -618,11 +597,6 @@ def test_update_entity(service):
     responses.add(
         responses.PATCH,
         f"{service.url}/{path}",
-        json={'d': {
-            'Sensor': 'Sensor-address',
-            'Date': "/Date(1714138400000)/",
-            'Value': '34.0d'
-        }},
         status=204)
 
     request = service.entity_sets.TemperatureMeasurements.update_entity(
