@@ -164,7 +164,7 @@ you can disable the encoding with the variable encode_path by setting it to Fals
 
     employee = northwind.entity_sets.Employees.get_entity(1, encode_path=False).execute()
 
-(Experimental) Query server-side paginations using the __next field
+Query server-side paginations using the __next field
 -------------------------------------------------------------------
 Response may contains ony partial listings of the Collection. In this case, "__next" name/value
 pair is included, where the value is a URI which identifies the next partial set of entities.
