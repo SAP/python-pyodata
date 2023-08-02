@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 - Service: Encode paths with entity keys with option to disable it - linda-sap
+- Service: (No longer Experimental) Support for server-side pagination (partial listings trough _next field) - Reto Schneider
 
 ## [1.10.1]
 
