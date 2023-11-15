@@ -1476,7 +1476,7 @@ def test_get_entity_not_encoded_path(service):
 
 
 @responses.activate
-def test_get_entity_expanded(service):
+def test_get_entity_expanded_with_results(service):
     """Check getting entities with expanded navigation properties"""
 
     # pylint: disable=redefined-outer-name
@@ -1513,6 +1513,42 @@ def test_get_entity_expanded(service):
     assert emp.Addresses[0].Street == 'Baker Street'
     assert emp.Addresses[0].City == 'London'
 
+@responses.activate
+def test_get_entity_expanded(service):
+    """Check getting entities with expanded navigation properties"""
+
+    # pylint: disable=redefined-outer-name
+    path = quote("Employees(23)")
+    responses.add(
+        responses.GET,
+        f"{service.url}/{path}",
+        json={'d': {
+            'ID': 23,
+            'NameFirst': 'Rob',
+            'NameLast': 'Ickes',
+            'Addresses': [
+                    {
+                        'ID': 456,
+                        'Street': 'Baker Street',
+                        'City': 'London'
+                    }
+                ]
+            
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entity(23)
+    assert isinstance(request, pyodata.v2.service.EntityGetRequest)
+
+    emp = request.expand('Addresses').execute()
+
+    assert emp.ID == 23
+    assert emp.NameFirst == 'Rob'
+    assert emp.NameLast == 'Ickes'
+
+    assert emp.Addresses[0].ID == 456
+    assert emp.Addresses[0].Street == 'Baker Street'
+    assert emp.Addresses[0].City == 'London'
 
 @responses.activate
 def test_batch_request(service):

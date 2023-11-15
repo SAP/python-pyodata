@@ -873,9 +873,11 @@ class EntityProxy:
                         # if there are no entities available, received data consists of
                         # metadata properties only.
                         if 'results' in proprties[prop.name]:
-
                             # available entities are serialized in results array
                             for entity in proprties[prop.name]['results']:
+                                self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
+                        else:
+                            for entity in proprties[prop.name]:
                                 self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
                     else:
                         raise PyODataException('Unknown multiplicity {0} of association role {1}'
