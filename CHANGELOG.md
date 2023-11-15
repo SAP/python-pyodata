@@ -5,8 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-- Service: Encode paths with entity keys with option to disable it - linda-sap
+- Service: Encode paths with entity keys with option to disable it - Linda Jahn
 - Service: (No longer Experimental) Support for server-side pagination (partial listings trough _next field) - Reto Schneider
+- Model: Fix adding expanded entities to EntityProxy - Manuel Seeger
 
 ## [1.10.1]
 
