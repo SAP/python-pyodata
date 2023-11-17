@@ -5,9 +5,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+
+
+## [1.11.0]
+
+### Added
 - Service: Encode paths with entity keys with option to disable it - Linda Jahn
-- Service: (No longer Experimental) Support for server-side pagination (partial listings trough _next field) - Reto Schneider
+
+### Fixed
 - Model: Fix adding expanded entities to EntityProxy - Manuel Seeger
+
+### Stable, not Experimental
+- Service: Support for server-side pagination (partial listings trough _next field) - Reto Schneider
 
 ## [1.10.1]
 
@@ -173,7 +183,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.10.0...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.11.0...HEAD
+[1.11.0]: https://github.com/SAP/python-pyodata/compare/1.10.1...1.11.0
+[1.10.1]: https://github.com/SAP/python-pyodata/compare/1.10.0...1.10.1
 [1.10.0]: https://github.com/SAP/python-pyodata/compare/1.9.2...1.10.0
 [1.9.2]: https://github.com/SAP/python-pyodata/compare/1.9.1...1.9.2
 [1.9.1]: https://github.com/SAP/python-pyodata/compare/1.9.0...1.9.1
