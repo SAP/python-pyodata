@@ -883,6 +883,38 @@ def test_get_entities(service):
     assert empls[0].NameFirst == 'Yennefer'
     assert empls[0].NameLast == 'De Vengerberg'
 
+@responses.activate
+def test_get_entities_with_deferred_nav_prop(service):
+    """Get entities but don't include deferred navigation property"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees",
+        json={'d': {
+            'results': [
+                {
+                    'ID': 669,
+                    'NameFirst': 'Yennefer',
+                    'NameLast': 'De Vengerberg',        
+                    'Addresses': {
+                        '__deferred': {'uri': "https://remote.url/Employees(23)/Addresses"}
+                    }
+                }
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities()
+
+    assert isinstance(request, pyodata.v2.service.QueryRequest)
+
+    empls = request.execute()
+    assert empls[0].ID == 669
+    assert empls[0].NameFirst == 'Yennefer'
+    assert empls[0].NameLast == 'De Vengerberg'
+    assert len(empls[0].Addresses) == 0
 
 @responses.activate
 def test_get_null_value_from_null_preserving_service(service_retain_null):
@@ -1533,7 +1565,6 @@ def test_get_entity_expanded(service):
                         'City': 'London'
                     }
                 ]
-            
         }},
         status=200)
 
@@ -1549,6 +1580,7 @@ def test_get_entity_expanded(service):
     assert emp.Addresses[0].ID == 456
     assert emp.Addresses[0].Street == 'Baker Street'
     assert emp.Addresses[0].City == 'London'
+    
 
 @responses.activate
 def test_batch_request(service):

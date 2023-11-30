@@ -876,7 +876,7 @@ class EntityProxy:
                             # available entities are serialized in results array
                             for entity in proprties[prop.name]['results']:
                                 self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
-                        else:
+                        elif isinstance(proprties[prop.name], list):
                             for entity in proprties[prop.name]:
                                 self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
                     else:
