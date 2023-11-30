@@ -885,7 +885,7 @@ def test_get_entities(service):
 
 @responses.activate
 def test_get_entities_with_deferred_nav_prop(service):
-    """Get entities"""
+    """Get entities but don't include deferred navigation property"""
 
     # pylint: disable=redefined-outer-name
 
