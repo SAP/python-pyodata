@@ -21,6 +21,22 @@ Basic initialization which is going to work for everybody:
 
     northwind = pyodata.Client(SERVICE_URL, requests.Session())
 
+Get the service for async libraries
+-----------------------------------
+
+Initialization of the session instance is dependent on particular library,
+but also must have API compatible Session_ from Requests_.
+
+.. code-block:: python
+
+    import httpx
+    import aiohttp
+
+    SERVICE_URL = 'http://services.odata.org/V2/Northwind/Northwind.svc/'
+    
+    service_httpx   = await pyodata.Client.build_async_client(SERVICE_URL, httpx)
+    service_aiohttp = await pyodata.Client.build_async_client(SERVICE_URL, aiohttp.ClientSession())
+
 Get the service proxy client for an OData service requiring sap-client parameter
 --------------------------------------------------------------------------------
 
