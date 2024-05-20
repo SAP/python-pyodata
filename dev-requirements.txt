@@ -6,8 +6,8 @@ httpx>=0.23.0
 respx>=0.19.2
 setuptools>=38.2.4
 setuptools-scm>=1.15.6
-pylint==2.8.3
+pylint==3.2.2
 pytest-cov>=3.0.0
-flake8==3.8.4
-bandit==1.7.0
-sphinx
+flake8==7.0.0
+bandit==1.7.8
+sphinx==7.3.7
