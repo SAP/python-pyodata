@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-
+### Fixed
+- Escape slashes in entity keys when they appear in the URL path
 
 ### Removed
 - Python 3.7 (long after its EOL) is no longer supported by pyodata. Python 3.8 is now minimal supported version. - Petr Hanak
