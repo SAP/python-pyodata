@@ -243,6 +243,22 @@ def test_entity_url(service):
     entity = service.entity_sets.MasterEntities.get_entity('12345').execute()
     assert entity.url == URL_ROOT + "/MasterEntities('12345')"
 
+@responses.activate
+def test_entity_url_with_slashes(service):
+    """Test correct build of entity url"""
+
+    # pylint: disable=redefined-outer-name
+    path = quote("MasterEntities('FOO/BAR')", safe='')
+    responses.add(
+        responses.GET,
+        f"{service.url}/{path}",
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': 'FOO/BAR'}},
+        status=200)
+
+    entity = service.entity_sets.MasterEntities.get_entity('FOO/BAR').execute()
+    assert entity.url == URL_ROOT + "/MasterEntities('FOO/BAR')"
+
 
 @responses.activate
 def test_entity_entity_set_name(service):
@@ -630,6 +646,7 @@ def test_delete_entity(service):
 
     assert isinstance(request, pyodata.v2.service.EntityDeleteRequest)
     assert request.execute() is None
+
 
 @responses.activate
 def test_delete_entity_not_encoded_path(service):
