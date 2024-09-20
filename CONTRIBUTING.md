@@ -24,7 +24,7 @@
   already a test going through the statements you have modified, you are probably
   wrong because you either added something new and it should be tested or you fixed
   a bug which was not detected by the test and hence the test must be enhanced
-  (ideally, you fist fix the test to reproduce the bug and then you fix the bug).
+  (ideally, you first fix the test to reproduce the bug and then you fix the bug).
 
 * Link commits to issues via referencing issue numbers: https://help.github.com/en/articles/closing-issues-using-keywords
 
