@@ -405,7 +405,7 @@ class EntityGetRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
+            return quote(self._entity_set_proxy.last_segment) + quote(self._entity_key.to_key_string(), safe='')
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
@@ -563,7 +563,7 @@ class EntityDeleteRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return quote(self._entity_set.name) + quote(self._entity_key.to_key_string(), safe='')
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_encode_path(self):
@@ -607,7 +607,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return quote(self._entity_set.name) + quote(self._entity_key.to_key_string(), safe='')
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
