@@ -2541,12 +2541,32 @@ def test_count_with_chainable_filter_multiple(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?%24filter=ID%20eq%2023%20and%20NickName%20eq%20%27Steve%27",
+        f"{service.url}/Employees/$count?%24filter=%28ID%20eq%2023%29%20and%20%28NickName%20eq%20%27Steve%27%29",
         json=3,
         status=200)
 
     employees = service.entity_sets.Employees.get_entities()
     request = employees.filter(ID=23, NickName="Steve").count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_chaining_fix(service):
+    from pyodata.v2.service import FilterExpression as Q
+
+    url = f"{service.url}/Employees?%24filter=%28startswith%28NameFirst%2C+%27Steve%27%29+eq+true%29+and+%28ID+eq+23+or+ID+eq+25+or+ID+eq+28%29"
+    
+    responses.add(
+        responses.GET,
+        url,
+        json=3,
+        status=200)
+    
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(Q(NameFirst__startswith="Steve"), Q(ID__in=[23, 25, 28]))
 
     assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
 
@@ -2561,7 +2581,7 @@ def test_count_with_chainable_filter_or(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?$filter=%28ID%20eq%2023%20and%20NickName%20eq%20%27Steve%27%29%20or%20%28ID%20eq%2025%20and%20NickName%20eq%20%27Tim%27%29",
+        f"{service.url}/Employees/$count?$filter=%28%28ID%20eq%2023%29%20and%20%28NickName%20eq%20%27Steve%27%29%29%20or%20%28%28ID%20eq%2025%29%20and%20%28NickName%20eq%20%27Tim%27%29%29",
         json=3,
         status=200)
 
@@ -2580,7 +2600,7 @@ def test_count_with_multiple_chainable_filters_startswith(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?$filter=%28ID%20eq%2023%20and%20startswith%28NickName%2C%20%27Ste%27%29%20eq%20true%29%20or%20%28ID%20eq%2025%20and%20NickName%20eq%20%27Tim%27%29",
+        f"{service.url}/Employees/$count?$filter=%28%28ID%20eq%2023%29%20and%20%28startswith%28NickName%2C%20%27Ste%27%29%20eq%20true%29%29%20or%20%28%28ID%20eq%2025%29%20and%20%28NickName%20eq%20%27Tim%27%29%29",
         json=3,
         status=200)
 
