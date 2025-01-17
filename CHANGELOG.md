@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ### Removed
-- Python 3.7 (long after its EOL) is no longer supported by pyodata. Python 3.8 is now minimal supported version. - Petr Hanak
+- Python 3.8 and Python 3.7 are no longer supported by pyodata. Python 3.9 is now minimal supported version. - Petr Hanak
 
 ## [1.11.1]
 
