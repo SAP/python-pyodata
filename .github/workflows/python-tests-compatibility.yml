@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
         lxml-version: ["4.2.6", "4.3.5", "4.4.3", "4.5.2", "4.6.5", "4.7.1", "4.8.0", "4.9.1", "4.9.4", "5.0.1", "5.1.0"]
         exclude:
           - python-version: 3.9
