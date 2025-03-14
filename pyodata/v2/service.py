@@ -43,7 +43,7 @@ def encode_multipart(boundary, http_requests):
         lines.append(f'--{boundary}')
 
         if not isinstance(req, MultipartRequest):
-            lines.extend(('Content-Type: application/http ', 'Content-Transfer-Encoding:binary'))
+            lines.extend(('Content-Type: application/http', 'Content-Transfer-Encoding:binary'))
 
             lines.append('')
 
