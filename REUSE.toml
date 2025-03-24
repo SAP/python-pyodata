@@ -1,0 +1,10 @@
+version = 1
+SPDX-PackageName = "python-pyodata"
+SPDX-PackageSupplier = "Petr Hanak <petr.hanak@sap.com>, Jakub Filak <jakub.filak@sap.com>"
+SPDX-PackageDownloadLocation = "https://github.com/SAP/python-pyodata"
+
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2021 SAP SE or an SAP affiliate company and task-explorer contributors"
+SPDX-License-Identifier = "Apache-2.0"
