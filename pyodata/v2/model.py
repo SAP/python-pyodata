@@ -2699,7 +2699,7 @@ SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly': ValueHelperParameter.Direction.DisplayOnly,
     'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly,
     'com.sap.vocabularies.Common.v1.ValueListParameterConstant': ValueHelperParameter.Direction.Constant,
-    'com.sap.vocabularies.Common.v1.ValueListParameterConstant': ValueHelperParameter.Direction.Constants
+    'com.sap.vocabularies.Common.v1.ValueListParameterConstants': ValueHelperParameter.Direction.Constants
 }
 
 
