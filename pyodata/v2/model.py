@@ -2491,7 +2491,7 @@ class ValueHelper(Annotation):
 
 
 class ValueHelperParameter:
-    Direction = Enum('Direction', 'In InOut Out DisplayOnly FilterOnly')
+    Direction = Enum('Direction', 'In InOut Out DisplayOnly FilterOnly Constant Constants')
 
     def __init__(self, direction, local_property_name, list_property_name):
         super(ValueHelperParameter, self).__init__()
@@ -2697,7 +2697,9 @@ SAP_VALUE_HELPER_DIRECTIONS = {
     'com.sap.vocabularies.Common.v1.ValueListParameterInOut': ValueHelperParameter.Direction.InOut,
     'com.sap.vocabularies.Common.v1.ValueListParameterOut': ValueHelperParameter.Direction.Out,
     'com.sap.vocabularies.Common.v1.ValueListParameterDisplayOnly': ValueHelperParameter.Direction.DisplayOnly,
-    'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly
+    'com.sap.vocabularies.Common.v1.ValueListParameterFilterOnly': ValueHelperParameter.Direction.FilterOnly,
+    'com.sap.vocabularies.Common.v1.ValueListParameterConstant': ValueHelperParameter.Direction.Constant,
+    'com.sap.vocabularies.Common.v1.ValueListParameterConstants': ValueHelperParameter.Direction.Constants
 }
 
 
