@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- service: fix space in application/http for batch - bpreissler
+- model: adding two missing possibilities for ValueListParameter - Jon Friesen
 
 ### Removed
 - Python 3.8 and Python 3.7 are no longer supported by pyodata. Python 3.9 is now minimal supported version. - Petr Hanak
