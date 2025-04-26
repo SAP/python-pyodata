@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.11.2]
+
 ### Fixed
 - service: fix space in application/http for batch - bpreissler
 - model: adding two missing possibilities for ValueListParameter - Jon Friesen
@@ -194,6 +196,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## 1.1.1 - First PIP package release
 
 [Unreleased]: https://github.com/SAP/python-pyodata/compare/1.11.1...HEAD
+[1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.1...1.11.2
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.0...1.11.1
 [1.11.0]: https://github.com/SAP/python-pyodata/compare/1.10.1...1.11.0
 [1.10.1]: https://github.com/SAP/python-pyodata/compare/1.10.0...1.10.1
