@@ -1268,7 +1268,14 @@ class GetEntitySetFilterChainable:
 
     # pylint: disable=no-self-use
     def _combine_expressions(self, expressions):
-        return ' and '.join(expressions)
+        if len(expressions) > 1:
+            combined = ""
+            for counter, expr in enumerate(expressions):
+                combined += f"{' and ' if counter > 0 else ''}({expr})"
+
+            return combined
+
+        return expressions[0]
 
     # pylint: disable=too-many-return-statements, too-many-branches
     def _build_expression(self, field_name, operator, value):
