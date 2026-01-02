@@ -18,21 +18,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        lxml-version: ["4.2.6", "4.3.5", "4.4.3", "4.5.2", "4.6.5", "4.7.1", "4.8.0", "4.9.1", "4.9.4", "5.0.1", "5.1.1", "5.2.2", "5.3.2", "5.4.0", "6.0.2"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        lxml-version: ["4.3.5", "4.4.3", "4.5.2", "4.6.5", "4.7.1", "4.8.0", "4.9.4", "5.0.1", "5.1.1", "5.2.2", "5.3.2", "5.4.0", "6.0.2"]
         exclude:
-          - python-version: 3.9
-            lxml-version: 4.2.6
-          - python-version: 3.10
-            lxml-version: 4.2.6
           - python-version: 3.10
             lxml-version: 4.3.5
           - python-version: 3.10
             lxml-version: 4.4.3
           - python-version: 3.10
             lxml-version: 4.5.2
-          - python-version: 3.11
-            lxml-version: 4.2.6
           - python-version: 3.11
             lxml-version: 4.3.5
           - python-version: 3.11
@@ -45,8 +39,6 @@ jobs:
             lxml-version: 4.7.1  
           - python-version: 3.11
             lxml-version: 4.8.0 
-          - python-version: 3.12
-            lxml-version: 4.2.6
           - python-version: 3.12
             lxml-version: 4.3.5           
           - python-version: 3.12
@@ -62,8 +54,39 @@ jobs:
           - python-version: 3.12
             lxml-version: 4.8.0  
           - python-version: 3.12
-            lxml-version: 4.9.1
-
+            lxml-version: 4.9.4
+          - python-version: 3.13
+            lxml-version: 4.3.5           
+          - python-version: 3.13
+            lxml-version: 4.4.3
+          - python-version: 3.13
+            lxml-version: 4.4.3          
+          - python-version: 3.13
+            lxml-version: 4.5.2
+          - python-version: 3.13
+            lxml-version: 4.6.5
+          - python-version: 3.13
+            lxml-version: 4.7.1  
+          - python-version: 3.13
+            lxml-version: 4.8.0  
+          - python-version: 3.13
+            lxml-version: 4.9.4
+          - python-version: 3.14
+            lxml-version: 4.3.5           
+          - python-version: 3.14
+            lxml-version: 4.4.3
+          - python-version: 3.14
+            lxml-version: 4.4.3          
+          - python-version: 3.14
+            lxml-version: 4.5.2
+          - python-version: 3.14
+            lxml-version: 4.6.5
+          - python-version: 3.14
+            lxml-version: 4.7.1  
+          - python-version: 3.14
+            lxml-version: 4.8.0  
+          - python-version: 3.14
+            lxml-version: 4.9.4
 
     steps:
     - uses: actions/checkout@v2
