@@ -587,6 +587,40 @@ def test_function_import_entity(service):
     assert result.Sensor == 'Sensor-address'
     assert result.Value == 456.8
 
+@responses.activate
+def test_function_import_collection(service):
+    """Function call with collection return type"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements',
+        headers={'Content-type': 'application/json'},
+        json={'d': {'results' : [{
+                'Sensor': 'sensor2',
+                'Date': "/Date(1776417069000)/",
+                'Value': '29.8d'
+                }, {
+                'Sensor': 'sensor4',
+                'Date': "/Date(1776417578000)/",
+                'Value': '30.2d'
+            }]}},
+        status=200)
+
+    result = service.functions.get_best_measurements.execute()
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+    assert isinstance(result[0], pyodata.v2.service.EntityProxy)
+    assert result[0].Sensor == 'sensor2'
+    assert result[0].Date == datetime.datetime(2026, 4, 17, 9, 11, 9, tzinfo=datetime.timezone.utc)
+    assert result[0].Value == 29.8
+
+    assert isinstance(result[1], pyodata.v2.service.EntityProxy)
+    assert result[1].Sensor == 'sensor4'
+    assert result[1].Date == datetime.datetime(2026, 4, 17, 9, 19, 38, tzinfo=datetime.timezone.utc)
+    assert result[1].Value == 30.2
 
 @responses.activate
 def test_update_entity(service):

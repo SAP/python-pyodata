@@ -1712,6 +1712,15 @@ class FunctionContainer:
                 entity_set = self._service.schema.entity_set(fimport.entity_set_name)
                 return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
 
+            # 1.b alternatively, if return type is a Collection, return a list of appropriate entity proxy
+            if isinstance(fimport.return_type, model.Collection):
+                entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+                collection_item_type = fimport.return_type.item_type
+                collection = []
+                for entity in response_data['results']:
+                    collection.append(EntityProxy(self._service, entity_set, collection_item_type, entity))
+                return collection
+
             # 2. return raw data for all other return types (primitives, complex types encoded in dicts, etc.)
             return response_data
 
