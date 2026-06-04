@@ -1714,9 +1714,16 @@ class FunctionContainer:
 
             # 1.b alternatively, if return type is a Collection, return a list of appropriate entity proxy
             if isinstance(fimport.return_type, model.Collection):
+                total_count = None
+                next_url = None
+                if '__count' in response_data:
+                    total_count = int(response_data['__count'])
+                if '__next' in response_data:
+                    next_url = response_data['__next']
+                collection = ListWithTotalCount(total_count, next_url)
+
                 entity_set = self._service.schema.entity_set(fimport.entity_set_name)
                 collection_item_type = fimport.return_type.item_type
-                collection = []
                 for entity in response_data['results']:
                     collection.append(EntityProxy(self._service, entity_set, collection_item_type, entity))
                 return collection
