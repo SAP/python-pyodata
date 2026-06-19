@@ -384,7 +384,7 @@
                                 m:HttpMethod="GET"/>
 
                 <FunctionImport Name="get_best_measurements" ReturnType="Collection(EXAMPLE_SRV.TemperatureMeasurement)"
-                                EntitySet="EXAMPLE_SRV.TemperatureMeasurements" m:HttpMethod="GET"/>
+                                EntitySet="TemperatureMeasurements" m:HttpMethod="GET"/>
 
                 <FunctionImport Name="sum" ReturnType="Edm.Int32" m:HttpMethod="GET">
                     <Parameter Name="A" Type="Edm.Int32" Mode="In"/>

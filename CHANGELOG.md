@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- service: let FunctionRequests return a list of EntityProxies instead of the raw json, when the `ReturnType` is a Collection. - Emil B.
+
 ## [1.11.2]
 
 ### Fixed

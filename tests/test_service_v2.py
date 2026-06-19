@@ -587,6 +587,88 @@ def test_function_import_entity(service):
     assert result.Sensor == 'Sensor-address'
     assert result.Value == 456.8
 
+@responses.activate
+def test_function_import_collection(service):
+    """Function call with collection return type"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements',
+        headers={'Content-type': 'application/json'},
+        json={'d': {'results' : [{
+                'Sensor': 'sensor2',
+                'Date': "/Date(1776417069000)/",
+                'Value': '29.8d'
+                }, {
+                'Sensor': 'sensor4',
+                'Date': "/Date(1776417578000)/",
+                'Value': '30.2d'
+            }],
+        }},
+        status=200)
+
+    result = service.functions.get_best_measurements.execute()
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+    assert isinstance(result[0], pyodata.v2.service.EntityProxy)
+    assert result[0].Sensor == 'sensor2'
+    assert result[0].Date == datetime.datetime(2026, 4, 17, 9, 11, 9, tzinfo=datetime.timezone.utc)
+    assert result[0].Value == 29.8
+
+    assert isinstance(result[1], pyodata.v2.service.EntityProxy)
+    assert result[1].Sensor == 'sensor4'
+    assert result[1].Date == datetime.datetime(2026, 4, 17, 9, 19, 38, tzinfo=datetime.timezone.utc)
+    assert result[1].Value == 30.2
+
+
+@responses.activate
+def test_function_import_collection_with_pagination_metadata(service):
+    """Function call with collection return type including pagination metadata
+
+    This test demonstrates that both __next and __count metadata should be preserved
+    when a FunctionImport returns a partial Collection with inline count.
+    Per OData v2 spec, this metadata is part of the Collection response format.
+    """
+
+    # pylint: disable=redefined-outer-name
+
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements?$inlinecount=allpages',
+        headers={'Content-type': 'application/json'},
+        json={'d': {'results' : [{
+                'Sensor': 'sensor2',
+                'Date': "/Date(1776417069000)/",
+                'Value': '29.8d'
+                }, {
+                'Sensor': 'sensor4',
+                'Date': "/Date(1776417578000)/",
+                'Value': '30.2d'
+            }],
+            '__count': '50',
+            '__next': f"{service.url}/get_best_measurements?$skiptoken=2"
+        }},
+        status=200)
+
+
+    result = service.functions.get_best_measurements.count(inline=True).execute()
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], pyodata.v2.service.EntityProxy)
+    assert isinstance(result[1], pyodata.v2.service.EntityProxy)
+
+    assert hasattr(result, 'total_count'), \
+        "FunctionImport Collection should preserve __count like get_entities()"
+    assert result.total_count == 50
+
+    assert hasattr(result, 'next_url'), \
+        "FunctionImport Collection should preserve __next like get_entities()"
+    assert result.next_url == f"{service.url}/get_best_measurements?$skiptoken=2"
 
 @responses.activate
 def test_update_entity(service):
