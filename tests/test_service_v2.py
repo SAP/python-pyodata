@@ -635,7 +635,6 @@ def test_function_import_collection_with_pagination_metadata(service):
 
     # pylint: disable=redefined-outer-name
 
-
     responses.add(
         responses.GET,
         f'{service.url}/get_best_measurements?$inlinecount=allpages',
@@ -669,6 +668,61 @@ def test_function_import_collection_with_pagination_metadata(service):
     assert hasattr(result, 'next_url'), \
         "FunctionImport Collection should preserve __next like get_entities()"
     assert result.next_url == f"{service.url}/get_best_measurements?$skiptoken=2"
+
+
+@responses.activate
+def test_function_import_collection_empty(service):
+    """Collection FunctionImport with zero results returns an empty ListWithTotalCount"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements',
+        headers={'Content-type': 'application/json'},
+        json={'d': {'results': []}},
+        status=200)
+
+    result = service.functions.get_best_measurements.execute()
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+@responses.activate
+def test_function_import_collection_missing_results_key(service):
+    """Collection FunctionImport response without 'results' raises PyODataException"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements',
+        headers={'Content-type': 'application/json'},
+        json={'d': {}},
+        status=200)
+
+    with pytest.raises(PyODataException) as ex_info:
+        service.functions.get_best_measurements.execute()
+    assert 'results' in str(ex_info.value)
+
+
+@responses.activate
+def test_function_import_collection_total_count_absent(service):
+    """total_count raises ProgramError when __count was not requested"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f'{service.url}/get_best_measurements',
+        headers={'Content-type': 'application/json'},
+        json={'d': {'results': []}},
+        status=200)
+
+    result = service.functions.get_best_measurements.execute()
+    with pytest.raises(ProgramError):
+        _ = result.total_count
+
 
 @responses.activate
 def test_update_entity(service):
