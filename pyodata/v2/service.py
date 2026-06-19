@@ -1707,12 +1707,13 @@ class FunctionContainer:
 
             response_data = response.json()['d']
 
-            # 1. if return types is "entity type", return instance of appropriate entity proxy
-            if isinstance(fimport.return_type, model.EntityType):
+            # 1. if return type is an entity type or collection, resolve the entity set once
+            if isinstance(fimport.return_type, (model.EntityType, model.Collection)):
                 entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+
+            if isinstance(fimport.return_type, model.EntityType):
                 return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
 
-            # 1.b alternatively, if return type is a Collection, return a list of appropriate entity proxy
             if isinstance(fimport.return_type, model.Collection):
                 total_count = None
                 next_url = None
@@ -1720,11 +1721,13 @@ class FunctionContainer:
                     total_count = int(response_data['__count'])
                 if '__next' in response_data:
                     next_url = response_data['__next']
+                results = response_data.get('results')
+                if results is None:
+                    raise PyODataException(
+                        f'Function import {fimport.name} returned a Collection response without a "results" key')
                 collection = ListWithTotalCount(total_count, next_url)
-
-                entity_set = self._service.schema.entity_set(fimport.entity_set_name)
                 collection_item_type = fimport.return_type.item_type
-                for entity in response_data['results']:
+                for entity in results:
                     collection.append(EntityProxy(self._service, entity_set, collection_item_type, entity))
                 return collection
 
