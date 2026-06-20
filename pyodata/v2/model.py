@@ -396,15 +396,14 @@ def ms_since_epoch_to_datetime(value, tzinfo):
 
 def parse_datetime_literal(value):
     try:
-        return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f')
+        # fromisoformat on Python < 3.11 requires fractional seconds to be exactly
+        # 3 or 6 digits; pad to 6 if needed
+        if '.' in value:
+            dt_part, frac = value.rsplit('.', 1)
+            value = f'{dt_part}.{frac.ljust(6, "0")}'
+        return datetime.datetime.fromisoformat(value)
     except ValueError:
-        try:
-            return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-        except ValueError:
-            try:
-                return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M')
-            except ValueError:
-                raise PyODataModelError(f'Cannot decode datetime from value {value}.')
+        raise PyODataModelError(f'Cannot decode datetime from value {value}.')
 
 
 class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
@@ -487,7 +486,6 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
 
         value = super(EdmDateTimeTypTraits, self).from_literal(value)
 
-        # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
         return parse_datetime_literal(value).replace(tzinfo=datetime.timezone.utc)
 
 
@@ -557,21 +555,13 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
         value = super(EdmDateTimeOffsetTypTraits, self).from_literal(value)
 
         try:
-            # Note: parse_datetime_literal raises a PyODataModelError exception on invalid formats
-            if re.match(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value, flags=re.ASCII | re.IGNORECASE):
-                datetime_part = value[:-1]
-                tz_info = datetime.timezone.utc
-            else:
-                match = re.match(r'(?P<datetime>.+)(?P<sign>[\\+-])(?P<hours>\d{2}):(?P<minutes>\d{2})',
-                                 value,
-                                 flags=re.ASCII)
-                datetime_part = match.group('datetime')
-                tz_offset = datetime.timedelta(hours=int(match.group('hours')),
-                                               minutes=int(match.group('minutes')))
-                tz_sign = -1 if match.group('sign') == '-' else 1
-                tz_info = datetime.timezone(tz_sign * tz_offset)
-            return parse_datetime_literal(datetime_part).replace(tzinfo=tz_info)
-        except (ValueError, AttributeError):
+            normalized = value.upper().replace('Z', '+00:00')
+            if '.' in normalized:
+                dt_part, rest = normalized.split('.', 1)
+                frac, tz_suffix = rest[:6].ljust(6, '0'), rest[6:]
+                normalized = f'{dt_part}.{frac}{tz_suffix}'
+            return datetime.datetime.fromisoformat(normalized)
+        except ValueError:
             raise PyODataModelError(f'Cannot decode datetimeoffset from value {value}.')
 
 
