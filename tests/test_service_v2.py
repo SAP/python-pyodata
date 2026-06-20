@@ -3091,3 +3091,53 @@ def test_custom_with_create_entity_url_params(service):
     assert result.Key == '12345'
     assert result.Data == 'abcd'
     assert result.etag == 'W/\"J0FtZXJpY2FuIEFpcmxpbmVzJw==\"'
+
+
+@responses.activate
+def test_response_hook_is_called_before_domain_handler(schema):
+    """response_hook fires before the domain handler and receives the raw response"""
+
+    called_with = []
+
+    def hook(response):
+        called_with.append(response.status_code)
+
+    svc = pyodata.v2.service.Service(URL_ROOT, schema, requests, response_hook=hook)
+
+    path = quote("MasterEntities('1')")
+    responses.add(
+        responses.GET,
+        f"{URL_ROOT}/{path}",
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '1', 'Data': 'x'}},
+        status=200)
+
+    svc.entity_sets.MasterEntities.get_entity('1').execute()
+
+    assert called_with == [200]
+
+
+@responses.activate
+def test_response_hook_raising_prevents_domain_handler(schema):
+    """An exception raised in response_hook propagates and the domain result is not returned"""
+
+    def hook(response):
+        raise RuntimeError('hook blocked this')
+
+    svc = pyodata.v2.service.Service(URL_ROOT, schema, requests, response_hook=hook)
+
+    path = quote("MasterEntities('1')")
+    responses.add(
+        responses.GET,
+        f"{URL_ROOT}/{path}",
+        headers={'Content-type': 'application/json'},
+        json={'d': {'Key': '1', 'Data': 'x'}},
+        status=200)
+
+    with pytest.raises(RuntimeError, match='hook blocked this'):
+        svc.entity_sets.MasterEntities.get_entity('1').execute()
+
+
+def test_service_without_response_hook_works(service):
+    """response_hook defaults to None and does not affect normal operation"""
+    assert service.response_hook is None
