@@ -271,3 +271,37 @@ def test_add_btp_token_to_session_invalid_clientid():
 
     assert caught.value.response.status_code == 401
     assert json.loads(caught.value.response.text)['error_description'] == 'Bad credentials'
+
+
+class MockHeaderResponse(NamedTuple):
+    headers: dict
+    content: ByteString = b''
+    status_code: int = 200
+
+
+def test_sap_header_error_hook_no_header():
+    """Hook does nothing when sap-message header is absent"""
+    response = MockHeaderResponse(headers={})
+    SAP.sap_header_error_hook(response)  # must not raise
+
+
+def test_sap_header_error_hook_non_error_severity():
+    """Hook does nothing for sap-message with severity != error"""
+    msg = json.dumps({'severity': 'warning', 'message': 'just a warning'})
+    response = MockHeaderResponse(headers={'sap-message': msg})
+    SAP.sap_header_error_hook(response)  # must not raise
+
+
+def test_sap_header_error_hook_invalid_json():
+    """Hook does nothing when sap-message is not valid JSON"""
+    response = MockHeaderResponse(headers={'sap-message': 'not-json'})
+    SAP.sap_header_error_hook(response)  # must not raise
+
+
+def test_sap_header_error_hook_raises_on_error_severity():
+    """Hook raises BusinessGatewayError when sap-message severity is error"""
+    msg = json.dumps({'severity': 'error', 'message': 'Domain error from header'})
+    response = MockHeaderResponse(headers={'sap-message': msg})
+    with pytest.raises(SAP.BusinessGatewayError) as caught:
+        SAP.sap_header_error_hook(response)
+    assert 'Domain error from header' in str(caught.value)

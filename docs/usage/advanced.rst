@@ -105,3 +105,32 @@ If you need to work with many Entity Sets the same way or if you just need to pi
 
     count = getattr(northwind.entity_sets, 'Employees').get_entities().count().execute()
     print(count)
+
+Inspecting responses with a hook
+---------------------------------
+
+Some OData services communicate domain errors via HTTP response headers on otherwise-200
+responses. Because pyodata discards headers before returning the domain result, callers
+cannot detect these errors through the normal return value.
+
+``Client`` (and ``Service`` directly) accept an optional ``response_hook`` parameter — a
+``Callable[[response], None]`` that fires before the domain handler runs, for every request
+type (including ``async_execute()``). The hook receives the raw response object. Raising an
+exception from the hook propagates to the caller and prevents the domain handler from running.
+
+.. code-block:: python
+
+    import pyodata
+    import requests
+
+    SERVICE_URL = 'https://odata.example.com/MyService.svc'
+
+    def my_hook(response):
+        if response.headers.get('x-custom-error'):
+            raise RuntimeError(f"Service signalled error: {response.headers['x-custom-error']}")
+
+    service = pyodata.Client(SERVICE_URL, requests.Session(), response_hook=my_hook)
+
+The hook must be stateless to be safe under concurrent and async use. If you need to
+handle SAP-specific header errors, use the ready-made hook in ``pyodata.vendor.SAP``
+— see :doc:`vendors`.

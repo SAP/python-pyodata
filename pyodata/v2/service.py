@@ -232,7 +232,7 @@ class EntityKey:
 class ODataHttpRequest:
     """Deferred HTTP Request"""
 
-    def __init__(self, url, connection, handler, headers=None):
+    def __init__(self, url, connection, handler, headers=None, response_hook=None):
         self._connection = connection
         self._url = url
         self._handler = handler
@@ -240,6 +240,7 @@ class ODataHttpRequest:
         self._logger = logging.getLogger(LOGGER_NAME)
         self._customs = {}  # string -> string hash
         self._next_url = None
+        self._response_hook = response_hook
 
     @property
     def handler(self):
@@ -359,6 +360,9 @@ class ODataHttpRequest:
         except UnicodeDecodeError:
             self._logger.debug('  body: <cannot be decoded>')
 
+        if self._response_hook is not None:
+            self._response_hook(response)
+
         return self._handler(response)
 
     def custom(self, name, value):
@@ -373,7 +377,7 @@ class EntityGetRequest(ODataHttpRequest):
 
     def __init__(self, handler, entity_key, entity_set_proxy, encode_path=True):
         super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection,
-                                               handler)
+                                               handler, response_hook=entity_set_proxy.service.response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_key = entity_key
         self._entity_set_proxy = entity_set_proxy
@@ -465,8 +469,8 @@ class EntityCreateRequest(ODataHttpRequest):
        Call execute() to send the create-request to the OData service
        and get the newly created entity."""
 
-    def __init__(self, url, connection, handler, entity_set, last_segment=None):
-        super(EntityCreateRequest, self).__init__(url, connection, handler)
+    def __init__(self, url, connection, handler, entity_set, last_segment=None, response_hook=None):
+        super(EntityCreateRequest, self).__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
@@ -552,8 +556,8 @@ class EntityCreateRequest(ODataHttpRequest):
 class EntityDeleteRequest(ODataHttpRequest):
     """Used for deleting entity (DELETE operations on a single entity)"""
 
-    def __init__(self, url, connection, handler, entity_set, entity_key, encode_path=True):
-        super(EntityDeleteRequest, self).__init__(url, connection, handler)
+    def __init__(self, url, connection, handler, entity_set, entity_key, encode_path=True, response_hook=None):
+        super(EntityDeleteRequest, self).__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_key = entity_key
@@ -585,8 +589,9 @@ class EntityModifyRequest(ODataHttpRequest):
     ALLOWED_HTTP_METHODS = ['PATCH', 'PUT', 'MERGE']
 
     # pylint: disable=too-many-arguments
-    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True):
-        super(EntityModifyRequest, self).__init__(url, connection, handler)
+    def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True,
+                 response_hook=None):
+        super(EntityModifyRequest, self).__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
@@ -650,8 +655,8 @@ class QueryRequest(ODataHttpRequest):
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, url, connection, handler, last_segment):
-        super(QueryRequest, self).__init__(url, connection, handler)
+    def __init__(self, url, connection, handler, last_segment, response_hook=None):
+        super(QueryRequest, self).__init__(url, connection, handler, response_hook=response_hook)
 
         self._logger = logging.getLogger(LOGGER_NAME)
         self._count = None
@@ -767,8 +772,10 @@ class QueryRequest(ODataHttpRequest):
 class FunctionRequest(QueryRequest):
     """Function import request (Service call)"""
 
-    def __init__(self, url, connection, handler, function_import):
-        super(FunctionRequest, self).__init__(url, connection, handler, function_import.name)
+    def __init__(self, url, connection, handler, function_import, response_hook=None):
+        super(FunctionRequest, self).__init__(
+            url, connection, handler, function_import.name,
+            response_hook=response_hook)
 
         self._function_import = function_import
 
@@ -1332,8 +1339,8 @@ class GetEntitySetFilterChainable:
 class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
 
-    def __init__(self, url, connection, handler, last_segment, entity_type, encode_path=True):
-        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment)
+    def __init__(self, url, connection, handler, last_segment, entity_type, encode_path=True, response_hook=None):
+        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment, response_hook=response_hook)
 
         self._entity_type = entity_type
         self._encode_path = encode_path
@@ -1554,7 +1561,7 @@ class EntitySetProxy:
         entity_set_name = self._alias if self._alias is not None else self._entity_set.name
         return GetEntitySetRequest(self._service.url, self._service.connection, get_entities_handler,
                                    self._parent_last_segment + entity_set_name, self._entity_set.entity_type,
-                                   encode_path=encode_path)
+                                   encode_path=encode_path, response_hook=self._service.response_hook)
 
     def create_entity(self, return_code=HTTP_CODE_CREATED):
         """Creates a new entity in the given entity-set."""
@@ -1572,7 +1579,7 @@ class EntitySetProxy:
             return EntityProxy(self._service, self._entity_set, self._entity_set.entity_type, entity_props, etag=etag)
 
         return EntityCreateRequest(self._service.url, self._service.connection, create_entity_handler, self._entity_set,
-                                   self.last_segment)
+                                   self.last_segment, response_hook=self._service.response_hook)
 
     def update_entity(self, key=None, method=None, encode_path=True, **kwargs):
         """Updates an existing entity in the given entity-set."""
@@ -1595,7 +1602,8 @@ class EntitySetProxy:
             method = self._service.config['http']['update_method']
 
         return EntityModifyRequest(self._service.url, self._service.connection, update_entity_handler, self._entity_set,
-                                   entity_key, method=method, encode_path=encode_path)
+                                   entity_key, method=method, encode_path=encode_path,
+                                   response_hook=self._service.response_hook)
 
     def delete_entity(self, key: EntityKey = None, encode_path=True, **kwargs):
         """Delete the entity"""
@@ -1614,7 +1622,7 @@ class EntitySetProxy:
             entity_key = EntityKey(self._entity_set.entity_type, key, **kwargs)
 
         return EntityDeleteRequest(self._service.url, self._service.connection, delete_entity_handler, self._entity_set,
-                                   entity_key, encode_path=encode_path)
+                                   entity_key, encode_path=encode_path, response_hook=self._service.response_hook)
 
 
 # pylint: disable=too-few-public-methods
@@ -1735,17 +1743,19 @@ class FunctionContainer:
             return response_data
 
         return FunctionRequest(self._service.url, self._service.connection,
-                               partial(function_import_handler, fimport), fimport)
+                               partial(function_import_handler, fimport), fimport,
+                               response_hook=self._service.response_hook)
 
 
 class Service:
     """OData service"""
 
-    def __init__(self, url, schema, connection, config=None):
+    def __init__(self, url, schema, connection, config=None, response_hook=None):
         self._url = url
         self._schema = schema
         self._connection = connection
         self._retain_null = config.retain_null if config else False
+        self._response_hook = response_hook
         self._entity_container = EntityContainer(self)
         self._function_container = FunctionContainer(self)
 
@@ -1768,6 +1778,12 @@ class Service:
         """Service connection"""
 
         return self._connection
+
+    @property
+    def response_hook(self):
+        """Optional hook called with the raw response before domain handler runs"""
+
+        return self._response_hook
 
     @property
     def retain_null(self):

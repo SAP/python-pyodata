@@ -47,6 +47,29 @@ def add_btp_token_to_session(session, key, user, password):
     return session
 
 
+def sap_header_error_hook(response):
+    """Response hook that detects SAP domain errors encoded in the sap-message header
+    on otherwise-200 responses.
+
+    Pass this as response_hook to Service() to raise BusinessGatewayError before
+    pyodata's domain handler runs:
+
+        service = Service(url, schema, session, response_hook=sap_header_error_hook)
+    """
+    sap_message = response.headers.get('sap-message')
+    if sap_message is None:
+        return
+
+    try:
+        msg = json.loads(sap_message)
+    except ValueError:
+        return
+
+    severity = msg.get('severity', '')
+    if severity == 'error':
+        raise BusinessGatewayError(msg.get('message', 'SAP header error'), response)
+
+
 class BusinessGatewayError(HttpError):
     """To display the right error message"""
 

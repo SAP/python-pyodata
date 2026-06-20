@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- service: `response_hook` parameter, enables inspection or rejection of raw responses (e.g. header-encoded SAP domain errors) without leaking HTTP transport objects through the OData API boundary.
+- vendor/SAP: `sap_header_error_hook(response)` — a stateless hook that detects SAP domain errors encoded in the `sap-message` response header and raises `BusinessGatewayError` before pyodata's domain handler runs.
 - service: let FunctionRequests return a list of EntityProxies instead of the raw json, when the `ReturnType` is a Collection. - Emil B.
 
 ## [1.11.2]
