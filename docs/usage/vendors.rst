@@ -34,3 +34,35 @@ The following code demonstrates using the helper.
   session = SAP.add_btp_token_to_session(requests.Session(), KEY, USER, PASSWORD)
   # do something more with session object if necessary (e.g. adding sap-client parameter, or CSRF token)
   client = pyodata.Client(SERVICE_URL, session)
+
+Detecting SAP domain errors in response headers
+------------------------------------------------
+
+Some SAP OData services signal domain errors via the ``sap-message`` response header on
+otherwise-200 responses. pyodata's domain handler never sees these headers, so callers
+cannot detect the error through the normal return value.
+
+``pyodata.vendor.SAP`` provides a ready-made stateless hook, ``sap_header_error_hook``,
+that reads the ``sap-message`` header, parses it as JSON, and raises ``BusinessGatewayError``
+when the ``severity`` field equals ``"error"``. Pass it as the ``response_hook`` argument to
+``Client`` (or directly to ``Service``):
+
+.. code-block:: python
+
+  import pyodata
+  from pyodata.vendor.SAP import sap_header_error_hook
+  import requests
+
+  SERVICE_URL = 'https://example.com/sap/opu/odata/sap/ZMyService'
+
+  session = requests.Session()
+  client = pyodata.Client(SERVICE_URL, session, response_hook=sap_header_error_hook)
+
+  try:
+      result = client.entity_sets.Employees.get_entity(1).execute()
+  except pyodata.vendor.SAP.BusinessGatewayError as ex:
+      print(f"SAP domain error: {ex}")
+
+The hook fires before pyodata's domain handler, so the exception propagates before any
+result object is constructed. It is safe under concurrent and async use because it holds
+no instance state.
