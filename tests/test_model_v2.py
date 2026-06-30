@@ -491,6 +491,7 @@ def test_traits():
     ('2001-02-03T04:05:06.000007', datetime(2001, 2, 3, 4, 5, 6, microsecond=7)),
     ('2001-02-03T04:05:06', datetime(2001, 2, 3, 4, 5, 6, 0)),
     ('2001-02-03T04:05', datetime(2001, 2, 3, 4, 5, 0, 0)),
+    ('2001-02-03T04:05:06.1', datetime(2001, 2, 3, 4, 5, 6, microsecond=100000)),
 ])
 def test_parse_datetime_literal(datetime_literal, expected):
     assert parse_datetime_literal(datetime_literal) == expected
@@ -560,6 +561,15 @@ def test_traits_datetime(type_date_time):
     assert testdate.second == 0
     assert testdate.microsecond == 0
     assert testdate.tzinfo == timezone.utc
+
+    # parsing sub-6-digit fractional seconds
+    testdate = type_date_time.traits.from_literal("datetime'1976-11-23T03:33:06.1'")
+    assert testdate.second == 6
+    assert testdate.microsecond == 100000
+    assert testdate.tzinfo == timezone.utc
+
+    # None returns None
+    assert type_date_time.traits.from_literal(None) is None
 
     # parsing invalid value
     with pytest.raises(PyODataModelError) as e_info:
@@ -732,6 +742,8 @@ def test_traits_datetimeoffset_to_json(type_date_time_offset, python_datetime, e
     ("datetimeoffset'1976-11-23t03:33:06+12:00'", datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone(timedelta(hours=12))), 'On dateline'),
     ("datetimeoffset'1976-11-23t03:33:06-12:00'", datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone(timedelta(hours=-12))), 'Minimum offset'),
     ("datetimeoffset'1976-11-23t03:33:06+14:00'", datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone(timedelta(hours=14))), 'Maximum offset'),
+    ("datetimeoffset'1976-11-23T03:33+01:00'", datetime(1976, 11, 23, 3, 33, 0, tzinfo=timezone(timedelta(hours=1))), 'No seconds with offset'),
+    ("datetimeoffset'1976-11-23T03:33:06.654321Z'", datetime(1976, 11, 23, 3, 33, 6, microsecond=654321, tzinfo=timezone.utc), 'Microseconds with Z'),
 ])
 def test_traits_datetimeoffset_from_literal(type_date_time_offset, literal, expected, comment):
     """Test Edm.DateTimeOffset trait: literal -> Python"""
@@ -747,6 +759,10 @@ def test_traits_datetimeoffset_from_invalid_literal(type_date_time_offset):
     with pytest.raises(PyODataModelError) as e_info:
         type_date_time_offset.traits.from_literal("datetimeoffset'xyz'")
     assert str(e_info.value).startswith('Cannot decode datetimeoffset from value xyz')
+
+
+def test_traits_datetimeoffset_from_literal_none(type_date_time_offset):
+    assert type_date_time_offset.traits.from_literal(None) is None
 
 
 def test_traits_datetimeoffset_from_json(type_date_time_offset):

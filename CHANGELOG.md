@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 - service: let FunctionRequests return a list of EntityProxies instead of the raw json, when the `ReturnType` is a Collection. - Emil B.
+- model: replace regexp-based ISO datetime parsing with `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
 
 ## [1.11.2]
 
