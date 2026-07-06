@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - service: let FunctionRequests return a list of EntityProxies instead of the raw json, when the `ReturnType` is a Collection. - Emil B.
 - model: replace regexp-based ISO datetime parsing with `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
 
+### Removed
+- Python 3.9 is no longer supported by pyodata. Python 3.10 is now the minimal supported version.
+
 ## [1.11.2]
 
 ### Fixed
