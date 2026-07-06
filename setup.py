@@ -36,6 +36,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(exclude=("tests")),
     zip_safe=False,
+    python_requires='>=3.10',
     install_requires=[
         "lxml>=4.2.6",
     ],
@@ -59,7 +60,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',

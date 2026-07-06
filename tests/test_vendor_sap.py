@@ -1,7 +1,7 @@
 """PyOData Vendor SAP tests"""
 
 import logging
-from typing import NamedTuple, ByteString
+from typing import NamedTuple
 import pytest
 from pyodata.exceptions import PyODataException, HttpError
 from pyodata.vendor import SAP
@@ -11,7 +11,7 @@ import json
 
 
 class MockResponse(NamedTuple):
-    content: ByteString
+    content: bytes
 
 
 @pytest.fixture
