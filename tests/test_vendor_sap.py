@@ -275,7 +275,7 @@ def test_add_btp_token_to_session_invalid_clientid():
 
 class MockHeaderResponse(NamedTuple):
     headers: dict
-    content: ByteString = b''
+    content: bytes = b''
     status_code: int = 200
 
 
