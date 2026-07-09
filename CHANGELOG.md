@@ -6,10 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-- service: `response_hook` parameter, enables inspection or rejection of raw responses (e.g. header-encoded SAP domain errors) without leaking HTTP transport objects through the OData API boundary.
-- vendor/SAP: `sap_header_error_hook(response)` — a stateless hook that detects SAP domain errors encoded in the `sap-message` response header and raises `BusinessGatewayError` before pyodata's domain handler runs.
+### Added
+
+- service: `response_hook` parameter, enables inspection or rejection of raw responses (e.g. header-encoded SAP domain errors) without leaking HTTP transport objects through the OData API boundary. - Petr Hanak
+- vendor/SAP: `sap_header_error_hook(response)` — a stateless hook that detects SAP domain errors encoded in the `sap-message` response header and raises `BusinessGatewayError` before pyodata's domain handler runs. - Petr Hanak
 - service: let FunctionRequests return a list of EntityProxies instead of the raw json, when the `ReturnType` is a Collection. - Emil B.
+
+### Fixed
+
 - model: replace regexp-based ISO datetime parsing with `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
+- service: guard against cross-origin __next URL redirection - Petr Hanak
 
 ### Removed
 - Python 3.9 is no longer supported by pyodata. Python 3.10 is now the minimal supported version.

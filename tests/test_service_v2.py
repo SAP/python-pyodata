@@ -2430,6 +2430,40 @@ def test_partial_listing(service):
 
 
 @responses.activate
+def test_next_url_cross_origin_raises(service):
+    """__next URL pointing to a different origin must be refused before any request is dispatched."""
+    # pylint: disable=redefined-outer-name
+    cross_origin_next = "http://attacker.example.com/collect?$skiptoken=opaque"
+
+    request = service.entity_sets.Employees.get_entities().next_url(cross_origin_next)
+    with pytest.raises(PyODataException, match="cross-origin"):
+        request.execute()
+    assert len(responses.calls) == 0
+
+
+@responses.activate
+def test_next_url_same_origin_allowed(service):
+    """__next URL on the same origin (scheme + host + port) must be followed normally."""
+    # pylint: disable=redefined-outer-name
+    same_origin_next = f"{service.url}/Employees?$skiptoken=safe"
+
+    responses.add(
+        responses.GET,
+        same_origin_next,
+        json={'d': {
+            'results': [
+                {'ID': 23, 'NameFirst': 'Rob', 'NameLast': 'Ickes'}
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().next_url(same_origin_next)
+    result = request.execute()
+    assert len(result) == 1
+    assert result[0].ID == 23
+
+
+@responses.activate
 def test_count_with_chainable_filter_lt_operator(service):
     """Check getting $count with $filter with new filter syntax using multiple filters"""
 

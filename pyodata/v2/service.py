@@ -13,7 +13,7 @@ import random
 from email.parser import Parser
 from http.client import HTTPResponse
 from io import BytesIO
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote, urlparse
 
 
 from pyodata.exceptions import HttpError, PyODataException, ExpressionError, ProgramError
@@ -296,6 +296,13 @@ class ODataHttpRequest:
 
     def _build_request(self):
         if self._next_url:
+            parsed_next = urlparse(self._next_url)
+            parsed_base = urlparse(self._url)
+            if (parsed_next.scheme, parsed_next.netloc) != (parsed_base.scheme, parsed_base.netloc):
+                raise PyODataException(
+                    f'cross-origin __next URL rejected: {self._next_url!r} differs from '
+                    f'service root {self._url!r}'
+                )
             url = self._next_url
         else:
             url = urljoin(self._url, self.get_path())
