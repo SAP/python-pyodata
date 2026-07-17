@@ -412,6 +412,24 @@ def test_traits():
     assert typ.traits.to_literal('Foo Foo') == "'Foo Foo'"
     assert typ.traits.from_literal("'Alice Bob'") == 'Alice Bob'
 
+    # EdmStringTypTraits.from_json — must return value unchanged
+    assert typ.traits.from_json('hello') == 'hello'
+    assert typ.traits.from_json("'A' crew") == "'A' crew"
+    assert typ.traits.from_json("Eng Department'") == "Eng Department'"
+    assert typ.traits.from_json("'wrapped'") == "'wrapped'"
+
+    # EdmStringTypTraits.from_literal — must remove exactly one wrapping pair
+    assert typ.traits.from_literal("''A' crew'") == "'A' crew"
+    assert typ.traits.from_literal("'Eng Department''") == "Eng Department'"
+    assert typ.traits.from_literal("''") == ''
+    assert typ.traits.from_literal('') == ''
+
+    # EdmStringTypTraits.from_literal — guard conditions quotes around the value
+    assert typ.traits.from_literal('no quotes') == 'no quotes'
+    assert typ.traits.from_literal("'only left") == "'only left"
+    assert typ.traits.from_literal("only right'") == "only right'"
+    assert typ.traits.from_literal("'") == "'"
+
     # bool
     typ = Types.from_name('Edm.Boolean')
     assert repr(typ.traits) == 'EdmBooleanTypTraits'
@@ -941,7 +959,7 @@ def test_complex_serializer(schema):
     # entity with properties of ODATA primitive types
     entity_type = schema.entity_type('TemperatureMeasurement')
     assert srl.to_literal(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': "'x'"}
-    assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': "'x'"}) == {'Sensor': 'x'}
+    assert srl.from_json(entity_type, {'ignored-key': 'ignored-value', 'Sensor': 'x'}) == {'Sensor': 'x'}
 
 
 @patch('logging.Logger.warning')

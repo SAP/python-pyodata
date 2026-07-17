@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - model: replace regexp-based ISO datetime parsing with `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
+- model: fix stripping single-quotes from string values - Petr Hanak
 - service: guard against cross-origin __next URL redirection - Petr Hanak
+
 
 ### Removed
 - Python 3.9 is no longer supported by pyodata. Python 3.10 is now the minimal supported version.

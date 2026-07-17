@@ -574,10 +574,12 @@ class EdmStringTypTraits(TypTraits):
 
     # pylint: disable=no-self-use
     def from_json(self, value):
-        return value.strip('\'')
+        return value
 
     def from_literal(self, value):
-        return value.strip('\'')
+        if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
+            return value[1:-1]
+        return value
 
 
 class EdmBooleanTypTraits(TypTraits):
