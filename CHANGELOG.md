@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.12.0]
+
 ### Added
 
 - service: `response_hook` parameter, enables inspection or rejection of raw responses (e.g. header-encoded SAP domain errors) without leaking HTTP transport objects through the OData API boundary. - Petr Hanak
@@ -14,10 +17,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- model: replace regexp-based ISO datetime parsing with `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
 - model: fix stripping single-quotes from string values - Petr Hanak
 - service: guard against cross-origin __next URL redirection - Petr Hanak
 
+### Changed
+
+- model: refactor regexp-based ISO datetime parsing to `datetime.fromisoformat` for `Edm.DateTime` and `Edm.DateTimeOffset` - Petr Hanak
 
 ### Removed
 - Python 3.9 is no longer supported by pyodata. Python 3.10 is now the minimal supported version.
@@ -211,7 +216,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.11.1...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.12.0...HEAD
+[1.12.0]: https://github.com/SAP/python-pyodata/compare/1.11.2...1.12.0
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.1...1.11.2
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.0...1.11.1
 [1.11.0]: https://github.com/SAP/python-pyodata/compare/1.10.1...1.11.0
