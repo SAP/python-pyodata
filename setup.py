@@ -38,7 +38,7 @@ setup(
     zip_safe=False,
     python_requires='>=3.10',
     install_requires=[
-        "lxml>=4.2.6",
+        "lxml>=4.6.5",
     ],
     extras_require={
     },
