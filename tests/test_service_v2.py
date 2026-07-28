@@ -2464,6 +2464,42 @@ def test_next_url_same_origin_allowed(service):
 
 
 @responses.activate
+def test_next_url_relative_resolved_against_service_root(service):
+    """Relative __next value (valid OData v2) is resolved against the service root before dispatch."""
+    # pylint: disable=redefined-outer-name
+    relative_next = "Employees?$skiptoken='opaque'"
+    expected_url = f"{service.url}/Employees?$skiptoken='opaque'"
+
+    responses.add(
+        responses.GET,
+        expected_url,
+        json={'d': {
+            'results': [
+                {'ID': 42, 'NameFirst': 'Jane', 'NameLast': 'Doe'}
+            ]
+        }},
+        status=200)
+
+    request = service.entity_sets.Employees.get_entities().next_url(relative_next)
+    result = request.execute()
+    assert len(result) == 1
+    assert result[0].ID == 42
+    assert responses.calls[0].request.url == expected_url
+
+
+def test_next_url_relative_cross_origin_raises(service):
+    """Relative __next that resolves to a different origin (e.g. protocol-relative) must be refused."""
+    # pylint: disable=redefined-outer-name
+    # A protocol-relative URL has no scheme but does have a netloc — treated as absolute origin check.
+    cross_origin_relative = "//attacker.example.com/Employees?$skiptoken=x"
+
+    request = service.entity_sets.Employees.get_entities().next_url(cross_origin_relative)
+    with pytest.raises(PyODataException, match="cross-origin"):
+        request.execute()
+    assert len(responses.calls) == 0
+
+
+@responses.activate
 def test_count_with_chainable_filter_lt_operator(service):
     """Check getting $count with $filter with new filter syntax using multiple filters"""
 

@@ -297,13 +297,19 @@ class ODataHttpRequest:
     def _build_request(self):
         if self._next_url:
             parsed_next = urlparse(self._next_url)
+            # OData v2 allows relative __next values; resolve them against the service root.
+            if not parsed_next.scheme and not parsed_next.netloc:
+                resolved = urljoin(self._url, self._next_url)
+                parsed_next = urlparse(resolved)
+            else:
+                resolved = self._next_url
             parsed_base = urlparse(self._url)
             if (parsed_next.scheme, parsed_next.netloc) != (parsed_base.scheme, parsed_base.netloc):
                 raise PyODataException(
                     f'cross-origin __next URL rejected: {self._next_url!r} differs from '
                     f'service root {self._url!r}'
                 )
-            url = self._next_url
+            url = resolved
         else:
             url = urljoin(self._url, self.get_path())
         # pylint: disable=assignment-from-none
