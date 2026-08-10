@@ -430,6 +430,17 @@ def test_traits():
     assert typ.traits.from_literal("only right'") == "only right'"
     assert typ.traits.from_literal("'") == "'"
 
+    # EdmStringTypTraits.to_literal — a single quote inside the value must be doubled,
+    # otherwise the resulting literal terminates early and the server rejects the query
+    assert typ.traits.to_literal("O'Brien") == "'O''Brien'"
+    assert typ.traits.to_literal("l'Etat") == "'l''Etat'"
+    assert typ.traits.to_literal("''") == "''''''"
+    assert typ.traits.to_literal('no quotes') == "'no quotes'"
+
+    # EdmStringTypTraits — to_literal/from_literal must round-trip
+    for value in ["O'Brien", "l'Etat", "a''b", "'wrapped'", 'no quotes', '']:
+        assert typ.traits.from_literal(typ.traits.to_literal(value)) == value
+
     # bool
     typ = Types.from_name('Edm.Boolean')
     assert repr(typ.traits) == 'EdmBooleanTypTraits'

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- model: escape single quotes in `Edm.String` literals, so filters on values containing an apostrophe produce a valid OData query - Francois Pilet
+
 
 ## [1.12.0]
 

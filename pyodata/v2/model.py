@@ -570,7 +570,7 @@ class EdmStringTypTraits(TypTraits):
 
     # pylint: disable=no-self-use
     def to_literal(self, value):
-        return '\'%s\'' % (value)
+        return '\'%s\'' % (str(value).replace("'", "''"))
 
     # pylint: disable=no-self-use
     def from_json(self, value):
@@ -578,7 +578,7 @@ class EdmStringTypTraits(TypTraits):
 
     def from_literal(self, value):
         if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
-            return value[1:-1]
+            return value[1:-1].replace("''", "'")
         return value
 
 
