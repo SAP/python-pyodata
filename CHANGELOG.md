@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- chore: zero-argument `super()` everywhere and PEP 604 unions in `isinstance` checks, now that Python 3.10 is the minimum (#302) - Sena Köse
+
 ### Fixed
 
 - model: escape single quotes in `Edm.String` literals, so filters on values containing an apostrophe produce a valid OData query - Francois Pilet
