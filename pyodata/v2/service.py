@@ -1317,7 +1317,7 @@ class GetEntitySetFilterChainable:
             return f'substringof({value}, {field_name}) eq true'
 
         if operator == 'range':
-            if not isinstance(value, (tuple, list)):
+            if not isinstance(value, tuple | list):
                 raise TypeError(f'Range must be tuple or list not {type(value)}')
 
             if len(value) != 2:
@@ -1723,7 +1723,7 @@ class FunctionContainer:
             response_data = response.json()['d']
 
             # 1. if return type is an entity type or collection, resolve the entity set once
-            if isinstance(fimport.return_type, (model.EntityType, model.Collection)):
+            if isinstance(fimport.return_type, model.EntityType | model.Collection):
                 entity_set = self._service.schema.entity_set(fimport.entity_set_name)
 
             if isinstance(fimport.return_type, model.EntityType):
