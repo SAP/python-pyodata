@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.12.1]
+
 ### Fixed
 
 - model: escape single quotes in `Edm.String` literals, so filters on values containing an apostrophe produce a valid OData query - Francois Pilet
@@ -220,7 +223,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.12.0...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.12.1...HEAD
+[1.12.1]: https://github.com/SAP/python-pyodata/compare/1.12.0...1.12.1
 [1.12.0]: https://github.com/SAP/python-pyodata/compare/1.11.2...1.12.0
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.1...1.11.2
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.0...1.11.1
