@@ -150,7 +150,7 @@ class Config:
 
 class Identifier:
     def __init__(self, name):
-        super(Identifier, self).__init__()
+        super().__init__()
 
         self._name = name
 
@@ -347,7 +347,7 @@ class EdmPrefixedTypTraits(TypTraits):
     """Is good for all types where values have form: prefix'value'"""
 
     def __init__(self, prefix):
-        super(EdmPrefixedTypTraits, self).__init__()
+        super().__init__()
         self._prefix = prefix
 
     def to_literal(self, value):
@@ -423,7 +423,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
     """
 
     def __init__(self):
-        super(EdmDateTimeTypTraits, self).__init__('datetime')
+        super().__init__('datetime')
 
     def to_literal(self, value):
         """Convert python datetime representation to literal format
@@ -440,7 +440,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             raise PyODataModelError('Edm.DateTime accepts only UTC')
 
         # Sets timezone to none to avoid including timezone information in the literal form.
-        return super(EdmDateTimeTypTraits, self).to_literal(value.replace(tzinfo=None).isoformat())
+        return super().to_literal(value.replace(tzinfo=None).isoformat())
 
     def to_json(self, value):
         if isinstance(value, str):
@@ -484,7 +484,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         if value is None:
             return None
 
-        value = super(EdmDateTimeTypTraits, self).from_literal(value)
+        value = super().from_literal(value)
 
         return parse_datetime_literal(value).replace(tzinfo=datetime.timezone.utc)
 
@@ -509,7 +509,7 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
     """
 
     def __init__(self):
-        super(EdmDateTimeOffsetTypTraits, self).__init__('datetimeoffset')
+        super().__init__('datetimeoffset')
 
     def to_literal(self, value):
         """Convert python datetime representation to literal format"""
@@ -518,7 +518,7 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
             raise PyODataModelError(
                 f'Cannot convert value of type {type(value)} to literal. Datetime format including offset is required.')
 
-        return super(EdmDateTimeOffsetTypTraits, self).to_literal(value.isoformat())
+        return super().to_literal(value.isoformat())
 
     def to_json(self, value):
         # datetime.timestamp() does not work due to its limited precision
@@ -552,7 +552,7 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
         if value is None:
             return None
 
-        value = super(EdmDateTimeOffsetTypTraits, self).from_literal(value)
+        value = super().from_literal(value)
 
         try:
             normalized = value.upper().replace('Z', '+00:00')
@@ -639,7 +639,7 @@ class EdmFPNumTypTraits(TypTraits):
         self.conversion = conversion
 
     def __repr__(self):
-        parent = super(EdmFPNumTypTraits, self).__repr__()
+        parent = super().__repr__()
 
         return f'{parent}({self.precision},{self.suffix})'
 
@@ -677,7 +677,7 @@ class EdmStructTypTraits(TypTraits):
     """Edm structural types (EntityType, ComplexType) traits"""
 
     def __init__(self, edm_type=None):
-        super(EdmStructTypTraits, self).__init__()
+        super().__init__()
         self._edm_type = edm_type
 
     # pylint: disable=no-self-use
@@ -716,7 +716,7 @@ class Typ(Identifier):
     Kinds = Enum('Kinds', 'Primitive Complex')
 
     def __init__(self, name, null_value, traits=TypTraits(), kind=None):
-        super(Typ, self).__init__(name)
+        super().__init__(name)
 
         self._null_value = null_value
         self._kind = kind if kind is not None else Typ.Kinds.Primitive  # no way how to us enum value for parameter default value
@@ -743,7 +743,7 @@ class Collection(Typ):
     """Represents collection items"""
 
     def __init__(self, name, item_type):
-        super(Collection, self).__init__(name, [], kind=item_type.kind)
+        super().__init__(name, [], kind=item_type.kind)
         self._item_type = item_type
 
     def __repr__(self):
@@ -780,7 +780,7 @@ class VariableDeclaration(Identifier):
     MAXIMUM_LENGTH = -1
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale, fixed_length=None):
-        super(VariableDeclaration, self).__init__(name)
+        super().__init__(name)
 
         self._type_info = type_info
         self._typ = None
@@ -962,7 +962,7 @@ class Schema:
                 raise KeyError(f'There is no Schema Namespace {key}')
 
     def __init__(self, config: Config):
-        super(Schema, self).__init__()
+        super().__init__()
 
         self._decls = Schema.Declarations()
         self._config = config
@@ -1469,7 +1469,7 @@ class Schema:
 
 class StructType(Typ):
     def __init__(self, name, label, is_value_list):
-        super(StructType, self).__init__(name, None, EdmStructTypTraits(self), Typ.Kinds.Complex)
+        super().__init__(name, None, EdmStructTypTraits(self), Typ.Kinds.Complex)
 
         self._label = label
         self._is_value_list = is_value_list
@@ -1565,7 +1565,7 @@ class EnumMember:
 
 class EnumType(Identifier):
     def __init__(self, name, is_flags, underlying_type, namespace):
-        super(EnumType, self).__init__(name)
+        super().__init__(name)
         self._member = list()
         self._underlying_type = underlying_type
         self._traits = TypTraits()
@@ -1656,7 +1656,7 @@ class EnumType(Identifier):
 
 class EntityType(StructType):
     def __init__(self, name, label, is_value_list):
-        super(EntityType, self).__init__(name, label, is_value_list)
+        super().__init__(name, label, is_value_list)
 
         self._key = list()
         self._nav_properties = dict()
@@ -1695,7 +1695,7 @@ class EntityType(StructType):
 class EntitySet(Identifier):
     def __init__(self, name, entity_type_info, addressable, creatable, updatable, deletable, searchable, countable,
                  pageable, topable, req_filter, label):
-        super(EntitySet, self).__init__(name)
+        super().__init__(name)
 
         self._entity_type_info = entity_type_info
         self._entity_type = None
@@ -1803,7 +1803,7 @@ class StructTypeProperty(VariableDeclaration):
     def __init__(self, name, type_info, nullable, max_length, precision, scale, uncode, label, creatable, updatable,
                  sortable, filterable, filter_restr, req_in_filter, text, visible, display_format, value_list,
                  fixed_length=None):
-        super(StructTypeProperty, self).__init__(name, type_info, nullable, max_length, precision, scale, fixed_length)
+        super().__init__(name, type_info, nullable, max_length, precision, scale, fixed_length)
 
         self._value_helper = None
         self._struct_type = None
@@ -1964,7 +1964,7 @@ class NavigationTypeProperty(VariableDeclaration):
     """
 
     def __init__(self, name, from_role_name, to_role_name, association_info):
-        super(NavigationTypeProperty, self).__init__(name, None, False, None, None, None, None)
+        super().__init__(name, None, False, None, None, None, None)
 
         self.from_role_name = from_role_name
         self.to_role_name = to_role_name
@@ -2304,7 +2304,7 @@ class Annotation:
     Kinds = Enum('Kinds', 'ValueHelper')
 
     def __init__(self, kind, target, qualifier=None):
-        super(Annotation, self).__init__()
+        super().__init__()
 
         self._kind = kind
         self._element_namespace, self._element = target.split('.')
@@ -2360,7 +2360,7 @@ class ValueHelper(Annotation):
 
         # pylint: disable=unused-argument
 
-        super(ValueHelper, self).__init__(Annotation.Kinds.ValueHelper, target)
+        super().__init__(Annotation.Kinds.ValueHelper, target)
 
         self._entity_type_name, self._proprty_name = self.element.split('/')
         self._proprty = None
@@ -2486,7 +2486,7 @@ class ValueHelperParameter:
     Direction = Enum('Direction', 'In InOut Out DisplayOnly FilterOnly Constant Constants')
 
     def __init__(self, direction, local_property_name, list_property_name):
-        super(ValueHelperParameter, self).__init__()
+        super().__init__()
 
         self._direction = direction
         self._value_helper = None
@@ -2566,7 +2566,7 @@ class ValueHelperParameter:
 
 class FunctionImport(Identifier):
     def __init__(self, name, return_type_info, entity_set, parameters, http_method='GET'):
-        super(FunctionImport, self).__init__(name)
+        super().__init__(name)
 
         self._entity_set_name = entity_set
         self._return_type_info = return_type_info
@@ -2637,7 +2637,7 @@ class FunctionImportParameter(VariableDeclaration):
     Modes = Enum('Modes', 'In Out InOut')
 
     def __init__(self, name, type_info, nullable, max_length, precision, scale, mode):
-        super(FunctionImportParameter, self).__init__(name, type_info, nullable, max_length, precision, scale, None)
+        super().__init__(name, type_info, nullable, max_length, precision, scale, None)
 
         self._mode = mode
 

@@ -32,7 +32,7 @@ class HttpError(PyODataException):
         return super(HttpError, cls).__new__(cls, message, response)
 
     def __init__(self, message, response):
-        super(HttpError, self).__init__(message)
+        super().__init__(message)
 
         self.response = response
 

@@ -383,8 +383,8 @@ class EntityGetRequest(ODataHttpRequest):
     """Used for GET operations of a single entity"""
 
     def __init__(self, handler, entity_key, entity_set_proxy, encode_path=True):
-        super(EntityGetRequest, self).__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection,
-                                               handler, response_hook=entity_set_proxy.service.response_hook)
+        super().__init__(entity_set_proxy.service.url, entity_set_proxy.service.connection,
+                         handler, response_hook=entity_set_proxy.service.response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_key = entity_key
         self._entity_set_proxy = entity_set_proxy
@@ -423,7 +423,7 @@ class EntityGetRequest(ODataHttpRequest):
         return {'Accept': 'application/json'}
 
     def get_query_params(self):
-        qparams = super(EntityGetRequest, self).get_query_params()
+        qparams = super().get_query_params()
 
         if self._select is not None:
             qparams['$select'] = self._select
@@ -462,12 +462,12 @@ class NavEntityGetRequest(EntityGetRequest):
     """Used for GET operations of a single entity accessed via a Navigation property"""
 
     def __init__(self, handler, master_key, entity_set_proxy, nav_property):
-        super(NavEntityGetRequest, self).__init__(handler, master_key, entity_set_proxy)
+        super().__init__(handler, master_key, entity_set_proxy)
 
         self._nav_property = nav_property
 
     def get_path(self):
-        return f"{super(NavEntityGetRequest, self).get_path()}/{self._nav_property}"
+        return f"{super().get_path()}/{self._nav_property}"
 
 
 class EntityCreateRequest(ODataHttpRequest):
@@ -477,7 +477,7 @@ class EntityCreateRequest(ODataHttpRequest):
        and get the newly created entity."""
 
     def __init__(self, url, connection, handler, entity_set, last_segment=None, response_hook=None):
-        super(EntityCreateRequest, self).__init__(url, connection, handler, response_hook=response_hook)
+        super().__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
@@ -564,7 +564,7 @@ class EntityDeleteRequest(ODataHttpRequest):
     """Used for deleting entity (DELETE operations on a single entity)"""
 
     def __init__(self, url, connection, handler, entity_set, entity_key, encode_path=True, response_hook=None):
-        super(EntityDeleteRequest, self).__init__(url, connection, handler, response_hook=response_hook)
+        super().__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_key = entity_key
@@ -598,7 +598,7 @@ class EntityModifyRequest(ODataHttpRequest):
     # pylint: disable=too-many-arguments
     def __init__(self, url, connection, handler, entity_set, entity_key, method="PATCH", encode_path=True,
                  response_hook=None):
-        super(EntityModifyRequest, self).__init__(url, connection, handler, response_hook=response_hook)
+        super().__init__(url, connection, handler, response_hook=response_hook)
         self._logger = logging.getLogger(LOGGER_NAME)
         self._entity_set = entity_set
         self._entity_type = entity_set.entity_type
@@ -663,7 +663,7 @@ class QueryRequest(ODataHttpRequest):
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, url, connection, handler, last_segment, response_hook=None):
-        super(QueryRequest, self).__init__(url, connection, handler, response_hook=response_hook)
+        super().__init__(url, connection, handler, response_hook=response_hook)
 
         self._logger = logging.getLogger(LOGGER_NAME)
         self._count = None
@@ -750,7 +750,7 @@ class QueryRequest(ODataHttpRequest):
         if self._next_url:
             return {}
 
-        qparams = super(QueryRequest, self).get_query_params()
+        qparams = super().get_query_params()
 
         if self._top is not None:
             qparams['$top'] = self._top
@@ -780,7 +780,7 @@ class FunctionRequest(QueryRequest):
     """Function import request (Service call)"""
 
     def __init__(self, url, connection, handler, function_import, response_hook=None):
-        super(FunctionRequest, self).__init__(
+        super().__init__(
             url, connection, handler, function_import.name,
             response_hook=response_hook)
 
@@ -1074,7 +1074,7 @@ class NavEntityProxy(EntityProxy):
 
     def __init__(self, parent_entity, prop_name, entity_type, entity):
         # pylint: disable=protected-access
-        super(NavEntityProxy, self).__init__(parent_entity._service, parent_entity._entity_set, entity_type, entity)
+        super().__init__(parent_entity._service, parent_entity._entity_set, entity_type, entity)
 
         self._parent_entity = parent_entity
         self._prop_name = prop_name
@@ -1317,7 +1317,7 @@ class GetEntitySetFilterChainable:
             return f'substringof({value}, {field_name}) eq true'
 
         if operator == 'range':
-            if not isinstance(value, (tuple, list)):
+            if not isinstance(value, tuple | list):
                 raise TypeError(f'Range must be tuple or list not {type(value)}')
 
             if len(value) != 2:
@@ -1347,7 +1347,7 @@ class GetEntitySetRequest(QueryRequest):
     """GET on EntitySet"""
 
     def __init__(self, url, connection, handler, last_segment, entity_type, encode_path=True, response_hook=None):
-        super(GetEntitySetRequest, self).__init__(url, connection, handler, last_segment, response_hook=response_hook)
+        super().__init__(url, connection, handler, last_segment, response_hook=response_hook)
 
         self._entity_type = entity_type
         self._encode_path = encode_path
@@ -1392,7 +1392,7 @@ class ListWithTotalCount(list):
     """
 
     def __init__(self, total_count, next_url):
-        super(ListWithTotalCount, self).__init__()
+        super().__init__()
         self._total_count = total_count
         self._next_url = next_url
 
@@ -1723,7 +1723,7 @@ class FunctionContainer:
             response_data = response.json()['d']
 
             # 1. if return type is an entity type or collection, resolve the entity set once
-            if isinstance(fimport.return_type, (model.EntityType, model.Collection)):
+            if isinstance(fimport.return_type, model.EntityType | model.Collection):
                 entity_set = self._service.schema.entity_set(fimport.entity_set_name)
 
             if isinstance(fimport.return_type, model.EntityType):
@@ -1915,7 +1915,7 @@ class MultipartRequest(ODataHttpRequest):
     """HTTP Batch request"""
 
     def __init__(self, url, connection, handler, request_id=None):
-        super(MultipartRequest, self).__init__(url, connection, partial(MultipartRequest.http_response_handler, self))
+        super().__init__(url, connection, partial(MultipartRequest.http_response_handler, self))
 
         self.requests = []
         self._handler_decoded = handler

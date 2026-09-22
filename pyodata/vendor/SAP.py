@@ -99,6 +99,6 @@ class BusinessGatewayError(HttpError):
                 'The HTTP error is not a SAP BusinessGateway JSON error')
             logging.debug('JSON parsing error: %s', str(ex))
 
-        super(BusinessGatewayError, self).__init__(message, response)
+        super().__init__(message, response)
 
         self.errordetails = errordetails
