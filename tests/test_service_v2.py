@@ -757,6 +757,36 @@ def test_update_entity(service):
 
 
 @responses.activate
+@pytest.mark.parametrize('status', [200, 204])
+def test_update_entity_accepts_ok_and_no_content(service, status):
+    """Update succeeds whether the service answers 204 No Content or 200 OK (e.g. SuccessFactors, #136)"""
+
+    # pylint: disable=redefined-outer-name
+    responses.add(responses.PATCH, f"{service.url}/{quote('Employees(23)')}", status=status)
+
+    request = service.entity_sets.Employees.update_entity(23)
+    request.set(NameFirst='Jane')
+
+    assert request.execute() is None
+
+
+@responses.activate
+def test_update_entity_rejects_unexpected_status(service):
+    """Update still raises HttpError for a status that does not mean success"""
+
+    # pylint: disable=redefined-outer-name
+    responses.add(responses.PATCH, f"{service.url}/{quote('Employees(23)')}", status=400)
+
+    request = service.entity_sets.Employees.update_entity(23)
+    request.set(NameFirst='Jane')
+
+    with pytest.raises(HttpError) as e_info:
+        request.execute()
+
+    assert str(e_info.value) == 'HTTP modify request for Entity Set Employees failed with status code 400'
+
+
+@responses.activate
 def test_delete_entity(service):
     """Check deleting of entity"""
 

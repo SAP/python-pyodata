@@ -23,6 +23,7 @@ LOGGER_NAME = 'pyodata.service'
 
 HTTP_CODE_OK = 200
 HTTP_CODE_CREATED = 201
+HTTP_CODE_NO_CONTENT = 204
 
 
 def urljoin(*path):
@@ -1594,7 +1595,9 @@ class EntitySetProxy:
         def update_entity_handler(response):
             """Gets modified entity encoded in HTTP Response"""
 
-            if response.status_code != 204:
+            # OData V2 answers a successful update with 204 No Content, but some services
+            # (e.g. SAP SuccessFactors) reply 200 OK instead.
+            if response.status_code not in (HTTP_CODE_OK, HTTP_CODE_NO_CONTENT):
                 raise HttpError('HTTP modify request for Entity Set {} failed with status code {}'
                                 .format(self._name, response.status_code), response)
 
