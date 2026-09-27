@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- service: `update_entity` accepts `200 OK` as well as `204 No Content`, so updates against services such as SAP SuccessFactors no longer raise `HttpError` (#136) - Sena Köse
+
 ## [1.12.1]
 
 ### Fixed
