@@ -1285,58 +1285,44 @@ class GetEntitySetFilterChainable:
     def _combine_expressions(self, expressions):
         return ' and '.join(expressions)
 
-    # pylint: disable=too-many-return-statements, too-many-branches
     def _build_expression(self, field_name, operator, value):
         target_field = self.proprty_obj(field_name)
 
         if operator not in ['length', 'in', 'range']:
             value = target_field.to_literal(value)
 
-        if operator == 'lt':
-            return f'{field_name} lt {value}'
-
-        if operator == 'lte':
-            return f'{field_name} le {value}'
-
-        if operator == 'gte':
-            return f'{field_name} ge {value}'
-
-        if operator == 'gt':
-            return f'{field_name} gt {value}'
-
-        if operator == 'startswith':
-            return f'startswith({field_name}, {value}) eq true'
-
-        if operator == 'endswith':
-            return f'endswith({field_name}, {value}) eq true'
-
-        if operator == 'length':
-            value = int(value)
-            return f'length({field_name}) eq {value}'
-
-        if operator in ['contains']:
-            return f'substringof({value}, {field_name}) eq true'
-
-        if operator == 'range':
-            if not isinstance(value, tuple | list):
-                raise TypeError(f'Range must be tuple or list not {type(value)}')
-
-            if len(value) != 2:
-                raise ValueError('Only two items can be passed in a range.')
-
-            low_bound = target_field.to_literal(value[0])
-            high_bound = target_field.to_literal(value[1])
-
-            return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
-
-        if operator == 'in':
-            literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
-            return ' or '.join(literal_values)
-
-        if operator == 'eq':
-            return f'{field_name} eq {value}'
-
-        raise ValueError(f'Invalid expression {operator}')
+        match operator:
+            case 'lt':
+                return f'{field_name} lt {value}'
+            case 'lte':
+                return f'{field_name} le {value}'
+            case 'gte':
+                return f'{field_name} ge {value}'
+            case 'gt':
+                return f'{field_name} gt {value}'
+            case 'startswith':
+                return f'startswith({field_name}, {value}) eq true'
+            case 'endswith':
+                return f'endswith({field_name}, {value}) eq true'
+            case 'length':
+                return f'length({field_name}) eq {int(value)}'
+            case 'contains':
+                return f'substringof({value}, {field_name}) eq true'
+            case 'range':
+                if not isinstance(value, tuple | list):
+                    raise TypeError(f'Range must be tuple or list not {type(value)}')
+                if len(value) != 2:
+                    raise ValueError('Only two items can be passed in a range.')
+                low_bound = target_field.to_literal(value[0])
+                high_bound = target_field.to_literal(value[1])
+                return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
+            case 'in':
+                literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
+                return ' or '.join(literal_values)
+            case 'eq':
+                return f'{field_name} eq {value}'
+            case _:
+                raise ValueError(f'Invalid expression {operator}')
 
     def __str__(self):
         expressions = self._process_expressions()
