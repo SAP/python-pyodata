@@ -250,27 +250,22 @@ class ODataHttpRequest:
 
     def get_path(self):
         """Get path of the HTTP request"""
-        # pylint: disable=no-self-use
         return ''
 
     def get_query_params(self):
         """Get query params"""
-        # pylint: disable=no-self-use
         return dict(self._customs)
 
     def get_method(self):
         """Get HTTP method"""
-        # pylint: disable=no-self-use
         return 'GET'
 
     def get_body(self):
         """Get HTTP body or None if not applicable"""
-        # pylint: disable=no-self-use
         return None
 
     def get_default_headers(self):
         """Get dict of Child specific HTTP headers"""
-        # pylint: disable=no-self-use
         return dict()
 
     def get_headers(self):
@@ -500,7 +495,6 @@ class EntityCreateRequest(ODataHttpRequest):
         return self._last_segment
 
     def get_method(self):
-        # pylint: disable=no-self-use
         return 'POST'
 
     def _get_body(self):
@@ -583,7 +577,6 @@ class EntityDeleteRequest(ODataHttpRequest):
         return self._encode_path
 
     def get_method(self):
-        # pylint: disable=no-self-use
         return 'DELETE'
 
 
@@ -624,11 +617,9 @@ class EntityModifyRequest(ODataHttpRequest):
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
-        # pylint: disable=no-self-use
         return self._method
 
     def get_body(self):
-        # pylint: disable=no-self-use
         body = {}
         for key, val in self._values.items():
             body[key] = val
@@ -1281,7 +1272,6 @@ class GetEntitySetFilterChainable:
 
         return expression
 
-    # pylint: disable=no-self-use
     def _combine_expressions(self, expressions):
         return ' and '.join(expressions)
 
@@ -1926,7 +1916,6 @@ class MultipartRequest(ODataHttpRequest):
         return self.id
 
     def get_default_headers(self):
-        # pylint: disable=no-self-use
         return {'Content-Type': f'multipart/mixed;boundary={self.get_boundary()}'}
 
     def get_body(self):
@@ -1961,11 +1950,9 @@ class BatchRequest(MultipartRequest):
         return 'batch_' + self.id
 
     def get_path(self):
-        # pylint: disable=no-self-use
         return '$batch'
 
     def get_method(self):
-        # pylint: disable=no-self-use
         return 'POST'
 
 

@@ -282,7 +282,6 @@ class EdmStructTypeSerializer:
     @staticmethod
     def to_literal(edm_type, value):
 
-        # pylint: disable=no-self-use
         if not edm_type:
             raise PyODataException(f'Cannot encode value {value} without complex type information')
 
@@ -296,7 +295,6 @@ class EdmStructTypeSerializer:
     @staticmethod
     def from_json(edm_type, value):
 
-        # pylint: disable=no-self-use
         if not edm_type:
             raise PyODataException(f'Cannot decode value {value} without complex type information')
 
@@ -310,7 +308,6 @@ class EdmStructTypeSerializer:
     @staticmethod
     def from_literal(edm_type, value):
 
-        # pylint: disable=no-self-use
         if not edm_type:
             raise PyODataException(f'Cannot decode value {value} without complex type information')
 
@@ -328,11 +325,9 @@ class TypTraits:
     def __repr__(self):
         return self.__class__.__name__
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return value
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         return value
 
@@ -568,11 +563,9 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
 class EdmStringTypTraits(TypTraits):
     """Edm.String traits"""
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return '\'%s\'' % (str(value).replace("'", "''"))
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         return value
 
@@ -585,11 +578,9 @@ class EdmStringTypTraits(TypTraits):
 class EdmBooleanTypTraits(TypTraits):
     """Edm.Boolean traits"""
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return 'true' if value else 'false'
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         return value
 
@@ -600,11 +591,9 @@ class EdmBooleanTypTraits(TypTraits):
 class EdmIntTypTraits(TypTraits):
     """All Edm Integer traits"""
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return '%d' % (value)
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         return int(value)
 
@@ -615,11 +604,9 @@ class EdmIntTypTraits(TypTraits):
 class EdmLongIntTypTraits(TypTraits):
     """All Edm Integer for big numbers traits"""
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return '%dL' % (value)
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         if value[-1] == 'L':
             return int(value[:-1])
@@ -655,14 +642,12 @@ class EdmFPNumTypTraits(TypTraits):
     def edm_single():
         return EdmFPNumTypTraits(7, 'f', '{:f}')
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return self.conversion.format(value)
 
     def to_json(self, value):
         return self.to_literal(value)
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         if not isinstance(value, str) or value[-1] != self.suffix:
             return float(value)
@@ -680,11 +665,9 @@ class EdmStructTypTraits(TypTraits):
         super().__init__()
         self._edm_type = edm_type
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         return EdmStructTypeSerializer.to_literal(self._edm_type, value)
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         return EdmStructTypeSerializer.from_json(self._edm_type, value)
 
@@ -761,14 +744,12 @@ class Collection(Typ):
     def traits(self):
         return self
 
-    # pylint: disable=no-self-use
     def to_literal(self, value):
         if not isinstance(value, list):
             raise PyODataException(f'Bad format: invalid list value {value}')
 
         return [self._item_type.traits.to_literal(v) for v in value]
 
-    # pylint: disable=no-self-use
     def from_json(self, value):
         if not isinstance(value, list):
             raise PyODataException(f'Bad format: invalid list value {value}')
