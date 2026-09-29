@@ -1285,6 +1285,7 @@ class GetEntitySetFilterChainable:
     def _combine_expressions(self, expressions):
         return ' and '.join(expressions)
 
+    # pylint: disable=too-many-return-statements
     def _build_expression(self, field_name, operator, value):
         target_field = self.proprty_obj(field_name)
 

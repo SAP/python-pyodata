@@ -65,7 +65,11 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=locally-disabled, super-with-arguments, raise-missing-from
+disable=locally-disabled, super-with-arguments, raise-missing-from,
+        consider-using-f-string,
+        use-dict-literal,
+        use-list-literal,
+        global-variable-not-assigned
 
 
 [REPORTS]
