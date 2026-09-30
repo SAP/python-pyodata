@@ -861,33 +861,23 @@ class EntityProxy:
                     # entity type of navigation property
                     prop_etype = prop.to_role.entity_type
 
-                    # cache value according to multiplicity
-                    if prop.to_role.multiplicity in \
-                            [model.EndRole.MULTIPLICITY_ONE,
-                             model.EndRole.MULTIPLICITY_ZERO_OR_ONE]:
-
-                        # cache None in case we receive nothing (null) instead of entity data
-                        if proprties[prop.name] is None:
-                            self._cache[prop.name] = None
-                        else:
-                            self._cache[prop.name] = EntityProxy(service, None, prop_etype, proprties[prop.name])
-
-                    elif prop.to_role.multiplicity == model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
-                        # default value is empty array
-                        self._cache[prop.name] = []
-
-                        # if there are no entities available, received data consists of
-                        # metadata properties only.
-                        if 'results' in proprties[prop.name]:
-                            # available entities are serialized in results array
-                            for entity in proprties[prop.name]['results']:
-                                self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
-                        elif isinstance(proprties[prop.name], list):
-                            for entity in proprties[prop.name]:
-                                self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
-                    else:
-                        raise PyODataException('Unknown multiplicity {0} of association role {1}'
-                                               .format(prop.to_role.multiplicity, prop.to_role.name))
+                    match prop.to_role.multiplicity:
+                        case model.EndRole.MULTIPLICITY_ONE | model.EndRole.MULTIPLICITY_ZERO_OR_ONE:
+                            if proprties[prop.name] is None:
+                                self._cache[prop.name] = None
+                            else:
+                                self._cache[prop.name] = EntityProxy(service, None, prop_etype, proprties[prop.name])
+                        case model.EndRole.MULTIPLICITY_ZERO_OR_MORE:
+                            self._cache[prop.name] = []
+                            if 'results' in proprties[prop.name]:
+                                for entity in proprties[prop.name]['results']:
+                                    self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
+                            elif isinstance(proprties[prop.name], list):
+                                for entity in proprties[prop.name]:
+                                    self._cache[prop.name].append(EntityProxy(service, None, prop_etype, entity))
+                        case _:
+                            raise PyODataException('Unknown multiplicity {0} of association role {1}'
+                                                   .format(prop.to_role.multiplicity, prop.to_role.name))
 
         # build entity key if not provided
         if self._entity_key is None:
@@ -1702,32 +1692,29 @@ class FunctionContainer:
 
             response_data = response.json()['d']
 
-            # 1. if return type is an entity type or collection, resolve the entity set once
-            if isinstance(fimport.return_type, model.EntityType | model.Collection):
-                entity_set = self._service.schema.entity_set(fimport.entity_set_name)
-
-            if isinstance(fimport.return_type, model.EntityType):
-                return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
-
-            if isinstance(fimport.return_type, model.Collection):
-                total_count = None
-                next_url = None
-                if '__count' in response_data:
-                    total_count = int(response_data['__count'])
-                if '__next' in response_data:
-                    next_url = response_data['__next']
-                results = response_data.get('results')
-                if results is None:
-                    raise PyODataException(
-                        f'Function import {fimport.name} returned a Collection response without a "results" key')
-                collection = ListWithTotalCount(total_count, next_url)
-                collection_item_type = fimport.return_type.item_type
-                for entity in results:
-                    collection.append(EntityProxy(self._service, entity_set, collection_item_type, entity))
-                return collection
-
-            # 2. return raw data for all other return types (primitives, complex types encoded in dicts, etc.)
-            return response_data
+            match fimport.return_type:
+                case model.EntityType():
+                    entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+                    return EntityProxy(self._service, entity_set, fimport.return_type, response_data)
+                case model.Collection():
+                    entity_set = self._service.schema.entity_set(fimport.entity_set_name)
+                    total_count = None
+                    next_url = None
+                    if '__count' in response_data:
+                        total_count = int(response_data['__count'])
+                    if '__next' in response_data:
+                        next_url = response_data['__next']
+                    results = response_data.get('results')
+                    if results is None:
+                        raise PyODataException(
+                            f'Function import {fimport.name} returned a Collection response without a "results" key')
+                    collection = ListWithTotalCount(total_count, next_url)
+                    collection_item_type = fimport.return_type.item_type
+                    for entity in results:
+                        collection.append(EntityProxy(self._service, entity_set, collection_item_type, entity))
+                    return collection
+                case _:
+                    return response_data
 
         return FunctionRequest(self._service.url, self._service.connection,
                                partial(function_import_handler, fimport), fimport,
