@@ -2442,15 +2442,15 @@ class ValueHelper(Annotation):
         search_supported = False
         params_node = None
         for prop_value in annotation_node.xpath('edm:Record/edm:PropertyValue', namespaces=ANNOTATION_NAMESPACES):
-            rprop = prop_value.get('Property')
-            if rprop == 'Label':
-                label = prop_value.get('String')
-            elif rprop == 'CollectionPath':
-                collection_path = prop_value.get('String')
-            elif rprop == 'SearchSupported':
-                search_supported = prop_value.get('Bool')
-            elif rprop == 'Parameters':
-                params_node = prop_value
+            match prop_value.get('Property'):
+                case 'Label':
+                    label = prop_value.get('String')
+                case 'CollectionPath':
+                    collection_path = prop_value.get('String')
+                case 'SearchSupported':
+                    search_supported = prop_value.get('Bool')
+                case 'Parameters':
+                    params_node = prop_value
 
         value_helper = ValueHelper(target, collection_path, label, search_supported)
 
@@ -2536,11 +2536,11 @@ class ValueHelperParameter:
         local_prop_name = None
         list_prop_name = None
         for pval in value_help_parameter_node.xpath('edm:PropertyValue', namespaces=ANNOTATION_NAMESPACES):
-            pv_name = pval.get('Property')
-            if pv_name == 'LocalDataProperty':
-                local_prop_name = pval.get('PropertyPath')
-            elif pv_name == 'ValueListProperty':
-                list_prop_name = pval.get('String')
+            match pval.get('Property'):
+                case 'LocalDataProperty':
+                    local_prop_name = pval.get('PropertyPath')
+                case 'ValueListProperty':
+                    list_prop_name = pval.get('String')
 
         return ValueHelperParameter(direction, local_prop_name, list_prop_name)
 
@@ -2707,12 +2707,13 @@ class MetadataBuilder:
     def build(self):
         """ Build model from the XML metadata"""
 
-        if isinstance(self._xml, str):
-            mdf = io.StringIO(self._xml)
-        elif isinstance(self._xml, bytes):
-            mdf = io.BytesIO(self._xml)
-        else:
-            raise TypeError(f'Expected bytes or str type on metadata_xml, got : {type(self._xml)}')
+        match self._xml:
+            case str():
+                mdf = io.StringIO(self._xml)
+            case bytes():
+                mdf = io.BytesIO(self._xml)
+            case _:
+                raise TypeError(f'Expected bytes or str type on metadata_xml, got : {type(self._xml)}')
 
         namespaces = self._config.namespaces
 
