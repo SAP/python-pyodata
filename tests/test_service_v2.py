@@ -19,6 +19,48 @@ from tests.conftest import assert_request_contains_header, contents_of_fixtures_
 URL_ROOT = 'http://odatapy.example.com'
 
 
+@pytest.mark.parametrize('single', [False, True])
+@pytest.mark.parametrize('make_selection', [list, tuple, iter])
+def test_select_iterable(service, single, make_selection):
+    """Iterable selections are serialized as one comma-separated query value."""
+    request = (service.entity_sets.Employees.get_entity(23) if single
+               else service.entity_sets.Employees.get_entities())
+    assert request.select(make_selection(['NameFirst', 'NameLast'])) is request
+    assert request.get_query_params()['$select'] == 'NameFirst,NameLast'
+    # A generator must not be consumed again while building another request.
+    assert request.get_query_params()['$select'] == 'NameFirst,NameLast'
+
+
+@pytest.mark.parametrize('single', [False, True])
+def test_select_string_and_reset(service, single):
+    """String selections and clearing an existing selection remain supported."""
+    request = (service.entity_sets.Employees.get_entity(23) if single
+               else service.entity_sets.Employees.get_entities())
+    assert request.select('NameFirst,NameLast') is request
+    assert request.get_query_params()['$select'] == 'NameFirst,NameLast'
+    assert request.select(None) is request
+    assert '$select' not in request.get_query_params()
+
+
+@pytest.mark.parametrize('single', [False, True])
+@pytest.mark.parametrize('selection', ['*', ['*'], ('*',), {'*'}])
+def test_select_wildcard(service, single, selection):
+    """Both request types preserve the OData all-properties selection."""
+    request = (service.entity_sets.Employees.get_entity(23) if single
+               else service.entity_sets.Employees.get_entities())
+    assert request.select(selection) is request
+    assert request.get_query_params()['$select'] == '*'
+
+
+@pytest.mark.parametrize('single', [False, True])
+def test_select_set(service, single):
+    """Unordered selection inputs retain every requested property."""
+    request = (service.entity_sets.Employees.get_entity(23) if single
+               else service.entity_sets.Employees.get_entities())
+    request.select({'NameFirst', 'NameLast'})
+    assert set(request.get_query_params()['$select'].split(',')) == {'NameFirst', 'NameLast'}
+
+
 @pytest.fixture
 def service(schema):
     """Service fixture"""
