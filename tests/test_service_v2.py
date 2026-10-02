@@ -19,6 +19,69 @@ from tests.conftest import assert_request_contains_header, contents_of_fixtures_
 URL_ROOT = 'http://odatapy.example.com'
 
 
+@pytest.mark.parametrize('operation', ['get_entity', 'update_entity', 'delete_entity'])
+@pytest.mark.parametrize('key', ['/BAZ/FOO', "O'/Neil", 'a%2Fb'])
+def test_entity_key_path_escaping(service, operation, key):
+    """Slashes in key literals do not become path separators."""
+    request = getattr(service.entity_sets.MasterEntities, operation)(key)
+    expected = quote("MasterEntities('%s')" % key.replace("'", "''"), safe='')
+    assert request.get_path() == expected
+
+
+@responses.activate
+@pytest.mark.parametrize('key', ['/BAZ/FOO', "O'/Neil", 'a%2Fb', "'wrapped'"])
+def test_entity_key_response_round_trip(service, key):
+    """JSON keys retain literal characters when reused in an encoded request."""
+    responses.add(responses.GET, f'{service.url}/MasterEntities',
+                  json={'d': {'results': [{'Key': key, 'Data': key}]}}, status=200)
+    entity = service.entity_sets.MasterEntities.get_entities().execute()[0]
+    assert entity.Key == key
+    assert entity.Data == key
+    request = service.entity_sets.MasterEntities.get_entity(entity.Key)
+    expected = quote("MasterEntities('%s')" % key.replace("'", "''"), safe='')
+    assert request.get_path() == expected
+    responses.add(responses.GET, f'{service.url}/{expected}',
+                  json={'d': {'Key': key, 'Data': key}}, status=200)
+    assert request.execute().Key == key
+
+
+def test_navigation_path_preserves_separator(service):
+    """Encode slashes in a parent key while retaining the navigation separator."""
+    request = service.entity_sets.Customers.get_entity("O'/Neil").nav('Orders').get_entities()
+    assert request.get_path() == quote("Customers('O''/Neil')", safe='') + '/Orders'
+
+
+def test_unencoded_entity_key_path(service):
+    """Explicitly disabling encoding retains the raw key path."""
+    request = service.entity_sets.MasterEntities.get_entity('/BAZ/FOO', encode_path=False)
+    assert request.get_path() == "MasterEntities('/BAZ/FOO')"
+
+
+def test_single_navigation_key_path_escaping(service):
+    """Single-entity navigation also preserves literal and separator slashes."""
+    request = service.entity_sets.Customers.get_entity("O'/Neil").nav('ReferredBy')
+    assert request.get_path() == quote("Customers('O''/Neil')", safe='') + '/ReferredBy'
+
+
+@pytest.mark.parametrize('encode_path', [True, False])
+def test_batch_key_path_escaping(service, encode_path):
+    """Batch serialization retains exactly one level of key encoding."""
+    request = service.entity_sets.MasterEntities.update_entity(
+        '/BAZ/FOO', encode_path=encode_path).set(Data='updated')
+    changeset = service.create_changeset('slash_changeset')
+    changeset.add_request(request)
+    batch = service.create_batch('slash_batch')
+    batch.add_request(changeset)
+    path = "MasterEntities('/BAZ/FOO')"
+    if encode_path:
+        path = quote(path, safe='')
+    expected = f'{request.get_method()} {path} HTTP/1.1'
+    body = batch.get_body()
+    assert expected in body
+    decoded = pyodata.v2.service.decode_multipart(body, batch.get_headers()['Content-Type'])
+    assert decoded[0][0][0].startswith(expected)
+
+
 @pytest.fixture
 def service(schema):
     """Service fixture"""
