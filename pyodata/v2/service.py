@@ -26,6 +26,16 @@ HTTP_CODE_CREATED = 201
 HTTP_CODE_NO_CONTENT = 204
 
 
+def _quote_path(path):
+    """Encode path literals without escaping navigation separators.
+
+    OData doubles embedded apostrophes, so splitting on apostrophes keeps
+    literal contents at odd indices even when a key contains an apostrophe.
+    """
+    return '%27'.join(quote(part, safe='' if index % 2 else '/')
+                      for index, part in enumerate(path.split("'")))
+
+
 def urljoin(*path):
     """Joins the passed string parts into a one string url"""
 
@@ -412,7 +422,7 @@ class EntityGetRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
+            return _quote_path(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
@@ -569,7 +579,7 @@ class EntityDeleteRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return _quote_path(self._entity_set.name + self._entity_key.to_key_string())
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_encode_path(self):
@@ -613,7 +623,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return _quote_path(self._entity_set.name + self._entity_key.to_key_string())
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
@@ -1349,7 +1359,7 @@ class GetEntitySetRequest(QueryRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            path = quote(self._last_segment)
+            path = _quote_path(self._last_segment)
         else:
             path = self._last_segment
 
