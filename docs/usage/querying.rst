@@ -35,6 +35,19 @@ Print unique identification (Id) and last name of all employees:
         print(employee.EmployeeID, employee.LastName)
 
 
+Selecting properties
+--------------------
+
+Both single-entity and entity-set requests accept comma-separated text or an
+iterable of property names. Use ``'*'`` to request all properties, and ``None``
+to remove an existing selection:
+
+.. code-block:: python
+
+    employee = northwind.entity_sets.Employees.get_entity(1).select(['EmployeeID', 'LastName']).execute()
+    employees = northwind.entity_sets.Employees.get_entities().select('*').execute()
+
+
 Get entities matching a filter
 ------------------------------
 
