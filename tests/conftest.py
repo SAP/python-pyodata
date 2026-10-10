@@ -141,3 +141,19 @@ def type_date_time():
 @pytest.fixture
 def type_date_time_offset():
     return Types.from_name('Edm.DateTimeOffset')
+
+
+@pytest.fixture
+def metadata_v4():
+    """Example OData V4 metadata"""
+    return contents_of_fixtures_file("metadata_v4.xml")
+
+
+@pytest.fixture
+def schema_v4(metadata_v4):
+    """Parsed V4 metadata"""
+
+    # pylint: disable=redefined-outer-name
+
+    import pyodata.v4.model
+    return pyodata.v4.model.schema_from_xml(metadata_v4)

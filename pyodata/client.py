@@ -52,6 +52,7 @@ class Client:
     # pylint: disable=too-few-public-methods
 
     ODATA_VERSION_2 = 2
+    ODATA_VERSION_4 = 4
 
     @staticmethod
     async def build_async_client(url, connection, odata_version=ODATA_VERSION_2, namespaces=None,
@@ -72,6 +73,17 @@ class Client:
                 logger.info('Using static metadata')
             return Client._build_service(logger, url, connection, odata_version, namespaces, config, metadata,
                                          response_hook=response_hook)
+        if odata_version == Client.ODATA_VERSION_4:
+
+            # sanitize url
+            url = url.rstrip('/') + '/'
+
+            if metadata is None:
+                metadata = await _async_fetch_metadata(connection, url, logger)
+            else:
+                logger.info('Using static metadata')
+            return Client._build_service_v4(logger, url, connection, odata_version, config, metadata,
+                                            response_hook=response_hook)
         raise PyODataException(f'No implementation for selected odata version {odata_version}')
 
     def __new__(cls, url, connection, odata_version=ODATA_VERSION_2, namespaces=None,
@@ -92,6 +104,18 @@ class Client:
 
             return Client._build_service(logger, url, connection, odata_version, namespaces, config, metadata,
                                          response_hook=response_hook)
+        if odata_version == Client.ODATA_VERSION_4:
+
+            # sanitize url
+            url = url.rstrip('/') + '/'
+
+            if metadata is None:
+                metadata = _fetch_metadata(connection, url, logger)
+            else:
+                logger.info('Using static metadata')
+
+            return Client._build_service_v4(logger, url, connection, odata_version, config, metadata,
+                                            response_hook=response_hook)
         raise PyODataException(f'No implementation for selected odata version {odata_version}')
 
     @staticmethod
@@ -115,5 +139,26 @@ class Client:
         # create service instance based on model we have
         logger.info('Creating OData Service (version: %d)', odata_version)
         service = pyodata.v2.service.Service(url, schema, connection, config=config, response_hook=response_hook)
+
+        return service
+
+    @staticmethod
+    def _build_service_v4(logger, url, connection, odata_version=ODATA_VERSION_4,
+                          config=None, metadata: str = None, response_hook=None):
+
+        # Imported lazily so that pyodata.v2 users do not pay the cost of importing v4.
+        import pyodata.v4.model     # pylint: disable=import-outside-toplevel
+        import pyodata.v4.service   # pylint: disable=import-outside-toplevel
+
+        if config is None:
+            config = pyodata.v4.model.Config()
+
+        # create model instance from received metadata
+        logger.info('Creating OData Schema (version: %d)', odata_version)
+        schema = pyodata.v4.model.MetadataBuilder(metadata, config=config).build()
+
+        # create service instance based on model we have
+        logger.info('Creating OData Service (version: %d)', odata_version)
+        service = pyodata.v4.service.Service(url, schema, connection, config=config, response_hook=response_hook)
 
         return service

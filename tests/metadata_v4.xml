@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:Reference Uri="https://example.com/vocabularies.xml">
+    <edmx:Include Namespace="Org.OData.Core.V1" Alias="Core"/>
+  </edmx:Reference>
+  <edmx:DataServices>
+    <Schema Namespace="Northwind" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+
+      <EnumType Name="ProductStatus" UnderlyingType="Edm.Int32">
+        <Member Name="Active" Value="0"/>
+        <Member Name="Discontinued" Value="1"/>
+      </EnumType>
+
+      <ComplexType Name="Address">
+        <Property Name="Street" Type="Edm.String"/>
+        <Property Name="City" Type="Edm.String"/>
+      </ComplexType>
+
+      <EntityType Name="Category">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <NavigationProperty Name="Products" Type="Collection(Northwind.Product)" Partner="Category"/>
+      </EntityType>
+
+      <EntityType Name="Product" OpenType="true">
+        <Key>
+          <PropertyRef Name="ID"/>
+        </Key>
+        <Property Name="ID" Type="Edm.Int32" Nullable="false"/>
+        <Property Name="Name" Type="Edm.String"/>
+        <Property Name="Price" Type="Edm.Decimal" Scale="variable"/>
+        <Property Name="Quantity" Type="Edm.Int64"/>
+        <Property Name="Released" Type="Edm.DateTimeOffset"/>
+        <Property Name="Rating" Type="Edm.Int32"/>
+        <Property Name="Status" Type="Northwind.ProductStatus"/>
+        <NavigationProperty Name="Category" Type="Northwind.Category" Partner="Products"/>
+        <NavigationProperty Name="Supplier" Type="Northwind.Supplier" ContainsTarget="true"/>
+      </EntityType>
+
+      <EntityType Name="Supplier" BaseType="Northwind.Category">
+        <Property Name="Phone" Type="Edm.String"/>
+      </EntityType>
+
+      <Function Name="BestProduct" IsBound="false">
+        <Parameter Name="minRating" Type="Edm.Int32"/>
+        <ReturnType Type="Northwind.Product"/>
+      </Function>
+
+      <Action Name="Discount" IsBound="true">
+        <Parameter Name="product" Type="Northwind.Product"/>
+        <Parameter Name="percent" Type="Edm.Int32"/>
+      </Action>
+
+      <Action Name="ResetAll" IsBound="false"/>
+
+      <EntityContainer Name="Container">
+        <EntitySet Name="Products" EntityType="Northwind.Product">
+          <NavigationPropertyBinding Path="Category" Target="Categories"/>
+        </EntitySet>
+        <EntitySet Name="Categories" EntityType="Northwind.Category">
+          <NavigationPropertyBinding Path="Products" Target="Products"/>
+        </EntitySet>
+        <Singleton Name="BestSeller" Type="Northwind.Product"/>
+        <FunctionImport Name="BestProduct" Function="Northwind.BestProduct" EntitySet="Products"/>
+        <ActionImport Name="ResetAll" Action="Northwind.ResetAll"/>
+      </EntityContainer>
+
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>
