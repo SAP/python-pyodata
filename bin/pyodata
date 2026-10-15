@@ -28,6 +28,17 @@ POLICY_TARGETS={
 }
 
 
+def _nav_target_name(prop):
+    # V2 navigation properties reference an Association end role; V4 ones
+    # declare their target type inline and expose it via .typ.
+    to_role = getattr(prop, 'to_role', None)
+    if to_role is not None:
+        return to_role.entity_type_name
+    if prop.typ is not None:
+        return prop.typ.name
+    return prop.type_info.name
+
+
 def print_out_metadata_info(args, client):
     print('[Printing out all Entity Sets ...]')
     for es in client.schema.entity_sets:
@@ -43,10 +54,12 @@ def print_out_metadata_info(args, client):
             print(f' + {prop.name}({prop.typ.name})')
 
         for prop in es.entity_type.nav_proprties:
-            print(f' + {prop.name}({prop.to_role.entity_type_name})')
+            print(f' + {prop.name}({_nav_target_name(prop)})')
 
     for fs in client.schema.function_imports:
-        print(f'{fs.http_method} {fs.name}')
+        # V2 exposes the HTTP method on the import; V4 function imports do not.
+        http_method = getattr(fs, 'http_method', 'GET')
+        print(f'{http_method} {fs.name}')
 
         for param in fs.parameters:
             print(f' > {param.name}({param.typ.name})')
@@ -94,6 +107,15 @@ def print_out_entity_set(args, client):
 
 def print_out_function_import(args, client):
     function = getattr(client.functions, args.name)
+
+    for param in args.PARAMETERS or []:
+        try:
+            name, value = param.split('=', 1)
+        except ValueError:
+            print(f'Parameter must have the format NAME=VALUE: {param}', file=sys.stderr)
+            sys.exit(1)
+        function = function.parameter(name, value)
+
     response = function.execute()
     print(response)
 
@@ -114,6 +136,8 @@ def _parse_args(argv):
                         help='make verbose output')
     parser.add_argument('--chunk-size', type=int, default=0,
                         help='amount of fetched entities in one GET EntitySet Request; 0 means all')
+    parser.add_argument('--odata-version', type=int, default=2, choices=(2, 4),
+                        help='OData protocol version of the service (default: 2)')
 
     parser.set_defaults(func=print_out_metadata_info)
 
@@ -203,7 +227,8 @@ def _main(argv):
         config = get_config()
         config.set_custom_error_policy(custom_policies)
 
-    client = pyodata.Client(args.SERVICE_ROOT_URL, session, metadata=static_metadata, config=config)
+    client = pyodata.Client(args.SERVICE_ROOT_URL, session, odata_version=args.odata_version,
+                            metadata=static_metadata, config=config)
 
     args.func(args, client)
 
