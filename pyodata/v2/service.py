@@ -1296,7 +1296,7 @@ class GetEntitySetFilterChainable:
                     raise ValueError('Only two items can be passed in a range.')
                 low_bound = target_field.to_literal(value[0])
                 high_bound = target_field.to_literal(value[1])
-                return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
+                return f'{field_name} ge {low_bound} and {field_name} le {high_bound}'
             case 'in':
                 literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
                 return ' or '.join(literal_values)
