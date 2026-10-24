@@ -2721,7 +2721,7 @@ def test_count_with_chainable_filter_range_operator(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?$filter=ID%20gte%2020%20and%20ID%20lte%2050",
+        f"{service.url}/Employees/$count?$filter=ID%20ge%2020%20and%20ID%20le%2050",
         json=3,
         status=200)
 
@@ -2824,7 +2824,7 @@ def test_count_with_chained_filters(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?$filter=ID%20gte%2020%20and%20ID%20lte%2050%20and%20NickName%20eq%20%27Tim%27",
+        f"{service.url}/Employees/$count?$filter=ID%20ge%2020%20and%20ID%20le%2050%20and%20NickName%20eq%20%27Tim%27",
         json=3,
         status=200)
 
@@ -3110,14 +3110,14 @@ def test_custom_with_get_entities_and_chained_filters_url_params(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?foo=bar&$fizz=buzz&$filter=ID%20gte%2020%20and%20ID%20lte%2050%20and%20NickName%20eq%20%27Tim%27",
+        f"{service.url}/Employees/$count?foo=bar&$fizz=buzz&$filter=ID%20ge%2020%20and%20ID%20le%2050%20and%20NickName%20eq%20%27Tim%27",
         json=3,
         status=200)
 
     employees = service.entity_sets.Employees.get_entities().custom("foo", "bar").custom("$fizz", "buzz")
     request = employees.filter(ID__range=(20, 50)).filter(NickName="Tim").count()
 
-    assert request.get_query_params() == {'foo': 'bar', '$fizz': 'buzz', '$filter': "ID gte 20 and ID lte 50 and NickName eq 'Tim'"}
+    assert request.get_query_params() == {'foo': 'bar', '$fizz': 'buzz', '$filter': "ID ge 20 and ID le 50 and NickName eq 'Tim'"}
     assert request.get_path() == 'Employees/$count'
 
 
