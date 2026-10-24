@@ -1298,7 +1298,11 @@ class GetEntitySetFilterChainable:
                 high_bound = target_field.to_literal(value[1])
                 return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
             case 'in':
-                literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
+                literal_values = [f'{field_name} eq {target_field.to_literal(item)}' for item in value]
+                if len(literal_values) > 1:
+                    # 'and' binds tighter than 'or', so the alternatives must be
+                    # grouped to stay correct when combined with other lookups
+                    return f"({' or '.join(literal_values)})"
                 return ' or '.join(literal_values)
             case 'eq':
                 return f'{field_name} eq {value}'
