@@ -1171,8 +1171,10 @@ class GetEntitySetFilterChainable:
         FirstName__contains='Tim'
         Age__gt=56
         Age__gte=6
+        Age__ge=6
         Age__lt=78
         Age__lte=90
+        Age__le=90
         Age__range=(5,9)
         FirstName__in=['Tim', 'Bob', 'Sam']
         FirstName__startswith='Tim'
@@ -1186,8 +1188,10 @@ class GetEntitySetFilterChainable:
         'endswith',
         'lt',
         'lte',
+        'le',
         'gt',
         'gte',
+        'ge',
         'contains',
         'range',
         'in',
@@ -1275,9 +1279,11 @@ class GetEntitySetFilterChainable:
         match operator:
             case 'lt':
                 return f'{field_name} lt {value}'
-            case 'lte':
+            # 'lte' / 'gte' are the Django-style lookup names (#113), not OData
+            # operators; 'le' / 'ge' are the OData names. Both emit the OData operator.
+            case 'lte' | 'le':
                 return f'{field_name} le {value}'
-            case 'gte':
+            case 'gte' | 'ge':
                 return f'{field_name} ge {value}'
             case 'gt':
                 return f'{field_name} gt {value}'
