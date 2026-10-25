@@ -2534,6 +2534,26 @@ def test_count_with_chainable_filter_lte_operator(service):
 
 
 @responses.activate
+def test_count_with_chainable_filter_le_operator(service):
+    """Check that the OData operator name 'le' works as a filter lookup"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees/$count?%24filter=ID%20le%2023",
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__le=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
 def test_count_with_chainable_filter_gt_operator(service):
     """Check getting $count with $filter with new filter syntax using multiple filters"""
 
@@ -2567,6 +2587,26 @@ def test_count_with_chainable_filter_gte_operator(service):
 
     employees = service.entity_sets.Employees.get_entities()
     request = employees.filter(ID__gte=23).count()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+
+    assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_ge_operator(service):
+    """Check that the OData operator name 'ge' works as a filter lookup"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees/$count?%24filter=ID%20ge%2023",
+        json=3,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__ge=23).count()
 
     assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
 
