@@ -597,6 +597,12 @@ def test_traits_datetime(type_date_time):
     assert testdate.microsecond == 100000
     assert testdate.tzinfo == timezone.utc
 
+    # parsing 7-digit fractional seconds (fffffff), truncated to microseconds
+    testdate = type_date_time.traits.from_literal("datetime'1976-11-23T03:33:06.1234567'")
+    assert testdate.second == 6
+    assert testdate.microsecond == 123456
+    assert testdate.tzinfo == timezone.utc
+
     # None returns None
     assert type_date_time.traits.from_literal(None) is None
 
@@ -773,6 +779,9 @@ def test_traits_datetimeoffset_to_json(type_date_time_offset, python_datetime, e
     ("datetimeoffset'1976-11-23t03:33:06+14:00'", datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone(timedelta(hours=14))), 'Maximum offset'),
     ("datetimeoffset'1976-11-23T03:33+01:00'", datetime(1976, 11, 23, 3, 33, 0, tzinfo=timezone(timedelta(hours=1))), 'No seconds with offset'),
     ("datetimeoffset'1976-11-23T03:33:06.654321Z'", datetime(1976, 11, 23, 3, 33, 6, microsecond=654321, tzinfo=timezone.utc), 'Microseconds with Z'),
+    ("datetimeoffset'1976-11-23T03:33:06.5+01:00'", datetime(1976, 11, 23, 3, 33, 6, microsecond=500000, tzinfo=timezone(timedelta(hours=1))), 'Sub-6-digit fraction with offset'),
+    ("datetimeoffset'1976-11-23T03:33:06.12Z'", datetime(1976, 11, 23, 3, 33, 6, microsecond=120000, tzinfo=timezone.utc), 'Sub-6-digit fraction with Z'),
+    ("datetimeoffset'1976-11-23T03:33:06.1234567-02:00'", datetime(1976, 11, 23, 3, 33, 6, microsecond=123456, tzinfo=timezone(timedelta(hours=-2))), '7-digit fraction with offset'),
 ])
 def test_traits_datetimeoffset_from_literal(type_date_time_offset, literal, expected, comment):
     """Test Edm.DateTimeOffset trait: literal -> Python"""
