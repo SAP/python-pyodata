@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - service: `update_entity` accepts `200 OK` as well as `204 No Content`, so updates against services such as SAP SuccessFactors no longer raise `HttpError` (#136) - Sena Köse
+- model: `Edm.DateTime` and `Edm.DateTimeOffset` literals with 7-digit fractional seconds, and `Edm.DateTimeOffset` literals with fewer than 6 digits, no longer fail to parse on Python 3.10 - Vitor Coelho
 
 ## [1.12.1]
 
