@@ -389,14 +389,18 @@ def ms_since_epoch_to_datetime(value, tzinfo):
                                 f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
 
 
+def normalize_fractional_seconds(value):
+    """Pad or truncate fractional seconds to exactly 6 digits
+
+       fromisoformat on Python < 3.11 accepts only 3 or 6 digits, while OData
+       literals may carry 1 to 7 digits (fffffff) followed by an offset.
+    """
+    return re.sub(r'\.(\d+)', lambda match: '.' + match.group(1)[:6].ljust(6, '0'), value, count=1)
+
+
 def parse_datetime_literal(value):
     try:
-        # fromisoformat on Python < 3.11 requires fractional seconds to be exactly
-        # 3 or 6 digits; pad to 6 if needed
-        if '.' in value:
-            dt_part, frac = value.rsplit('.', 1)
-            value = f'{dt_part}.{frac.ljust(6, "0")}'
-        return datetime.datetime.fromisoformat(value)
+        return datetime.datetime.fromisoformat(normalize_fractional_seconds(value))
     except ValueError:
         raise PyODataModelError(f'Cannot decode datetime from value {value}.')
 
@@ -550,11 +554,7 @@ class EdmDateTimeOffsetTypTraits(EdmPrefixedTypTraits):
         value = super().from_literal(value)
 
         try:
-            normalized = value.upper().replace('Z', '+00:00')
-            if '.' in normalized:
-                dt_part, rest = normalized.split('.', 1)
-                frac, tz_suffix = rest[:6].ljust(6, '0'), rest[6:]
-                normalized = f'{dt_part}.{frac}{tz_suffix}'
+            normalized = normalize_fractional_seconds(value.upper().replace('Z', '+00:00'))
             return datetime.datetime.fromisoformat(normalized)
         except ValueError:
             raise PyODataModelError(f'Cannot decode datetimeoffset from value {value}.')
