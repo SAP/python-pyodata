@@ -1171,8 +1171,10 @@ class GetEntitySetFilterChainable:
         FirstName__contains='Tim'
         Age__gt=56
         Age__gte=6
+        Age__ge=6
         Age__lt=78
         Age__lte=90
+        Age__le=90
         Age__range=(5,9)
         FirstName__in=['Tim', 'Bob', 'Sam']
         FirstName__startswith='Tim'
@@ -1186,8 +1188,10 @@ class GetEntitySetFilterChainable:
         'endswith',
         'lt',
         'lte',
+        'le',
         'gt',
         'gte',
+        'ge',
         'contains',
         'range',
         'in',
@@ -1275,9 +1279,11 @@ class GetEntitySetFilterChainable:
         match operator:
             case 'lt':
                 return f'{field_name} lt {value}'
-            case 'lte':
+            # 'lte' / 'gte' are the Django-style lookup names (#113), not OData
+            # operators; 'le' / 'ge' are the OData names. Both emit the OData operator.
+            case 'lte' | 'le':
                 return f'{field_name} le {value}'
-            case 'gte':
+            case 'gte' | 'ge':
                 return f'{field_name} ge {value}'
             case 'gt':
                 return f'{field_name} gt {value}'
@@ -1296,7 +1302,7 @@ class GetEntitySetFilterChainable:
                     raise ValueError('Only two items can be passed in a range.')
                 low_bound = target_field.to_literal(value[0])
                 high_bound = target_field.to_literal(value[1])
-                return f'{field_name} gte {low_bound} and {field_name} lte {high_bound}'
+                return f'{field_name} ge {low_bound} and {field_name} le {high_bound}'
             case 'in':
                 literal_values = (f'{field_name} eq {target_field.to_literal(item)}' for item in value)
                 return ' or '.join(literal_values)
