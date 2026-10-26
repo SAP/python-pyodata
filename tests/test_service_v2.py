@@ -2601,7 +2601,7 @@ def test_count_with_chainable_filter_in_operator(service):
 
     responses.add(
         responses.GET,
-        f"{service.url}/Employees/$count?$filter=ID%20eq%201%20or%20ID%20eq%202%20or%20ID%20eq%203",
+        f"{service.url}/Employees/$count?$filter=%28ID%20eq%201%20or%20ID%20eq%202%20or%20ID%20eq%203%29",
         json=3,
         status=200)
 
@@ -2611,6 +2611,37 @@ def test_count_with_chainable_filter_in_operator(service):
     assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
 
     assert request.execute() == 3
+
+
+@responses.activate
+def test_count_with_chainable_filter_in_operator_and_other_lookup(service):
+    """Check that the alternatives of $filter in are grouped when combined with another lookup"""
+
+    # pylint: disable=redefined-outer-name
+
+    responses.add(
+        responses.GET,
+        f"{service.url}/Employees/$count?$filter=%28ID%20eq%201%20or%20ID%20eq%202%29%20and%20NickName%20eq%20%27Tim%27",
+        json=1,
+        status=200)
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__in=[1, 2], NickName="Tim").count()
+
+    assert request.get_query_params()['$filter'] == "(ID eq 1 or ID eq 2) and NickName eq 'Tim'"
+    assert request.execute() == 1
+
+
+@responses.activate
+def test_count_with_chainable_filter_in_operator_single_value(service):
+    """Check that $filter in with a single value is a plain comparison"""
+
+    # pylint: disable=redefined-outer-name
+
+    employees = service.entity_sets.Employees.get_entities()
+    request = employees.filter(ID__in=[1]).count()
+
+    assert request.get_query_params()['$filter'] == "ID eq 1"
 
 
 @responses.activate
