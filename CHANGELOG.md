@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - service: the chainable filter accepts the OData operator names `__le` / `__ge` as lookups, next to the Django-style `__lte` / `__gte` - Vitor Coelho
+- service: opt-in `filter(group=True, ...)` preserves grouping when combining ORM filters and chained calls (#280) - Umut Alisoglu
 
 ### Fixed
 

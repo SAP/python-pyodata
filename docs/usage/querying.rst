@@ -96,6 +96,38 @@ Print unique identification (Id) of all employees with name John Smith:
         print(smith.EmployeeID)
 
 
+Grouping ORM filter conditions
+------------------------------
+
+Pass ``group=True`` to keep each condition grouped when combining ``and`` and
+``or``. This is useful for ``__in`` lookups, which expand to alternatives:
+
+.. code-block:: python
+
+    request = service.entity_sets.Employees.get_entities().filter(
+        ID__in=[2, 3], NameLast="Smith", group=True)
+    # $filter: ((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))
+
+Both alternatives must now also match ``NameLast``. Without grouping, OData's
+operator precedence lets the first alternative match regardless of the name.
+The same option groups ``Q`` arguments and conditions inside a ``Q`` object:
+
+.. code-block:: python
+
+    from pyodata.v2.service import FilterExpression as Q
+
+    request = service.entity_sets.Employees.get_entities().filter(
+        Q(ID=2) | Q(ID=3), NameLast="Smith", group=True)
+
+On a chained call, ``group=True`` also groups the whole preceding filter before
+adding the new conditions. A string filter still replaces the preceding filter,
+as it does without grouping. Grouping is selected per call and defaults to
+``False``, preserving existing query serialization.
+
+``group`` is a filter option; to filter an entity property with that exact name,
+pass it inside ``Q(group=value)``.
+
+
 Get a count of entities
 -----------------------
 
