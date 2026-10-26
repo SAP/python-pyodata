@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- service: the `__in` filter lookup wraps its `or` alternatives in parentheses, so combining it with another lookup (e.g. `filter(ID__in=[1, 2], NickName='Tim')`) no longer changes the meaning of the filter - Vitor Coelho
 - service: `update_entity` accepts `200 OK` as well as `204 No Content`, so updates against services such as SAP SuccessFactors no longer raise `HttpError` (#136) - Sena Köse
 
 ## [1.12.1]
