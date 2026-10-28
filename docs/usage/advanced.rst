@@ -134,3 +134,48 @@ exception from the hook propagates to the caller and prevents the domain handler
 The hook must be stateless to be safe under concurrent and async use. If you need to
 handle SAP-specific header errors, use the ready-made hook in ``pyodata.vendor.SAP``
 — see :doc:`vendors`.
+
+Out-of-range JSON dates
+-----------------------
+
+Some services return JSON ``/Date(...)/`` values outside the range Python's
+``datetime`` can represent. By default, PyOData raises
+``pyodata.exceptions.PyODataModelError`` rather than silently replacing them.
+The supported millisecond range is ``-62135596800000`` through
+``253402300799999``, inclusive.
+
+If your service deliberately uses such values as minimum/maximum date sentinels,
+you can enable either workaround independently before reading entity responses:
+
+.. code-block:: python
+
+    import pyodata.v2.model as model
+
+    model.FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE = True
+    model.FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE = True
+
+Both flags default to ``False``. They apply to JSON decoding of ``Edm.DateTime``
+and ``Edm.DateTimeOffset`` values, not to malformed date strings or date literals
+in URLs. Values already within the supported range are not changed.
+
+* ``FIX_SCREWED_UP_MINIMAL_DATETIME_VALUE`` replaces values below the minimum
+  with January 1, year 1 at midnight.
+* ``FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE`` replaces values above the maximum
+  with December 31, year 9999 at midnight. This is **not** ``datetime.max``
+  (the end of that day).
+
+For example, with both flags enabled:
+
+.. code-block:: python
+
+    dates = model.Types.from_name('Edm.DateTime').traits
+    print(dates.from_json('/Date(-62135596800001)/'))
+    # 0001-01-01 00:00:00+00:00
+    print(dates.from_json('/Date(253402300800000)/'))
+    # 9999-12-31 00:00:00+00:00
+
+The timezone supplied by the decoder is retained, including the offset for
+``Edm.DateTimeOffset``. These are module-level settings shared by all clients
+in the process, not per-client options. Configure only the flags needed by your
+service when your application starts; avoid toggling them around concurrent
+requests. Set a flag back to ``False`` to restore strict range checking.
