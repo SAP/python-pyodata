@@ -1223,12 +1223,23 @@ class GetEntitySetFilterChainable:
         filter_expressions = [self._decode_expression(expr, val) for expr, val in filter_expression.expressions]
         return self._combine_expressions(filter_expressions)
 
+    def _decode_grouped_query_object(self, expr):
+        """Preserve every right-hand subtree in an opt-in grouped expression."""
+        lhs = self._decode_and_combine_filter_expression(expr)
+        if expr.other is None:
+            return lhs
+        rhs = self._decode_grouped_query_object(expr.other)
+        return f'({lhs}) {expr.operator} ({rhs})'
+
     def _process_query_objects(self):
         """Processes FilterExpression objects to OData lookups"""
 
         filter_expressions = []
 
         for expr in self._filter_expressions:
+            if self._group:
+                filter_expressions.append(self._decode_grouped_query_object(expr))
+                continue
             lhs_expressions = self._decode_and_combine_filter_expression(expr)
 
             if expr.other is not None:

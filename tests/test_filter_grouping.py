@@ -50,60 +50,6 @@ def selected_ids(expression):
 
 @pytest.mark.parametrize('build, expected, expected_filter, expected_url', [
     pytest.param(
-        lambda request: request.filter(Q(ID=1) | Q(NickName='Tim'), NameLast='Smith', group=True),
-        {1, 3}, "((NameLast eq 'Smith') and ((ID eq 1) or (NickName eq 'Tim')))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28NameLast+eq+%27Smith%27%29+and+%28%28ID+eq+1%29+or+%28NickName+eq+%27Tim%27%29%29%29',
-        id='or-with-keyword'),
-    pytest.param(
-        lambda request: request.filter(ID__in=[2, 3], NameLast='Smith', group=True),
-        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
-        id='in-with-keyword'),
-    pytest.param(
-        lambda request: request.filter(Q(ID__in=[2, 3], NameLast='Smith'), group=True),
-        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
-        id='in-within-q'),
-    pytest.param(
-        lambda request: request.filter(Q(ID__in=[2, 3], NameLast='Smith') | Q(ID=5), group=True),
-        {3, 5}, "(((ID eq 2 or ID eq 3) and (NameLast eq 'Smith')) or (ID eq 5))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29+or+%28ID+eq+5%29%29',
-        id='compound-or'),
-    pytest.param(
-        lambda request: request.filter(Q(ID__in=[2, 3]) & Q(NameLast='Smith'), group=True),
-        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
-        id='binary-and'),
-    pytest.param(
-        lambda request: request.filter(Q(ID=2) | Q(ID=3), Q(NameLast='Smith'), group=True),
-        {3}, "(((ID eq 2) or (ID eq 3)) and (NameLast eq 'Smith'))",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28%28ID+eq+2%29+or+%28ID+eq+3%29%29+and+%28NameLast+eq+%27Smith%27%29%29',
-        id='multiple-q'),
-    pytest.param(
-        lambda request: request.filter(Q(ID=2) | Q(ID=3)).filter(NameLast='Smith', group=True),
-        {3}, "((ID eq 2) or (ID eq 3)) and (NameLast eq 'Smith')",
-        'http://odata.example.com/Employees?%24filter='
-        '%28%28ID+eq+2%29+or+%28ID+eq+3%29%29+and+%28NameLast+eq+%27Smith%27%29',
-        id='group-previous-call'),
-    pytest.param(
-        lambda request: request.filter(ID__in=[2, 3], group=True).filter(NameLast='Smith'),
-        {3}, "(ID eq 2 or ID eq 3) and NameLast eq 'Smith'",
-        'http://odata.example.com/Employees?%24filter='
-        '%28ID+eq+2+or+ID+eq+3%29+and+NameLast+eq+%27Smith%27',
-        id='group-before-legacy-tail'),
-    pytest.param(
-        lambda request: request.filter('ID eq 2 or ID eq 3').filter(NameLast='Smith', group=True),
-        {3}, "(ID eq 2 or ID eq 3) and (NameLast eq 'Smith')",
-        'http://odata.example.com/Employees?%24filter='
-        '%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29',
-        id='raw-before-group'),
-    pytest.param(
         lambda request: request.filter('ID eq 2 or ID eq 3', group=True),
         {2, 3}, '(ID eq 2 or ID eq 3)',
         'http://odata.example.com/Employees?%24filter=%28ID+eq+2+or+ID+eq+3%29',
@@ -119,6 +65,80 @@ def selected_ids(expression):
         'http://odata.example.com/Employees?%24filter='
         '%28%28NameLast+eq+%27M%C3%BCller%27%29+and+%28NickName+eq+%27Ren%C3%A9%27%29%29',
         id='unicode-encoding'),
+    pytest.param(
+        lambda request: request.filter(ID__in=[2, 3], NameLast='Smith', group=True),
+        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
+        id='in-with-keyword'),
+    pytest.param(
+        lambda request: request.filter(Q(ID__in=[2, 3], NameLast='Smith'), group=True),
+        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
+        id='in-within-q'),
+    pytest.param(
+        lambda request: request.filter(Q(ID__in=[2, 3]) & Q(NameLast='Smith'), group=True),
+        {3}, "((ID eq 2 or ID eq 3) and (NameLast eq 'Smith'))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29',
+        id='binary-and'),
+    pytest.param(
+        lambda request: request.filter(Q(ID=2) | Q(ID=3), Q(NameLast='Smith'), group=True),
+        {3}, "(((ID eq 2) or (ID eq 3)) and (NameLast eq 'Smith'))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28%28ID+eq+2%29+or+%28ID+eq+3%29%29+and+%28NameLast+eq+%27Smith%27%29%29',
+        id='multiple-q'),
+    pytest.param(
+        lambda request: request.filter(Q(ID=1) | Q(NickName='Tim'), NameLast='Smith', group=True),
+        {1, 3}, "((NameLast eq 'Smith') and ((ID eq 1) or (NickName eq 'Tim')))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28NameLast+eq+%27Smith%27%29+and+%28%28ID+eq+1%29+or+%28NickName+eq+%27Tim%27%29%29%29',
+        id='or-with-keyword'),
+    pytest.param(
+        lambda request: request.filter(Q(ID__in=[2, 3], NameLast='Smith') | Q(ID=5), group=True),
+        {3, 5}, "(((ID eq 2 or ID eq 3) and (NameLast eq 'Smith')) or (ID eq 5))",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29+or+%28ID+eq+5%29%29',
+        id='compound-or'),
+    pytest.param(
+        lambda request: request.filter('ID eq 2 or ID eq 3').filter(NameLast='Smith', group=True),
+        {3}, "(ID eq 2 or ID eq 3) and (NameLast eq 'Smith')",
+        'http://odata.example.com/Employees?%24filter='
+        '%28ID+eq+2+or+ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29',
+        id='raw-before-group'),
+    pytest.param(
+        lambda request: request.filter(ID__in=[2, 3], group=True).filter(NameLast='Smith'),
+        {3}, "(ID eq 2 or ID eq 3) and NameLast eq 'Smith'",
+        'http://odata.example.com/Employees?%24filter='
+        '%28ID+eq+2+or+ID+eq+3%29+and+NameLast+eq+%27Smith%27',
+        id='group-before-legacy-tail'),
+    pytest.param(
+        lambda request: request.filter(Q(ID=2) | Q(ID=3)).filter(NameLast='Smith', group=True),
+        {3}, "((ID eq 2) or (ID eq 3)) and (NameLast eq 'Smith')",
+        'http://odata.example.com/Employees?%24filter='
+        '%28%28ID+eq+2%29+or+%28ID+eq+3%29%29+and+%28NameLast+eq+%27Smith%27%29',
+        id='group-previous-call'),
+    pytest.param(
+        lambda request: request.filter(ID__in=[1, 2, 3], group=True).filter(Q(NameLast='Smith') | Q(NameLast='Jones'), group=True).filter(Q(NickName='Tim') | Q(NickName='Al'), group=True),
+        {1, 2, 3}, "(((ID eq 1 or ID eq 2 or ID eq 3)) and ((NameLast eq 'Smith') or (NameLast eq 'Jones'))) and ((NickName eq 'Tim') or (NickName eq 'Al'))",
+        'http://odata.example.com/Employees?%24filter=%28%28%28ID+eq+1+or+ID+eq+2+or+ID+eq+3%29%29+and+%28%28NameLast+eq+%27Smith%27%29+or+%28NameLast+eq+%27Jones%27%29%29%29+and+%28%28NickName+eq+%27Tim%27%29+or+%28NickName+eq+%27Al%27%29%29',
+        id='three-grouped-calls'),
+    pytest.param(
+        lambda request: request.filter(Q(ID=1) | (Q(ID=2) | (Q(ID=3) & Q(NameLast='Smith'))), group=True),
+        {1, 2, 3}, "((ID eq 1) or ((ID eq 2) or ((ID eq 3) and (NameLast eq 'Smith'))))",
+        'http://odata.example.com/Employees?%24filter=%28%28ID+eq+1%29+or+%28%28ID+eq+2%29+or+%28%28ID+eq+3%29+and+%28NameLast+eq+%27Smith%27%29%29%29%29',
+        id='nested-or-and-tail'),
+    pytest.param(
+        lambda request: request.filter(Q(NameLast='Smith') & (Q(ID=1) | (Q(ID=3) & Q(NickName='Tim'))), group=True),
+        {1, 3}, "((NameLast eq 'Smith') and ((ID eq 1) or ((ID eq 3) and (NickName eq 'Tim'))))",
+        'http://odata.example.com/Employees?%24filter=%28%28NameLast+eq+%27Smith%27%29+and+%28%28ID+eq+1%29+or+%28%28ID+eq+3%29+and+%28NickName+eq+%27Tim%27%29%29%29%29',
+        id='and-around-nested-or'),
+    pytest.param(
+        lambda request: request.filter(Q(ID=1) | (Q(ID=2) & (Q(NameLast='Smith') | Q(NickName='Tim'))), group=True),
+        {1, 2}, "((ID eq 1) or ((ID eq 2) and ((NameLast eq 'Smith') or (NickName eq 'Tim'))))",
+        'http://odata.example.com/Employees?%24filter=%28%28ID+eq+1%29+or+%28%28ID+eq+2%29+and+%28%28NameLast+eq+%27Smith%27%29+or+%28NickName+eq+%27Tim%27%29%29%29%29',
+        id='right-nested-alternating'),
 ])
 @responses.activate
 def test_grouped_filter_selects_expected_rows(employees, build, expected, expected_filter, expected_url):
