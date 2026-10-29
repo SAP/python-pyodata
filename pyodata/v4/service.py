@@ -713,16 +713,24 @@ class GetEntitySetRequest(QueryRequest):
         proprty = self._entity_type.proprty(name)
         return GetEntitySetFilter(proprty)
 
-    def _set_filter(self, filter_val):
+    def _set_filter(self, filter_val, group=False):
+        if group:
+            if not filter_val:
+                return
+            filter_val = f'({filter_val})'
+            if self._filter:
+                self._filter = f'({self._filter})'
         filter_text = self._filter + ' and ' if self._filter else ''
         filter_text += filter_val
         self._filter = filter_text
 
-    def filter(self, *args, **kwargs):
+    def filter(self, *args, group=False, **kwargs):
+        """Set filters, optionally grouping conditions before joining them with and."""
         if args and len(args) == 1 and isinstance(args[0], str):
-            self._filter = args[0]
+            self._filter = f'({args[0]})' if group and args[0] else args[0]
         else:
-            self._set_filter(str(GetEntitySetFilterChainable(self._entity_type, args, kwargs)))
+            self._set_filter(str(GetEntitySetFilterChainable(self._entity_type, args, kwargs, group=group)),
+                             group=group)
 
         return self
 
