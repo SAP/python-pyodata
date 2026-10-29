@@ -26,6 +26,13 @@ HTTP_CODE_CREATED = 201
 HTTP_CODE_NO_CONTENT = 204
 
 
+def _normalize_select(select):
+    """Convert an iterable of selection clauses to its query representation."""
+    if select is None or isinstance(select, str):
+        return select
+    return ','.join(select)
+
+
 def urljoin(*path):
     """Joins the passed string parts into a one string url"""
 
@@ -397,9 +404,9 @@ class EntityGetRequest(ODataHttpRequest):
     def select(self, select):
         """Specifies a subset of properties to return.
 
-           @param select  a comma-separated list of selection clauses
+           @param select  comma-separated text or an iterable of selection clauses
         """
-        self._select = select
+        self._select = _normalize_select(select)
         return self
 
     def expand(self, expand):
@@ -710,8 +717,8 @@ class QueryRequest(ODataHttpRequest):
         return self
 
     def select(self, select):
-        """Sets the selection clauses."""
-        self._select = select
+        """Sets selection clauses from comma-separated text or an iterable."""
+        self._select = _normalize_select(select)
         return self
 
     def skip(self, skip):
