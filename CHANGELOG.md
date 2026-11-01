@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [1.12.2]
+
 ### Added
 
 - service: the chainable filter accepts the OData operator names `__le` / `__ge` as lookups, next to the Django-style `__lte` / `__gte` - Vitor Coelho
@@ -235,7 +238,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 1.1.1 - First PIP package release
 
-[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.12.1...HEAD
+[Unreleased]: https://github.com/SAP/python-pyodata/compare/1.12.2...HEAD
+[1.12.2]: https://github.com/SAP/python-pyodata/compare/1.12.1...1.12.2
 [1.12.1]: https://github.com/SAP/python-pyodata/compare/1.12.0...1.12.1
 [1.12.0]: https://github.com/SAP/python-pyodata/compare/1.11.2...1.12.0
 [1.11.1]: https://github.com/SAP/python-pyodata/compare/1.11.1...1.11.2
