@@ -21,36 +21,56 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         lxml-version: ["4.6.5", "4.7.1", "4.8.0", "4.9.4", "5.0.1", "5.1.1", "5.2.2", "5.3.2", "5.4.0", "6.0.4", "6.1.1"]
         exclude:
+          # Excluded = no Linux CPython wheel published on PyPI for this
+          # (python, lxml) pair. This job installs wheels only (see the
+          # --only-binary flag below); without a wheel pip would fall back to
+          # compiling lxml from source against the runner's system libxml2,
+          # which tests the toolchain rather than pyodata. Derive these from
+          # actual PyPI wheel availability, NOT from lxml's python_requires.
           - python-version: 3.11
             lxml-version: 4.6.5
           - python-version: 3.11
-            lxml-version: 4.7.1  
+            lxml-version: 4.7.1
           - python-version: 3.11
-            lxml-version: 4.8.0 
+            lxml-version: 4.8.0
           - python-version: 3.12
             lxml-version: 4.6.5
           - python-version: 3.12
-            lxml-version: 4.7.1  
+            lxml-version: 4.7.1
           - python-version: 3.12
-            lxml-version: 4.8.0  
-          - python-version: 3.12
-            lxml-version: 4.9.4
+            lxml-version: 4.8.0
           - python-version: 3.13
             lxml-version: 4.6.5
           - python-version: 3.13
-            lxml-version: 4.7.1  
+            lxml-version: 4.7.1
           - python-version: 3.13
-            lxml-version: 4.8.0  
+            lxml-version: 4.8.0
           - python-version: 3.13
             lxml-version: 4.9.4
+          - python-version: 3.13
+            lxml-version: 5.0.1
+          - python-version: 3.13
+            lxml-version: 5.1.1
+          - python-version: 3.13
+            lxml-version: 5.2.2
           - python-version: 3.14
             lxml-version: 4.6.5
           - python-version: 3.14
-            lxml-version: 4.7.1  
+            lxml-version: 4.7.1
           - python-version: 3.14
-            lxml-version: 4.8.0  
+            lxml-version: 4.8.0
           - python-version: 3.14
             lxml-version: 4.9.4
+          - python-version: 3.14
+            lxml-version: 5.0.1
+          - python-version: 3.14
+            lxml-version: 5.1.1
+          - python-version: 3.14
+            lxml-version: 5.2.2
+          - python-version: 3.14
+            lxml-version: 5.3.2
+          - python-version: 3.14
+            lxml-version: 5.4.0
 
     steps:
     - uses: actions/checkout@v2
@@ -66,7 +86,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install lxml==${{ matrix.lxml-version }}
+        python -m pip install --only-binary lxml lxml==${{ matrix.lxml-version }}
         python -m pip install -r dev-requirements.txt
         python -m pip install -r requirements.txt
 
