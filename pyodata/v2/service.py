@@ -32,6 +32,45 @@ def urljoin(*path):
     return '/'.join((part.strip('/') for part in path))
 
 
+def encode_entity_path(path):
+    """Percent-encode an OData resource path built from entity-set names and
+       entity keys.
+
+       Structural slashes that separate path segments (e.g. the separator in
+       ``Employees(23)/Addresses``) are preserved, while slashes that appear
+       inside an entity key value (e.g. ``SoftwareComponents('/BAZ/FOO')``) are
+       encoded as ``%2F``.
+
+       This is achieved by encoding the parts outside of the key parentheses
+       with ``safe='/'`` (keeping structural separators intact) and the parts
+       inside the key parentheses with ``safe=''`` (encoding every reserved
+       character, including slashes).
+    """
+
+    encoded = []
+    depth = 0
+    start = 0
+
+    for index, char in enumerate(path):
+        if char == '(':
+            if depth == 0:
+                encoded.append(quote(path[start:index], safe='/'))
+                start = index
+            depth += 1
+        elif char == ')':
+            if depth > 0:
+                depth -= 1
+                if depth == 0:
+                    encoded.append(quote(path[start:index + 1], safe=''))
+                    start = index + 1
+
+    # Encode the trailing part that is outside of any key parentheses. If the
+    # parentheses were unbalanced, the remaining key part keeps full encoding.
+    encoded.append(quote(path[start:], safe='' if depth > 0 else '/'))
+
+    return ''.join(encoded)
+
+
 def encode_multipart(boundary, http_requests):
     """Encode list of requests into multipart body"""
 
@@ -412,7 +451,7 @@ class EntityGetRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
+            return encode_entity_path(self._entity_set_proxy.last_segment + self._entity_key.to_key_string())
         return self._entity_set_proxy.last_segment + self._entity_key.to_key_string()
 
     def get_default_headers(self):
@@ -569,7 +608,7 @@ class EntityDeleteRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return encode_entity_path(self._entity_set.name + self._entity_key.to_key_string())
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_encode_path(self):
@@ -613,7 +652,7 @@ class EntityModifyRequest(ODataHttpRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            return quote(self._entity_set.name + self._entity_key.to_key_string())
+            return encode_entity_path(self._entity_set.name + self._entity_key.to_key_string())
         return self._entity_set.name + self._entity_key.to_key_string()
 
     def get_method(self):
@@ -1367,7 +1406,7 @@ class GetEntitySetRequest(QueryRequest):
 
     def get_path(self):
         if self.get_encode_path():
-            path = quote(self._last_segment)
+            path = encode_entity_path(self._last_segment)
         else:
             path = self._last_segment
 

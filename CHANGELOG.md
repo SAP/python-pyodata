@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- service: entity key values containing `/` are now percent-encoded as `%2F` in the request path, while structural slashes in navigation property paths stay unencoded (#282)
+
 
 ## [1.12.2]
 

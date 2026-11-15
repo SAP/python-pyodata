@@ -839,6 +839,73 @@ def test_delete_entity_http_error(service):
     assert caught_ex.value.response.status_code == 404
 
 
+# Issue #282 — slashes inside an entity key value must be percent-encoded as %2F,
+# while structural slashes that separate path segments must stay unencoded.
+
+def test_get_entity_path_encodes_slash_in_key(service):
+    """GET: a slash in the key value is encoded as %2F (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.get_entity('/BAZ/FOO')
+
+    assert request.get_path() == "Cars%28%27%2FBAZ%2FFOO%27%29"
+
+
+def test_delete_entity_path_encodes_slash_in_key(service):
+    """DELETE: a slash in the key value is encoded as %2F (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.delete_entity('/BAZ/FOO')
+
+    assert request.get_path() == "Cars%28%27%2FBAZ%2FFOO%27%29"
+
+
+def test_update_entity_path_encodes_slash_in_key(service):
+    """PATCH/MODIFY: a slash in the key value is encoded as %2F (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.update_entity('/BAZ/FOO')
+
+    assert request.get_path() == "Cars%28%27%2FBAZ%2FFOO%27%29"
+
+
+def test_get_entities_path_encodes_slash_in_parent_key(service):
+    """GET entity set: a slash in a parent key value is encoded as %2F (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Customers.get_entity('/BAZ/FOO').nav('Orders').get_entities()
+
+    assert isinstance(request, pyodata.v2.service.GetEntitySetRequest)
+    assert request.get_path() == "Customers%28%27%2FBAZ%2FFOO%27%29/Orders"
+
+
+def test_entity_path_keeps_structural_slash(service):
+    """Navigation property separator stays an unencoded slash (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.get_entity('/BAZ/FOO').nav('IDPic')
+
+    assert request.get_path() == "Cars%28%27%2FBAZ%2FFOO%27%29/IDPic"
+
+
+def test_entity_path_encode_path_false_bypasses_encoding(service):
+    """encode_path=False still produces a raw, unencoded path (regression guard)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.get_entity('/BAZ/FOO', encode_path=False)
+
+    assert request.get_path() == "Cars('/BAZ/FOO')"
+
+
+def test_entity_path_encodes_other_special_characters_in_key(service):
+    """Other reserved characters in the key value are still encoded (issue #282)"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.Cars.get_entity('a/b?c&d')
+
+    assert request.get_path() == "Cars%28%27a%2Fb%3Fc%26d%27%29"
+
+
 def test_update_entity_with_entity_key(service):
     """Make sure the method update_entity handles correctly the parameter key which is EntityKey"""
 
