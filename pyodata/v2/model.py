@@ -13,6 +13,7 @@ from enum import Enum, auto
 import io
 import itertools
 import logging
+import math
 import re
 import warnings
 from abc import ABC, abstractmethod
@@ -643,7 +644,19 @@ class EdmFPNumTypTraits(TypTraits):
         return EdmFPNumTypTraits(7, 'f', '{:f}')
 
     def to_literal(self, value):
-        return self.conversion.format(value)
+        literal = self.conversion.format(value)
+
+        if not isinstance(value, float) or not math.isfinite(value) or float(literal) == value:
+            return literal
+
+        # The conversion has a fixed number of digits (6 after the decimal point) and would silently
+        # change this value, so use the fewest digits that read back as the very same number.
+        for digits in range(7, 17):
+            literal = f'{value:.{digits}E}'
+            if float(literal) == value:
+                break
+
+        return literal
 
     def to_json(self, value):
         return self.to_literal(value)
