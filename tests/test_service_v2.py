@@ -756,6 +756,23 @@ def test_update_entity(service):
     request.execute()
 
 
+def test_double_values_keep_their_precision(service):
+    """Edm.Double values must reach the service, as a payload and in a filter, without losing digits"""
+
+    # pylint: disable=redefined-outer-name
+    request = service.entity_sets.TemperatureMeasurements.update_entity(
+        Sensor='sensor1',
+        Date=datetime.datetime(2017, 12, 24, 18, 0, tzinfo=datetime.timezone.utc))
+    request.set(Value=1234567.891)
+
+    assert request._values['Value'] == '1.234567891E+06'
+
+    request = service.entity_sets.TemperatureMeasurements.get_entities()
+
+    assert (request.Value == 3.141592653589793) == 'Value eq 3.141592653589793E+00'
+    assert (request.Value >= 1234567.891) == 'Value ge 1.234567891E+06'
+
+
 @responses.activate
 @pytest.mark.parametrize('status', [200, 204])
 def test_update_entity_accepts_ok_and_no_content(service, status):

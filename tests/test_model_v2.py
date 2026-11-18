@@ -489,6 +489,17 @@ def test_traits():
     assert typ.traits.to_literal(2.0) == '2.000000E+00'
     assert typ.traits.to_json(2.0) == '2.000000E+00'
 
+    # values which need more than 6 digits must not lose precision
+    assert typ.traits.to_literal(3.141592653589793) == '3.141592653589793E+00'
+    assert typ.traits.to_literal(1234567.891) == '1.234567891E+06'
+    assert typ.traits.to_literal(0.1 + 0.2) == '3.0000000000000004E-01'
+    assert typ.traits.to_literal(-1.5e-10) == '-1.500000E-10'
+    assert typ.traits.to_json(1234567.891) == '1.234567891E+06'
+    assert typ.traits.from_literal(typ.traits.to_literal(1234567.891)) == 1234567.891
+    assert typ.traits.to_literal(float('inf')) == 'INF'
+    assert typ.traits.to_literal(float('nan')) == 'NAN'
+    assert typ.traits.to_literal(34) == '3.400000E+01'
+
     typ = Types.from_name('Edm.Single')
     assert repr(typ.traits) == 'EdmFPNumTypTraits(7,f)'
     assert typ.traits.from_literal('2.029f') == 2.029

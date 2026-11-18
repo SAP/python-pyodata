@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- model: `Edm.Double` and `Edm.Float` values with more than 7 significant digits (for example `3.141592653589793`) were rounded to 6 decimals in filters, keys and create/update payloads; they now keep every digit
 
 ## [1.12.2]
 
