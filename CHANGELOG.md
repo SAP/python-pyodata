@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- model: several value list annotations on the same property no longer mark the schema invalid; the first one is kept and the rest are logged as ignored (#142)
 
 ## [1.12.2]
 

@@ -1751,3 +1751,50 @@ def test_invalid_xml(xml_builder_factory):
     with pytest.raises(PyODataParserError) as e_info:
         MetadataBuilder(xml).build()
     assert str(e_info.value) == 'Metadata document syntax error'
+
+
+@patch('logging.Logger.warning')
+def test_annot_v_l_duplicate_target(mock_warning, xml_builder_factory):
+    """Several value list annotations of one property must not invalidate the schema"""
+
+    vl = """
+        <Annotations xmlns="http://docs.oasis-open.org/odata/ns/edm" Target="DUP_VL.Dict/Value">
+         <Annotation Term="com.sap.vocabularies.Common.v1.ValueList">
+          <Record>
+           <PropertyValue Property="Label" String="{label}"/>
+           <PropertyValue Property="CollectionPath" String="DataValueHelp"/>
+           <PropertyValue Property="SearchSupported" Bool="true"/>
+           <PropertyValue Property="Parameters">
+            <Collection>
+             <Record Type="com.sap.vocabularies.Common.v1.ValueListParameterOut">
+              <PropertyValue Property="LocalDataProperty" PropertyPath="Value"/>
+              <PropertyValue Property="ValueListProperty" String="Value"/>
+             </Record>
+            </Collection>
+           </PropertyValue>
+          </Record>
+         </Annotation>
+        </Annotations>
+    """
+
+    xml_builder = xml_builder_factory()
+    xml_builder.add_schema(
+        'DUP_VL',
+        """
+        <EntityType Name="Dict" sap:content-version="1">
+         <Key><PropertyRef Name="Key"/></Key>
+         <Property Name="Key" Type="Edm.String" Nullable="false"/>
+         <Property Name="Value" Type="Edm.String" Nullable="false"/>
+        </EntityType>
+        <EntityContainer Name="EXAMPLE_SRV" m:IsDefaultEntityContainer="true">
+         <EntitySet Name="DataValueHelp" EntityType="DUP_VL.Dict"/>
+        </EntityContainer>
+        """ + vl.format(label='First') + vl.format(label='Second')
+    )
+
+    schema = MetadataBuilder(xml_builder.serialize()).build()
+
+    assert schema.is_valid
+    value_helper = schema.entity_type('Dict').proprty('Value').value_helper
+    assert value_helper.label == 'First'
+    assert any('Ignoring additional value list' in str(call.args[0]) for call in mock_warning.call_args_list)

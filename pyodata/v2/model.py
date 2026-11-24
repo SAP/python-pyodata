@@ -1439,6 +1439,13 @@ class Schema:
                                 raise RuntimeError(f'Target Property {annotation.proprty_name} '
                                                    f'of {vh_type} as defined in {annotation} does not exist')
 
+                            if target_proprty.value_helper is not None:
+                                # OData allows several annotations of the same term on one target;
+                                # PyOData keeps only one value helper per property, so keep the first.
+                                modlog().warning('Ignoring additional value list %s, %s already has %s',
+                                                 annotation, target_proprty, target_proprty.value_helper)
+                                continue
+
                             annotation.proprty = target_proprty
                             target_proprty.value_helper = annotation
                     except (RuntimeError, PyODataModelError) as ex:
