@@ -389,6 +389,22 @@ def ms_since_epoch_to_datetime(value, tzinfo):
                                 f' or `FIX_SCREWED_UP_MAXIMUM_DATETIME_VALUE` as a workaround.')
 
 
+def is_utc_datetime(value):
+    """Return True when value is an aware datetime in UTC
+
+       Besides datetime.timezone.utc (and fixed zero offsets equal to it), accept
+       the UTC objects of other time zone libraries, e.g. zoneinfo.ZoneInfo('UTC'),
+       pytz.utc or dateutil.tz.UTC, which do not compare equal to datetime.timezone.utc.
+       Zones that only happen to have a zero offset at the given moment (e.g. Europe/London
+       in winter) are still rejected, so the result does not depend on the season.
+    """
+
+    if value.tzinfo == datetime.timezone.utc:
+        return True
+
+    return value.utcoffset() == datetime.timedelta(0) and value.tzname() == 'UTC'
+
+
 def parse_datetime_literal(value):
     try:
         # fromisoformat on Python < 3.11 requires fractional seconds to be exactly
@@ -431,7 +447,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
             raise PyODataModelError(
                 f'Cannot convert value of type {type(value)} to literal. Datetime format is required.')
 
-        if value.tzinfo != datetime.timezone.utc:
+        if not is_utc_datetime(value):
             raise PyODataModelError('Edm.DateTime accepts only UTC')
 
         # Sets timezone to none to avoid including timezone information in the literal form.
@@ -441,7 +457,7 @@ class EdmDateTimeTypTraits(EdmPrefixedTypTraits):
         if isinstance(value, str):
             return value
 
-        if value.tzinfo != datetime.timezone.utc:
+        if not is_utc_datetime(value):
             raise PyODataModelError('Edm.DateTime accepts only UTC')
 
         # Converts datetime into timestamp in milliseconds in UTC timezone as defined in ODATA specification
