@@ -1,7 +1,8 @@
 """Tests for OData Model module"""
 # pylint: disable=line-too-long,too-many-locals,too-many-statements,invalid-name, too-many-lines, no-name-in-module, expression-not-assigned, pointless-statement
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, tzinfo
+from zoneinfo import ZoneInfo
 from unittest.mock import patch
 import pytest
 from pyodata.v2.model import Schema, Typ, StructTypeProperty, Types, EntityType, EdmStructTypeSerializer, \
@@ -718,6 +719,57 @@ def test_traits_datetime_with_offset_to_json(type_date_time, python_datetime, ex
     """Test Edm.DateTimeOffset trait: Python -> json"""
 
     assert type_date_time.traits.to_json(python_datetime) == expected, comment
+
+
+class FixedUTCOffsetTimezone(tzinfo):
+    """tzinfo with a fixed offset, used like the UTC objects of pytz or dateutil"""
+
+    def __init__(self, offset, name):
+        self.offset = offset
+        self.name = name
+
+    def utcoffset(self, dt):
+        return self.offset
+
+    def tzname(self, dt):
+        return self.name
+
+    def dst(self, dt):
+        return timedelta(0)
+
+
+@pytest.mark.parametrize('utc_tzinfo,comment', [
+    (timezone.utc, 'datetime.timezone.utc'),
+    (timezone(timedelta(0)), 'zero offset equal to timezone.utc'),
+    (ZoneInfo('UTC'), 'zoneinfo UTC'),
+    (ZoneInfo('Etc/UTC'), 'zoneinfo Etc/UTC'),
+    (FixedUTCOffsetTimezone(timedelta(0), 'UTC'), 'third-party UTC object, e.g. pytz.utc or dateutil.tz.UTC'),
+    ])
+def test_traits_datetime_accepts_any_utc_tzinfo(type_date_time, utc_tzinfo, comment):
+    """Edm.DateTime accepts UTC datetimes regardless of the tzinfo implementation"""
+
+    testdate = datetime(1976, 11, 23, 3, 33, 6, microsecond=123000, tzinfo=utc_tzinfo)
+    assert type_date_time.traits.to_literal(testdate) == "datetime'1976-11-23T03:33:06.123000'", comment
+    assert type_date_time.traits.to_json(testdate) == '/Date(217567986123)/', comment
+
+
+@pytest.mark.parametrize('non_utc_datetime,comment', [
+    (datetime(1976, 11, 23, 3, 33, 6), 'naive datetime'),
+    (datetime(1976, 11, 23, 3, 33, 6, tzinfo=timezone(timedelta(hours=1))), 'fixed non-zero offset'),
+    (datetime(1976, 11, 23, 3, 33, 6, tzinfo=FixedUTCOffsetTimezone(timedelta(hours=1), 'UTC')), 'named UTC but with an offset'),
+    (datetime(1976, 7, 23, 3, 33, 6, tzinfo=ZoneInfo('Europe/London')), 'Europe/London in summer'),
+    (datetime(1976, 11, 23, 3, 33, 6, tzinfo=ZoneInfo('Europe/London')), 'Europe/London in winter (zero offset, but not UTC)'),
+    ])
+def test_traits_datetime_rejects_non_utc(type_date_time, non_utc_datetime, comment):
+    """Edm.DateTime still rejects naive and non-UTC datetimes"""
+
+    with pytest.raises(PyODataModelError) as e_info:
+        type_date_time.traits.to_literal(non_utc_datetime)
+    assert str(e_info.value).startswith('Edm.DateTime accepts only UTC'), comment
+
+    with pytest.raises(PyODataModelError) as e_info:
+        type_date_time.traits.to_json(non_utc_datetime)
+    assert str(e_info.value).startswith('Edm.DateTime accepts only UTC'), comment
 
 
 def test_traits_datetimeoffset(type_date_time_offset):

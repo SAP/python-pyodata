@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- model: `Edm.DateTime` accepts UTC datetimes whose tzinfo is `zoneinfo.ZoneInfo('UTC')`, `pytz.utc` or `dateutil.tz.UTC` instead of raising "Edm.DateTime accepts only UTC" - Vitor Coelho
+
 
 ## [1.12.2]
 
